@@ -1,0 +1,163 @@
+{
+    "parameters": {
+        "fs": {
+            "descr": "Data partition filesystem",
+            "type": "filesystem",
+            "default": "exfat",
+            "attest": false
+        },
+        "password-user": {
+            "descr": "User password",
+            "type": "password",
+            "attest": false
+        },
+        "password-internal": {
+            "descr": "Internal partition password",
+            "type": "password",
+            "attest": false
+        },
+        "password-data": {
+            "descr": "Data partition password",
+            "type": "password",
+            "attest": false
+        },
+        "confid": {
+            "descr": "Format config ID",
+            "type": "str",
+            "attest": true
+        },
+        "creation-date": {
+            "descr": "Creation date",
+            "type": "timestamp",
+            "attest": true
+        },
+        "creation-date-ts": {
+            "descr": "Creation date (epoch)",
+            "type": "int",
+            "attest": true
+        },
+        "password-rescue": {
+            "descr": "Recovery password",
+            "type": "password",
+            "attest": false
+        },
+        "device-signing-private-key-file": {
+            "descr": "Private key file for the device's signature (metadata)",
+            "type": "file",
+            "attest": false
+        },
+        "internal-size": {
+            "descr": "Size of the internal partition (enough to hold and run a VM)",
+            "type": "size-mb",
+            "default": 32768,
+            "attest": false
+        },
+        "blob0": {
+            "descr": "Blob0",
+            "type": "str",
+            "attest": false
+        }
+    },
+    "dev-format": {
+        "device": "{_dev}",
+        "type": "hybrid",
+        "hybrid-partitions": [
+            "dummy",
+            "data"
+        ],
+        "partitions": [
+            {
+                "id": "grub",
+                "type": "BIOS",
+                "label": "bios_grub",
+                "volume-id": null,
+                "encryption": null,
+                "immutable": false,
+                "filesystem": "ext4",
+                "password": null,
+                "size-mb": "1"
+            },
+            {
+                "id": "dummy",
+                "type": "LINUX",
+                "label": "dummy",
+                "volume-id": null,
+                "encryption": null,
+                "immutable": false,
+                "filesystem": "ext4",
+                "password": null,
+                "size-mb": "1"
+            },
+            {
+                "id": "EFI",
+                "type": "EFI",
+                "label": "efi",
+                "volume-id": null,
+                "encryption": null,
+                "immutable": false,
+                "filesystem": "fat",
+                "password": null,
+                "size-mb": "26"
+            },
+            {
+                "id": "live",
+                "type": "LINUX",
+                "label": "live",
+                "volume-id": null,
+                "encryption": null,
+                "immutable": false,
+                "filesystem": "ext4",
+                "password": null,
+                "size-mb": "6144"
+            },
+            {
+                "id": "internal",
+                "type": "LINUX",
+                "label": "system",
+                "volume-id": null,
+                "encryption": "luks",
+                "immutable": false,
+                "filesystem": "btrfs",
+                "password": "{password-internal}",
+                "size-mb": "{internal-size}"
+            },
+            {
+                "id": "data",
+                "type": "LINUX",
+                "label": "Documents",
+                "volume-id": "{password-internal}",
+                "encryption": "veracrypt",
+                "immutable": false,
+                "filesystem": "{fs}",
+                "password": "{password-data}",
+                "size-mb": null
+            }
+        ],
+        "unprotected": {
+            "creation-date": "{creation-date}",
+            "creation-date-ts": "{creation-date-ts}",
+            "confid": "{confid}"
+        },
+        "protected": {
+            "Rescue": {
+                "@data/password": null,
+                "@data/header": null,
+                "@internal/password": null,
+                "secret": "This is a secret!",
+                "blob0": "{blob0}"
+            }
+        },
+        "decryptors": {
+            "Rescue": {
+                "type": "password",
+                "password": "{password-rescue}"
+            }
+        },
+        "signatures": {
+            "Admin": {
+                "type": "key",
+                "private-key-file": "{device-signing-private-key-file}"
+            }
+        }
+    }
+}

@@ -1,0 +1,16 @@
+[Setting the clock]
+Identity=unix-group:admin;unix-group:sudo;unix-user:insecauser
+Action=org.gnome.clockapplet.mechanism.*;org.gnome.controlcenter.datetime.configure;org.kde.kcontrol.kcmclock.save;org.freedesktop.timedate1.set-time;org.freedesktop.timedate1.set-timezone;org.freedesktop.timedate1.set-local-rtc;org.freedesktop.timedate1.set-ntp;com.canonical.controlcenter.datetime.configure;
+ResultActive=yes
+
+[Soft. install]
+Identity=unix-group:admin;unix-group:sudo;unix-user:insecauser
+Action=org.freedesktop.packagekit.package-install
+ResultActive=yes
+
+[Do not allow user to enable/disable networking]
+Identity=unix-user:insecauser
+Action=org.freedesktop.NetworkManager.enable-disable-network
+ResultAny=no
+ResultInactive=no
+ResultActive=no

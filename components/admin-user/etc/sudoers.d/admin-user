@@ -1,0 +1,2 @@
+# admin user can do anything
+admin ALL=(root) NOPASSWD: ALL

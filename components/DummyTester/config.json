@@ -1,0 +1,16 @@
+{
+    "descr": "Dummy testing component",
+    "provides": [],
+    "requires": [],
+    "builddata": {},
+    "userdata": {
+        "dummy-file": {
+            "descr": "Dummy file",
+            "type": "file"
+        },
+        "dummy-data": {
+            "descr": "Dummy data",
+            "type": "str"
+        }
+    }
+}

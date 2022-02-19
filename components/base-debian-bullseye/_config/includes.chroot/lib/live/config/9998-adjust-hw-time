@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+# Linux normaly sets the hardware clock to UTC, Windows to LOCAL (WTF?)
+# To avoid to mess with the Windows OS, this script detects if a Windows OS is installed in the system
+# and if so, uses the LOCAL hardware time reference
+
+# get the non hot-pluggable (i.e. internal) disk devices 
+disks=$(/bin/lsblk -n -b -o NAME,HOTPLUG,TYPE --nodeps | awk '{if ($3=="disk" && $2=="0") print "/dev/" $1}')
+
+# check if any of those disks has a "Microsoft reserved" partition
+windows_detected=0
+for devfile in $disks
+do
+    /sbin/fdisk -l "$devfile" | grep -q -i "Microsoft reserved" && {
+        # Windows is installed
+        windows_detected=1
+        break
+    }
+done
+
+# adjust /etc/adjtime if necessary
+if [ "$windows_detected" == "1" ]
+then
+    logger "Windows OS detected, using LOCAL hardware clock reference"
+    sed -i -e 's/^UTC$/LOCAL/' /etc/adjtime
+    # we can't use the timedatectl as the corresponding services are not yet in place
+    # /usr/bin/timedatectl set-local-rtc 1
+else
+    logger "Windows OS NOT detected, keeping UTC hardware clock reference"
+fi

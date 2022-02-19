@@ -1,0 +1,2 @@
+# live user can do anything (DEBUG ONLY)
+insecauser ALL=(root) NOPASSWD: ALL

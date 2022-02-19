@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=inseca
+Description=INSECA theme
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/inseca
+ScriptFile=/usr/share/plymouth/themes/inseca/inseca.script

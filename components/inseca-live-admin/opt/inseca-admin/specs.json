@@ -1,0 +1,77 @@
+{
+	"descr": "INSECA admin. environment",
+	"parameters": {
+		"password-internal": {
+			"descr": "Password for the system partition",
+			"type": "password"
+		},
+		"creation-date": {
+			"descr": "Creation date",
+			"type": "timestamp"
+		},
+		"creation-date-ts": {
+			"descr": "Creation date (epoch)",
+			"type": "int"
+		},
+		"dummy-start-sect": {
+			"descr": "Start sector of the dummy partition",
+			"type": "int"
+		},
+		"dummy-end-sect": {
+			"descr": "End sector of the dummy partition",
+			"type": "int"
+		},
+		"int-start-sect": {
+			"descr": "Start sector of the internal partition",
+			"type": "int"
+		},
+		"int-end-sect": {
+			"descr": "End sector of the internal partition",
+			"type": "int"
+		}
+	},
+	"dev-format": {
+		"device": "{_dev}",
+		"type": "dos",
+		"partitions": [
+			{
+				"leave-existing": "",
+				"size-mb": 2500
+			},
+			{
+				"id": "dummy",
+				"type": "LINUX",
+				"label": "dummy",
+				"volume-id": null,
+				"encryption": null,
+				"immutable": false,
+				"filesystem": "ext4",
+				"password": null,
+				"size-mb": 10
+			},
+			{
+				"id": "internal",
+				"type": "LINUX",
+				"label": "internal",
+				"volume-id": null,
+				"encryption": "luks",
+				"immutable": false,
+				"filesystem": "ext4",
+				"password": "{password-internal}",
+				"size-mb": null
+			}
+		],
+		"unprotected": {
+			"type": "INSECA administration",
+			"creation-date": "{creation-date}",
+			"creation-date-ts": "{creation-date-ts}",
+			"dummy-start-sect": "{dummy-start-sect}",
+			"dummy-end-sect": "{dummy-end-sect}",
+			"int-start-sect": "{int-start-sect}",
+			"int-end-sect": "{int-end-sect}"
+		},
+		"protected": {},
+		"decryptors": {},
+		"signatures": {}
+	}
+}

@@ -1,0 +1,7 @@
+{
+    "descr": "Component to manage the startup of a simple live Linux, like component's initialization",
+    "provides": [],
+    "requires": [],
+    "builddata": {},
+    "userdata": {}
+}

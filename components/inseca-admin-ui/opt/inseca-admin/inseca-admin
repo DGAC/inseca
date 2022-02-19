@@ -1,0 +1,353 @@
+#!/usr/bin/python3
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#
+
+import sys
+import os
+import pyinotify
+import inspect
+
+# if we are in a live Linux environment: try to import the features to manage the internal partition
+# to initialize and unlock the /internal partition and also to initilize
+# UI environment variables if we are running as root
+try:
+    import LiveAdminContext
+    bootable_device_context=LiveAdminContext.Context()
+except Exception:
+    bootable_device_context=None
+
+import MenuComponent
+import FeedbackComponent
+import InstallerComponent
+import FormatterComponent
+import SupportComponent
+import WipeComponent
+import ResourcesComponent
+import InitComponent
+import AuthnComponent
+import PasswordChangeComponent
+import Configurations
+import PluggedDevices as pdev
+
+# change working directory to where the icons are
+os.chdir(os.path.dirname(os.path.realpath(__file__)))
+
+# UI
+import gi
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+from gi.repository import GLib
+
+import Jobs as jobs # MUST be called _after_ GTK is initialized
+
+#
+# Main UI
+#
+def entry_icon_pressed(entry, icon_position, event):
+    entry.set_visibility(True)
+
+def entry_icon_released(entry, icon_position, event):
+    entry.set_visibility(False)
+
+class MainUI:
+    """Contains the UI features"""
+    def __init__(self, bootable_device_context):
+        if bootable_device_context is not None:
+            os.environ["INSECA_ROOT"]="/internal/configurations"
+            os.environ["INSECA_DEFAULT_REPOS_DIR"]="/internal/repos"
+            os.environ["INSECA_CACHE_DIR"]="/internal/cache"
+            os.environ["INSECA_PROXY_PAC"]="%s/proxy.pac"%os.environ["INSECA_ROOT"]
+            os.environ["PATH"]=os.environ["PATH"]+":%s"%os.path.dirname(__file__)
+ 
+        if not "INSECA_ROOT" in os.environ:
+            raise Exception("INSECA_ROOT environment variable is not defined")
+
+        self._bootable_device_context=bootable_device_context
+        self._builder=Gtk.Builder()
+        scriptdir=os.path.dirname(os.path.realpath(sys.argv[0]))
+        self._builder.add_from_file("%s/%s"%(scriptdir, "main.ui"))
+        self.main_window=self._builder.get_object("main")
+        self.main_window.set_icon_from_file("%s/%s"%(scriptdir, "inseca-admin.png"))
+        self._main_nb=self._builder.get_object("main-nb")
+        widget=self._builder.get_object("menu")
+        widget.set_homogeneous(True)
+
+        # build objects to manipulate the various notebook's pages
+        self._plugged_devices=pdev.PluggedDevices()
+        GLib.idle_add(self._initial_plugged_devices_update)
+
+        self._menu_component=MenuComponent.Component(self, self._builder)
+        self._feedback_component=FeedbackComponent.Component(self, self._builder)
+        self._installer_component=InstallerComponent.Component(self, self._builder)
+        self._formatter_component=FormatterComponent.Component(self, self._builder)
+        self._support_component=SupportComponent.Component(self, self._builder)
+        self._resources_component=ResourcesComponent.Component(self, self._builder)
+        self._init_component=InitComponent.Component(self, self._builder, self._bootable_device_context)
+        self._authn_component=AuthnComponent.Component(self, self._builder, self._bootable_device_context)
+        self._pass_change_component=PasswordChangeComponent.Component(self, self._builder, self._bootable_device_context)
+        self._wipe_component=WipeComponent.Component(self, self._builder)
+        self._components=[self._menu_component, self._feedback_component,
+                          self._installer_component, self._formatter_component,
+                          self._support_component, self._wipe_component, self._resources_component,
+                          self._init_component, self._authn_component, self._pass_change_component]
+        handlers = {
+            "entry_icon_pressed": entry_icon_pressed,
+            "entry_icon_released": entry_icon_released
+        }
+        for c in [self]+self._components:
+            methods = inspect.getmembers(c, predicate=inspect.ismethod)
+            handlers.update(methods)
+        self._builder.connect_signals(handlers)
+
+        # devices list and associated data
+        self.devices_data=None
+        self._other_inseca_devfile=None # device file of the other INSECA environment device plugged, if any, to sync data with
+
+        # prepare main notebook's page switching events and current state
+        self._main_nb.connect("switch-page", self._page_switched_cb)
+        cpagenum=self._main_nb.get_current_page()
+        self._page_switched_cb(self._main_nb, self._main_nb.get_nth_page(cpagenum), cpagenum)
+
+        # use inotify to be notified of device plug/unplug events
+        wm=pyinotify.WatchManager()
+        notifier=pyinotify.Notifier(wm, timeout=10, default_proc_fun=self._inotify_events_cb)
+        wm.add_watch('/dev', pyinotify.IN_DELETE | pyinotify.IN_CREATE)
+        GLib.io_add_watch(notifier._fd, GLib.IO_IN, self._process_notify_linked_events, notifier)
+
+        # final setup
+        if self._bootable_device_context:
+            try:
+                if not self._bootable_device_context.is_valid:
+                    raise Exception("Device is not valid anymore")
+                elif self._bootable_device_context.is_initialized:
+                    if self._bootable_device_context.is_unlocked:
+                        self.show_page("menu")
+                    else:
+                        self.show_page("authn")
+                else:
+                    self.show_page("init")
+            except Exception as e:
+                self.show_fatal_error(str(e))
+        else:
+            self.show_page("menu")
+            self._builder.get_object("button-password-change").hide()
+            self._builder.get_object("button-logout").hide()
+
+    def _initial_plugged_devices_update(self):
+        self._plugged_devices.update(after_plug_event=False)
+        return False # remove timer, if any
+
+    def _page_switched_cb(self, nb, page_widget, page_num):
+        """Called whenever the current page of the main notebook is changed, calls the 'page_shown_cb()' of all the components
+        for which that method is defined"""
+        for component in self._components:
+            page_shown_cb=getattr(component, "page_shown_cb", None)
+            if callable(page_shown_cb):
+                page_shown_cb(page_widget)
+
+    def on_button_back_clicked(self, button):
+        self.show_page("menu")
+
+    def manage_resources_cb(self, button):
+        self.show_page("resources")
+
+    def create_install_cb(self, button):
+        self.show_page("install")
+
+    def format_device_cb(self, button):
+        self.show_page("format")
+
+    def wipe_device_cb(self, button):
+        self.show_page("wipe")
+
+    def delete_cb(self, widget, event):
+        self.destroy_cb(widget)
+
+    def destroy_cb(self, widget):
+        try:
+            gconf=Configurations.get_gconf()
+            for ruid in gconf.repo_configs:
+                rconf=gconf.get_repo_conf(ruid)
+                rconf.umount_all()
+        except:
+            pass
+        Gtk.main_quit()
+
+    def logout_cb(self, widget):
+        if self._bootable_device_context is not None:
+            self._bootable_device_context.logout()
+            self.show_page("authn")
+
+    def password_change_cb(self, widget):
+        self.show_page("pass-change-form")
+
+    def handle_device_cb(self, widget):
+        self.show_page("infos")
+
+    def button_create_clicked(self, button):
+        self._installer_component.create()
+
+    def local_download_clicked_cb(self, widget):
+        self._resources_component.download_local()
+        gconf=Configurations.get_gconf(force_reload=True) # reload configuration
+
+    def cloud_download_clicked_cb(self, widget):
+        self._resources_component.download_cloud()
+        sgconf=Configurations.get_gconf(force_reload=True) # reload configuration
+
+    def other_inseca_download_clicked_cb(self, widget):
+        self._resources_component.sync_other_inseca_device()
+        gconf=Configurations.get_gconf(force_reload=True) # reload configuration
+
+    #
+    # Misc.
+    #
+    @property
+    def feedback_component(self):
+        return self._feedback_component 
+
+    @property
+    def other_inseca_devfile(self):
+        return self._other_inseca_devfile
+
+    @property
+    def plugged_devices_obj(self):
+        return self._plugged_devices
+
+    #
+    # Generic UI
+    #
+    def show_message(self, message, allow_back_button=None):
+        self.show_page("message", allow_back_button)
+        if message:
+            widget=self._builder.get_object("message")
+            widget.set_text(message)
+            #widget.set_markup("<span size='large'>"+message+"</span>")
+
+    def show_error(self, message, transient_for=None):
+        """Display an error, and wait for the user to close the popup before returning the control to the caller"""
+        widget=self._builder.get_object("error-dlg")
+        widget.format_secondary_text(message)
+        if transient_for:
+            widget.set_transient_for(transient_for)
+        else:
+            widget.set_transient_for(self.main_window)
+        widget.show()
+        widget.run()
+        widget.hide()
+
+    def show_fatal_error(self, message):
+        """Display a fatal error, meaning all the user can do is close the program"""
+        widget=self._builder.get_object("fatal-error-message")
+        widget.set_markup("<span size='large'>"+message+"</span>")
+        self.show_page("fatal-error")
+
+    def show_page(self, page, allow_back_button=None):
+        """Switch to a specific page.
+        If @allow_back_button is unspecified, then the 'Back' button will be shown or not depending
+        on the page shown"""
+        indexes={
+            "menu": 0,
+            "resources": 1,
+            "install": 2,
+            "format": 3,
+            "infos": 4,
+            "wipe": 5,
+            "message": 6,
+            "authn": 7,
+            "init": 8,
+            "pass-change-form": 9,
+            "fatal-error": 10
+        }
+        self._main_nb.set_current_page(indexes[page])
+        self.main_window.show()
+        self.main_window.present()
+
+        # back menu sensitivity
+        widget=self._builder.get_object("back-button")
+        if allow_back_button!=None:
+            sensi=allow_back_button
+        else:
+            if page in ("menu", "authn", "init", "fatal-error", "message"):
+                sensi=False
+            else:
+                sensi=True
+        if sensi:
+            widget.show()
+        else:
+            widget.hide()
+
+        # misc.
+        if page=="resources":
+            self._resources_component.update_stats()
+
+    def set_back_button_sensitive(self, sensitive):
+        widget=self._builder.get_object("back-button")
+        widget.set_sensitive(sensitive)
+
+    #
+    # devices list
+    #
+    def _inotify_events_cb(self, notifier):
+        #print('handle_read callback'+str(notifier))
+        if not notifier.name[-1] in "0123456789": # don't take partitions into account
+            self._plugged_devices.update(True)
+
+    def _process_notify_linked_events(self, source, condition, notifier):
+        notifier.process_events()
+        while notifier.check_events():
+            notifier.read_events()
+            notifier.process_events()
+        return True
+
+    def update_plugged_devices(self):
+        self._plugged_devices.update(False)
+
+    def get_devices_list(self, after_event=True):
+        """Get the list of storage devices, returns a list made of:
+        - True if the list of devices has actually changed
+        - the devices list
+        - the devices' associated data
+        """
+        job=jobs.GetPluggedDevicesJob(after_event)
+        job.start()
+        job.wait_with_ui()
+        if job.exception:
+            raise job.exception
+        disks_data=job.result
+
+        entries=list(disks_data.keys())
+        entries.sort()
+
+        if self.devices_data:
+            ex_entries=list(self.devices_data.keys())
+            ex_entries.sort()
+        else:
+            ex_entries=None
+
+        if entries!=ex_entries:
+            self.devices_data=disks_data
+            return (True, self.devices_data)
+        else:
+            return (False, self.devices_data)
+
+#
+# Main
+#
+ui=MainUI(bootable_device_context)
+Gtk.main()

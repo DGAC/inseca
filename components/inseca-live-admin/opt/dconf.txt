@@ -1,0 +1,48 @@
+[ca/desrt/dconf-editor]
+window-is-maximized=false
+
+[org/gnome/control-center]
+last-panel='background'
+
+[org/gnome/desktop/background]
+picture-options='zoom'
+picture-uri='file:///usr/share/backgrounds/gnome/Wood.jpg'
+primary-color='#ffffff'
+secondary-color='#000000'
+
+[org/gnome/desktop/input-sources]
+sources=[('xkb', 'fr')]
+xkb-options=@as []
+
+[org/gnome/desktop/interface]
+gtk-im-module='gtk-im-context-simple'
+
+[org/gnome/desktop/notifications]
+application-children=['inseca-admin', 'org-gnome-nautilus']
+
+[org/gnome/desktop/notifications/application/inseca-admin]
+application-id='inseca-admin.desktop'
+
+[org/gnome/desktop/notifications/application/org-gnome-nautilus]
+application-id='org.gnome.Nautilus.desktop'
+
+[org/gnome/desktop/screensaver]
+picture-options='zoom'
+picture-uri='file:///usr/share/backgrounds/gnome/Wood.jpg'
+primary-color='#ffffff'
+secondary-color='#000000'
+
+[org/gnome/evolution-data-server]
+migrated=true
+network-monitor-gio-name=''
+
+[org/gnome/nautilus/preferences]
+default-folder-viewer='icon-view'
+search-filter-time-type='last_modified'
+
+[org/gnome/settings-daemon/plugins/power]
+sleep-inactive-ac-type='nothing'
+
+[org/gnome/shell]
+enabled-extensions=['drive-menu@gnome-shell-extensions.gcampax.github.com']
+favorite-apps=['inseca-admin.desktop', 'org.gnome.Nautilus.desktop', 'veracrypt.desktop', 'zed_free-open.desktop']

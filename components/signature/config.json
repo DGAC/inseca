@@ -1,0 +1,16 @@
+{
+    "descr": "Define crypto keys to sign live Linux builds",
+    "provides": [],
+    "requires": [],
+    "builddata": {
+        "build-skey-pub-file": {
+            "descr": "Public key file name, relative to the configuration file itself",
+            "type": "file"
+        },
+        "build-skey-priv-file": {
+            "descr": "Private key file name, relative to the configuration file itself",
+            "type": "file"
+        }
+    },
+    "userdata": {}
+}

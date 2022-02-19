@@ -1,0 +1,9 @@
+{
+    "descr": "Add Veracrypt",
+    "provides": [
+        "veracrypt"
+    ],
+    "requires": [],
+    "builddata": {},
+    "userdata": {}
+}

@@ -1,0 +1,12 @@
+{
+    "descr": "Specify a 'proxy.pac' URL",
+    "provides": [],
+    "requires": [],
+    "builddata": {},
+    "userdata": {
+        "pac-url": {
+            "descr": "Proxy PAC server URL",
+            "type": "str"
+        }
+    }
+}

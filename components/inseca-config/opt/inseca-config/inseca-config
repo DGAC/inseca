@@ -1,0 +1,222 @@
+#!/usr/bin/python3
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+import sys
+import os
+import gi
+import Job
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+
+import dbus
+import dbus.mainloop.glib
+
+class PasswordChangeJob(Job.Job):
+    def __init__(self, manager, current_password, new_password):
+        Job.Job.__init__(self)
+        self._manager=manager
+        self._current_password=current_password
+        self._new_password=new_password
+
+    def run(self):
+        try:
+            self._manager.change_password(self._current_password, self._new_password, timeout=3600, dbus_interface="inseca.Manager.UserEnv")
+        except Exception as e:
+            self.exception=e
+
+def dbus_exception_to_str(e):
+    # DBus exceptions display a lot of data, extract only the relevant part
+    err=str(e).splitlines()[-1]
+    if err.startswith("Exception: "):
+        return err[11:]
+    else:
+        return str(e)
+
+page_MENU=0
+page_PASSWORD=1
+page_UPDATE=2
+page_CONFIG=3
+
+class MainUI:
+    def __init__(self):
+        scriptdir=os.path.dirname(sys.argv[0])
+        self._builder=Gtk.Builder()
+        self._builder.add_from_file("%s/%s"%(scriptdir, "main.ui"))
+        self._main_window=self._builder.get_object("main")
+        self._main_window.set_icon_from_file("/opt/inseca-config/logo-128.png")
+        self._builder.connect_signals(self)
+        self._main_window.show()
+
+        self._main_nb=self._builder.get_object("main-nb")
+        self._header_nb=self._builder.get_object("header-nb")
+
+        self._builder.get_object("update-status").set_text("")
+        self._builder.get_object("update-spinner").stop()
+        self._builder.get_object("form-spinner").stop()
+
+        self._password_show_info("")
+
+        # DBus stuff
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        self._system_bus=dbus.SystemBus()
+        self._manager=self._system_bus.get_object("inseca.Manager", "/remote")
+        self._manager.connect_to_signal("status_changed", self._manager_status_changed, dbus_interface="inseca.Manager.Status")
+        self._manager.connect_to_signal("finished_get_updates", self._manager_finished_get_updates, dbus_interface="inseca.Manager.GetUpdates")
+        self._manager_status_changed()
+
+        # version and informations
+        label=self._builder.get_object("version-value")
+        label.set_text(self._manager.get_version(dbus_interface="inseca.Manager.Status"))
+        label=self._builder.get_object("valid-to-value")
+        label.set_text(self._manager.get_valid_to(dbus_interface="inseca.Manager.Status"))
+
+        grid=self._builder.get_object("sysinfo-grid")
+        infos=self._manager.get_extra_infos(dbus_interface="inseca.Manager.Status")
+        row=3
+        for cid in infos:
+            label=Gtk.Label(label=cid+":")
+            label.set_justify(Gtk.Justification.RIGHT)
+            label.set_halign(Gtk.Align.END)
+            label.set_valign(Gtk.Align.START)
+            value=Gtk.Label(label=infos[cid])
+            value.set_justify(Gtk.Justification.LEFT)
+            value.set_halign(Gtk.Align.START)
+            value.set_valign(Gtk.Align.START)
+            grid.attach(label, 0, row, 1, 1)
+            grid.attach(value, 1, row, 1, 1)
+            row+=1
+        grid.show_all()
+
+    def delete_cb(self, widget, event):
+        Gtk.main_quit()
+
+    def destroy_cb(self, widget):
+        Gtk.main_quit()
+
+    def close_button_clicked(self, button):
+        Gtk.main_quit()
+
+    def page_menu_cb(self, item):
+        self._main_nb.set_current_page(page_MENU)
+
+    def page_password_change_cb(self, item):
+        self._main_nb.set_current_page(page_PASSWORD)
+
+    def page_update_cb(self, item):
+        self._main_nb.set_current_page(page_UPDATE)
+
+    def page_config_delete_cb(self, item):
+        self._main_nb.set_current_page(page_CONFIG)
+
+    def icon_pressed(self, entry, icon_position, event):
+        entry.set_visibility(True)
+
+    def icon_released(self, entry, icon_position, event):
+        entry.set_visibility(False)
+
+    #
+    # Password change
+    #
+    def _password_show_info(self, text):
+        label=self._builder.get_object("form-info")
+        label.set_text(text)
+
+    def password_entry_changed(self, entry):
+        self._password_show_info("")
+
+    def _password_reset_form(self):
+        self._builder.get_object("current_password").set_text("")
+        self._builder.get_object("new_password1").set_text("")
+        self._builder.get_object("new_password2").set_text("")
+        
+    def password_change_cb(self, button):
+        entry=self._builder.get_object("current_password")
+        cp=entry.get_text()
+        if cp=="":
+            self._password_show_info("Mot de passe courant non specifié")
+            return
+
+        entry=self._builder.get_object("new_password1")
+        p1=entry.get_text()
+        entry=self._builder.get_object("new_password2")
+        p2=entry.get_text()
+        if p1!=p2:
+            self._password_show_info("Le mot de passe et la confirmation diffèrent")
+            return
+        if p1=="":
+            self._password_show_info("Aucun nouveau mot de passe specifié")
+            return
+
+        try:
+            self._password_show_info("Changement du mot de passe")
+            self._builder.get_object("form-spinner").start()
+            self._builder.get_object("form-button").set_sensitive(False)
+            job=PasswordChangeJob(self._manager, cp, p1)
+            job.start()
+            job.wait_with_ui()
+            if job.exception:
+                raise job.exception
+            else:
+                self._password_reset_form()
+                self._password_show_info("Mot de passe changé")
+        except Exception as e:
+            self._password_show_info(dbus_exception_to_str(e))
+        finally:
+            self._builder.get_object("form-spinner").stop()
+            self._builder.get_object("form-button").set_sensitive(True)
+
+    #
+    # System updates
+    #
+    def updates_get_cb(self, button):
+        self._manager.get_updates(dbus_interface="inseca.Manager.GetUpdates")
+
+    def _manager_status_changed(self):
+        status=self._manager.get_updates_status(dbus_interface="inseca.Manager.Status")
+        if status!="":
+            self._builder.get_object("update-status").set_text(status)
+
+        if status=="":
+            self._builder.get_object("update-button").set_sensitive(True)
+            self._builder.get_object("update-spinner").stop()
+        else:
+            self._builder.get_object("update-button").set_sensitive(False)
+            self._builder.get_object("update-spinner").start()
+
+    def _manager_finished_get_updates(self, status, message):
+        self._builder.get_object("update-status").set_text(message)
+
+    #
+    # Delete saved user setting
+    #
+    def do_config_delete(self, button):
+        self._manager.delete_user_config(dbus_interface="inseca.Manager.UserEnv")
+
+
+window=MainUI()
+
+if len(sys.argv)==2:
+    if sys.argv[1]=="-p":
+        window.password_change_requested(None)
+    if sys.argv[1]=="-u":
+        window.update_requested(None)
+    if sys.argv[1]=="-d":
+        window.settings_delete_requested(None)
+Gtk.main()

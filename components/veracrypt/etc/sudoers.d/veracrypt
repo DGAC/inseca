@@ -1,0 +1,1 @@
+insecauser ALL=(root) /usr/bin/veracrypt

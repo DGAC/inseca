@@ -1,0 +1,25 @@
+desktop-image: "../splash.png"
+title-color: "#ffffff"
+title-font: "DejaVu Sans Bold 35"
+title-text: "INSECA administration"
+message-font: "Unifont Regular 16"
+terminal-font: "Unifont Regular 16"
+
+#boot menu
++ boot_menu {
+        left = 10%
+        width = 80%
+        top = 52%
+        height = 48%-80
+        item_color = "#a8a8a8"
+	item_font = "DejaVu Sans Bold 14"
+        selected_item_color= "#ffffff"
+	selected_item_font = "DejaVu Sans Bold 14"
+        item_height = 16
+        item_padding = 0
+        item_spacing = 4
+	icon_width = 0
+	icon_heigh = 0
+	item_icon_space = 0
+}
+

@@ -1,0 +1,12 @@
+{
+    "descr": "Root CA deployment",
+    "provides": [],
+    "requires": [],
+    "builddata": {
+        "ca-certs-dir": {
+            "descr": "Directory containing root certificates to deploy, each PEM encoded",
+            "type": "str"
+        }
+    },
+    "userdata": {}
+}

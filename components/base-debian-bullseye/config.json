@@ -1,0 +1,9 @@
+{
+    "descr": "Base Debian 11",
+    "provides": [
+        "base"
+    ],
+    "requires": [],
+    "builddata": {},
+    "userdata": {}
+}

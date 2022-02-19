@@ -1,0 +1,14 @@
+{
+    "descr": "Component to manage a running INSECA system",
+    "provides": [],
+    "requires": [
+        "veracrypt"
+    ],
+    "builddata": {
+        "userdata-skey-pub-file": {
+            "descr": "Public key used to verify the signature of USERDATA resources",
+            "type": "file"
+        }
+    },
+    "userdata": {}
+}

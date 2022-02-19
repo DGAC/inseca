@@ -1,0 +1,7 @@
+{
+    "descr": "Add an SSH server",
+    "provides": [],
+    "requires": [],
+    "builddata": {},
+    "userdata": {}
+}

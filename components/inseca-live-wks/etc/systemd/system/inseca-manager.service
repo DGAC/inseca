@@ -1,0 +1,13 @@
+[Unit]
+Description=INSECA Manager
+
+[Service]
+Type=simple
+Environment="PYTHONPATH=/opt/inseca-manager"
+ExecStart=/opt/inseca-manager/Manager
+TimeoutSec=5
+RestartSec=5
+Restart=always
+
+[Install]
+WantedBy=default.target

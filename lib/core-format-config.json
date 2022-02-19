@@ -1,0 +1,81 @@
+{
+    "parameters": {
+        "fs": {
+            "descr": "Data partition filesystem",
+            "type": "filesystem",
+            "default": "exfat",
+            "attest": false
+        },
+        "password-data": {
+            "descr": "Data partition password",
+            "type": "password",
+            "attest": false
+        },
+        "confid": {
+            "descr": "Format config ID",
+            "type": "str",
+            "attest": true
+        },
+        "creation-date": {
+            "descr": "Creation date",
+            "type": "timestamp",
+            "attest": true
+        },
+        "creation-date-ts": {
+            "descr": "Creation date (epoch)",
+            "type": "int",
+            "attest": true
+        },
+        "password-rescue": {
+            "descr": "Recovery password",
+            "type": "password",
+            "attest": false
+        },
+        "device-signing-private-key-file": {
+            "descr": "Private key file for the device's signature (metadata)",
+            "type": "file",
+            "attest": false
+        }
+    },
+    "dev-format": {
+        "device": "{_dev}",
+        "type": "dos",
+        "partitions": [
+             {
+                "id": "data",
+                "type": "LINUX",
+                "label": "Documents",
+                "volume-id": "data",
+                "encryption": "veracrypt",
+                "immutable": false,
+                "filesystem": "{fs}",
+                "password": "{password-data}",
+                "size-mb": null
+            }
+        ],
+        "unprotected": {
+            "creation-date": "{creation-date}",
+            "creation-date-ts": "{creation-date-ts}",
+            "confid": "{confid}"
+        },
+        "protected": {
+            "Rescue": {
+                "@data/password": null,
+                "@data/header": null,
+                "secret": "This is a secret!"
+            }
+        },
+        "decryptors": {
+            "Rescue": {
+                "type": "password",
+                "password": "{password-rescue}"
+            }
+        },
+        "signatures": {
+            "Admin": {
+                "type": "key",
+                "private-key-file": "{device-signing-private-key-file}"
+            }
+        }
+    }
+}

@@ -1,0 +1,14 @@
+[Unit]
+Description=Local proxy.pac HTTP server
+
+[Service]
+Type=simple
+ExecStart=/opt/proxy-pac-server/pac-server.py
+Restart=on-failure
+RestartSec=5
+WorkingDirectory=/opt/proxy-pac-server
+User=insecauser
+Group=insecauser
+
+[Install]
+WantedBy=multi-user.target

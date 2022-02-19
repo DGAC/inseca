@@ -1,0 +1,7 @@
+{
+    "descr": "DEBUG mode where the live user (insecauser) can run anything via sudo",
+    "provides": [],
+    "requires": [],
+    "builddata": {},
+    "userdata": {}
+}

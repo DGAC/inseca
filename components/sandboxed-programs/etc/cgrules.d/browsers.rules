@@ -1,0 +1,7 @@
+# user:process                                          subsystems      group
+*:/usr/bib/chromium                                     memory      browsers
+*:/usr/lib/chromium-browser/chromium-browser            memory      browsers
+*:/usr/lib/chromium/chrome-sandbox                      memory      browsers
+*:/usr/bin/firefox-esr					                memory      browsers
+*:/usr/lib/firefox-esr/firefox-esr                      memory      browsers
+*:/usr/lib/thunderbird/thunderbird-bin      			memory      browsers

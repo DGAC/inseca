@@ -1,0 +1,27 @@
+{
+  "build-dir": "{dir}/BUILD",
+  "descr": "{descr}",
+  "id": "{build}",
+  "privdata-ekey-pub-file": "privdata-encrypt-key.pub",
+  "privdata-ekey-priv-file": "privdata-encrypt-key.priv",
+  "repo": "{repo}",
+  "validity-months": 3,
+  "version": "0.1",
+  "components": {
+    "base-debian-bullseye": null,
+    "veracrypt": null,
+    "signature": {
+      "build-skey-pub-file": "build-sign-key.pub",
+      "build-skey-priv-file": "build-sign-key.priv"
+    },
+    "onlyoffice": null,
+    "productivity-tools": null,
+    "inseca-config": null,
+    "conference-tools": null,
+    "sandboxed-programs": null,
+    "inseca-live-wks": {
+      "userdata-skey-pub-file": "userdata-sign-key.pub",
+      "network-connections-allowed": true
+    }
+  }
+}

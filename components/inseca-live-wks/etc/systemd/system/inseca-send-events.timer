@@ -1,0 +1,10 @@
+[Unit]
+Description=Send INSECA events back home
+
+[Timer]
+OnUnitActiveSec=60s
+OnBootSec=150s
+
+[Install]
+WantedBy=timers.target
+

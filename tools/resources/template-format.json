@@ -1,0 +1,39 @@
+{
+    "id": "{install}",
+    "descr": "{descr}",
+    "repo": "{repo}",
+    "devicemeta-skey-priv-file": "device-metadata-sign-key.priv",
+    "devicemeta-skey-pub-file": "device-metadata-sign-key.pub",
+    "password-rescue": "{rescue}",
+
+    "parameters": {
+        "firstname": {
+            "descr": "Prénom de l'utilisateur",
+            "type": "str",
+            "attest": true
+        },
+        "lastname": {
+            "descr": "Nom de l'utilisateur",
+            "type": "str",
+            "attest": true
+        },
+        "email": {
+            "descr": "Adresse e-mail de l'utilisateur",
+            "type": "str",
+            "attest": true
+        },
+        "usage-context": {
+            "descr": "Contexte d'utilisation",
+            "type": "str",
+            "attest": true
+        }
+    },
+    "dev-format": {
+        "unprotected": {
+            "context": "{usage-context}",
+            "user-firstname": "{firstname}",
+            "user-lastname": "{lastname}",
+            "user-email": "{email}"
+        }
+    }
+}

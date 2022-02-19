@@ -1,0 +1,9 @@
+{
+    "descr": "Setup resources consumption limits mechanism using control groups",
+    "provides": [
+        "cgroups"
+    ],
+    "requires": [],
+    "builddata": {},
+    "userdata": {}
+}

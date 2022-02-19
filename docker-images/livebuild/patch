@@ -1,0 +1,22 @@
+--- /usr/share/debootstrap/scripts/gutsy	2021-08-17 07:43:23.818140918 +0000
++++ /usr/share/debootstrap/scripts/gutsy.orig	2021-08-17 07:51:23.016609712 +0000
+@@ -135,7 +135,7 @@
+ 		baseprog="$(($baseprog + ${1:-1}))"
+ 	}
+ 
+-	if ! doing_variant fakechroot; then
++	if ! doing_variant fakechroot && [ "$CONTAINER" != "docker" ]; then
+ 		setup_proc
+ 		in_target /sbin/ldconfig
+ 	fi
+--- /usr/share/debootstrap/scripts/debian-common	2021-08-17 07:52:59.853906622 +0000
++++ /usr/share/debootstrap/scripts/debian-common.orig	2021-08-17 07:52:10.669247912 +0000
+@@ -109,7 +109,7 @@
+ 		baseprog="$(($baseprog + ${1:-1}))"
+ 	}
+ 
+-	if ! doing_variant fakechroot; then
++	if ! doing_variant fakechroot && [ "$CONTAINER" != "docker" ]; then
+ 		setup_proc
+ 		in_target /sbin/ldconfig
+ 	fi

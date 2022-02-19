@@ -1,0 +1,2234 @@
+#!/usr/bin/python3
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+import os
+import sys
+import uuid
+import json
+import shlex
+import datetime
+import tempfile
+import tarfile
+import shutil
+import argparse
+import gc
+
+prog_path=os.path.realpath(__file__)
+prog_dir=os.path.dirname(prog_path)
+sys.path+=[prog_dir, prog_dir+"/../lib"]
+
+import CryptoGen as cgen
+import CryptoX509 as x509
+import CryptoPass
+import Utils as util
+import Configurations as confs
+import Sync
+import Device
+import LiveBuilder
+import ValueHolder
+import Installer
+import Live
+import Borg
+
+# Gettext stuff
+import gettext
+gettext.bindtextdomain("inseca", prog_dir+"/../locales")
+gettext.textdomain("inseca")
+_ = gettext.gettext
+
+parser=argparse.ArgumentParser()
+parser.add_argument("--root", help=_("Specify the equivalent of INSECA_ROOT"))
+parser.add_argument("--components-dir", help=_("Specify the equivalent of INSECA_EXTRA_COMPONENTS"))
+parser.add_argument("--repos-dir", help=_("Specify the equivalent of INSECA_DEFAULT_REPOS_DIR"))
+parser.add_argument("--cache-dir", help=_("Specify the equivalent of INSECA_CACHE_DIR"))
+parser.add_argument("-v", "--verbose", help=_("Display more information"), action="store_true")
+
+subparsers=parser.add_subparsers(help=_("Allowed commands"), dest="cmde")
+
+sparser=subparsers.add_parser("init", help=_("Initialize a new INSECA global configuration structure"))
+sparser=subparsers.add_parser("status", help=_("Display the global status"))
+
+sparser=subparsers.add_parser("configs", help=_("List all the configurations of the specific type"))
+# TRANSLATORS: leave the build | install | format | domain | userdata keywords as-is
+sparser.add_argument("type", help=_("Config type: build | install | format | domain | userdata"))
+
+sparser=subparsers.add_parser("config-infos", help=_("Show information about a specific configuration"))
+sparser.add_argument("config", help=_("Configuration ID"))
+
+sparser=subparsers.add_parser("config-create", help=_("Create a new configuration"))
+sparser.add_argument("type", help=_("Config type: admin-build | build | install | format | domain | repo | userdata"))
+sparser.add_argument("--build", help=_("Referenced Build ID if config type is 'install' (ignored otherwise)"))
+sparser.add_argument("description", help=_("Configuration's description"))
+
+sparser=subparsers.add_parser("config-publish", help=_("Publish a configuration's contents to its specified repository"))
+sparser.add_argument("config", nargs=argparse.REMAINDER, help=_("Configuration(s) ID(s), or empty to specify all the configurations"))
+
+sparser=subparsers.add_parser("config-remove", help=_("Remove a configuration and its associated repository"))
+sparser.add_argument("config", nargs=argparse.REMAINDER, help=_("Configuration(s) ID(s)"))
+sparser.add_argument("--confirm", help=_("Confirm the removal without any confirmation asked"), action="store_true")
+
+sparser=subparsers.add_parser("build", help=_("Build a live Linux"))
+sparser.add_argument("build", nargs=argparse.REMAINDER, help=_("Build configuration ID(s) (set INSECA_DONT_BUILD=1 to only prepare build)"))
+sparser.add_argument("-p", "--publish", help=_("Automatically publish the build (if the build configuration has defined a repository)"), action="store_true")
+
+sparser=subparsers.add_parser("repo-ls", help=_("List all contents of the specified repository"))
+sparser.add_argument("repo", help=_("Repository ID"))
+sparser.add_argument("--archive", help=_("Archive ID, to list files in that archive"))
+
+sparser=subparsers.add_parser("repo-prune", help=_("Remove all obsolete archives in the repositories (or specified repository)"))
+sparser.add_argument("repos", nargs=argparse.REMAINDER, help=_("Repository or repositories ID(s)"))
+
+sparser=subparsers.add_parser("userdata-import", help=_("Import data (replace any existing) in a USERDATA repository"))
+sparser.add_argument("repo", help=_("Repository ID"))
+sparser.add_argument("path", help=_("Directory containing the files to add"))
+
+sparser=subparsers.add_parser("userdata-add", help=_("Add files(s) in a USERDATA repository"))
+sparser.add_argument("repo", help=_("Repository ID"))
+sparser.add_argument("files", nargs=argparse.REMAINDER, help=_("Files to add"))
+
+sparser=subparsers.add_parser("userdata-del", help=_("Remove files(s) from a USERDATA repository"))
+sparser.add_argument("repo", help=_("Repository ID"))
+sparser.add_argument("files", nargs=argparse.REMAINDER, help=_("Files to delete"))
+
+sparser=subparsers.add_parser("sync-push", help=_("Upload the master configuration (or only some repositories) to the specified target storage"))
+sparser.add_argument("storage", help=_("Storage target"))
+sparser.add_argument("repos", nargs=argparse.REMAINDER, help=_("Repository or repositories ID(s)"))
+
+sparser=subparsers.add_parser("sync-pull", help=_("Download the whole configuration from the specified target storage"))
+sparser.add_argument("storage", help=_("Storage target"))
+
+sparser=subparsers.add_parser("gen-admin-iso", help=_("Generate an admin 'iso' image from an admin build and domain(s) configuration(s)"))
+sparser.add_argument("build", help=_("Build configuration (must already have been built); pass '-' to generate debug file only"))
+sparser.add_argument("domains", nargs=argparse.REMAINDER, help=_("Domain(s) configuration(s) which will be available in the admin environment"))
+
+sparser=subparsers.add_parser("gen-params", help=_("Generate a template of the parameters required to create an INSECA installation or format a device"))
+sparser.add_argument("config", help=_("Install/format configuration"))
+
+sparser=subparsers.add_parser("gen-keypair", help=_("Generate an RSA keys pair"))
+sparser.add_argument("prefix", help=_("Base name for the generated key files: <prefix>.pub and <prefix>.priv"))
+
+sparser=subparsers.add_parser("devices", help=_("List all mass storage devices in the system"))
+
+sparser=subparsers.add_parser("dev-install", help=_("Create an INSECA installation"))
+sparser.add_argument("config", help=_("Install (for workstation install) or build (for simple live Linux) configuration to use"))
+sparser.add_argument("target", help=_("Device or VM image file to install to"))
+sparser.add_argument("--params-file", help=_("File containing the parameters for the installation (for install configurations)"))
+sparser.add_argument("--vm-size", type=int, default=64, help=_("Size of the VM image file in Gb (if target is a VM image file)"))
+sparser.add_argument("--archive", help=_("Specific archive ID to get the live Linux image (instead of the last available)"))
+
+sparser=subparsers.add_parser("dev-update-linux", help=_("Update the live Linux of an INSECA installation"))
+sparser.add_argument("target", help=_("Device or VM image file to update"))
+sparser.add_argument("--archive", help=_("Specific archive ID to get the live Linux image (instead of the last available)"))
+
+sparser=subparsers.add_parser("dev-format", help=_("Format a storage device using a format configuration"))
+sparser.add_argument("format", metavar="format", help=_("Format configuration to use"))
+sparser.add_argument("params_file", metavar="params-file", help=_("File containing the parameters for the format"))
+sparser.add_argument("target", help=_("Device file to install to"))
+
+sparser=subparsers.add_parser("dev-ident", help=_("Identifies an INSECA device"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("--protected", help=_("Also get the protected (encrypted) information"), action="store_true")
+sparser.add_argument("--decrypt_key", metavar="decrypt-key", help=_("Force a specific decryption key to get the protected data"))
+
+sparser=subparsers.add_parser("dev-wipe", help=_("Remove everything on a device"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("--confirm", help=_("Confirm the removal without any confirmation asked"), action="store_true")
+
+sparser=subparsers.add_parser("dev-dump", help=_("Makes a byte for byte copy of a device to a file (like dd)"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("outfile", help=_("File to copy data to"))
+
+sparser=subparsers.add_parser("dev-run-in-vm", help=_("Starts an INSECA device in a VM"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("--bios", help=_("Boot in Legacy BIOS mode instead of UEFI"), action="store_true")
+
+sparser=subparsers.add_parser("dev-mount", help=_("Mount a partition of an INSECA device"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("partition_id", metavar="partition-id", help=_("Partition ID name to mount"))
+sparser.add_argument("mountpoint", help=_("Directory where the partition will be mounted"))
+sparser.add_argument("--decrypt_key", metavar="decrypt-key", help=_("Force a specific decryption key to get the protected data"))
+
+sparser=subparsers.add_parser("dev-umount", help=_("Unmount a mounted partition of an INSECA device"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("partition_id", metavar="partition-id", help=_("Partition ID (name) to umount"))
+
+sparser=subparsers.add_parser("dev-users", help=_("List the users declared"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+
+sparser=subparsers.add_parser("dev-user-add", help=_("Add a new user"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("user", help=_("User to add"))
+sparser.add_argument("--password", help=_("Password (use '-' to get from stdin)"))
+sparser.add_argument("--passenv", help=_("Name of the environment variable containing the password"))
+
+sparser=subparsers.add_parser("dev-user-del", help=_("Delete a user"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("user", help=_("User to delete"))
+
+sparser=subparsers.add_parser("dev-user-password", help=_("Reset the user's password"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("user", help=_("User for which the password will be reset"))
+sparser.add_argument("--password", help=_("Password to use (use '-' if provided via stdin)"))
+sparser.add_argument("--passenv", help=_("Name of the environment variable containing the password"))
+
+# list commands which require to be run as root
+root_required_commands=["build", "dev-install", "gen-admin-iso",
+                        "dev-update-linux", "dev-format", "dev-ident",
+                        "dev-wipe", "dev-run-in-vm", "dev-mount", "dev-umount",
+                        "dev-users", "dev-user-add", "dev-user-del", "dev-user-password"]
+
+def _format_ts(ts):
+    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+
+def _get_build_conf_pending_iso(bconf):
+    builder=LiveBuilder.Builder(bconf.id)
+    iso_img_file=builder.image_file
+    if os.path.exists(iso_img_file):
+        ts=os.path.getctime(iso_img_file)
+        return (iso_img_file, ts, _format_ts(ts))
+    else:
+        return (None, None, None)
+
+def _conf_needs_action(gconf, conf):
+    """Tells if the specified configuration should be published or rebuilt.
+    Returns: (rebuild needed, publish needed)"""
+    if isinstance(conf, confs.RepoConfig):
+        return (False, False)
+
+    # get timestamp of the last published archive
+    if conf.repo_id:
+        rconf=gconf.get_repo_conf(conf.repo_id)
+        (archive_ts, dummy)=rconf.get_latest_archive()
+    else:
+        archive_ts=0
+
+    # build config
+    if isinstance(conf, confs.BuildConfig):
+        rebuild_needed=False
+        publish_needed=False
+
+        files_ts=confs.get_last_file_modification_ts(conf.config_dir, conf.build_dir)
+        builder=LiveBuilder.Builder(conf.id)
+        for component in conf.components:
+            component_dir=builder.get_component_src_path(component)
+            component_ts=confs.get_last_file_modification_ts(component_dir)
+            if component_ts>files_ts:
+                files_ts=component_ts
+
+        (iso_file, iso_ts, iso_strts)=_get_build_conf_pending_iso(conf)
+        if iso_file:
+            if conf.repo_id:
+                publish_needed=True
+        if files_ts>archive_ts:
+            if iso_file:
+                if files_ts>iso_ts:
+                    rebuild_needed=True
+            else:
+                rebuild_needed=True
+        return (rebuild_needed, publish_needed)
+
+
+    # other config types    
+    if isinstance(conf, confs.InstallConfig) or isinstance(conf, confs.FormatConfig):
+        # install or format config
+        files_ts=confs.get_last_file_modification_ts(conf.config_dir)
+    elif isinstance(conf, confs.DomainConfig):
+        # domain config
+        files_ts=confs.get_last_file_modification_ts(conf.config_file)
+        pac_file=gconf.proxy_pac_file
+        if pac_file:
+            pts=confs.get_last_file_modification_ts(pac_file)
+            if pts>files_ts:
+                files_ts=pts
+    else:
+        raise Exception("CODEBUG: invalid @conf argument")
+
+    if archive_ts<files_ts:
+        return (False, True)
+    return (False, False)
+
+def _get_config_status(gconf, conf, verbose):
+    if isinstance(conf, confs.BuildConfig):
+        (iso_file, build_ts, build_strts)=_get_build_conf_pending_iso(conf)
+        (rebuild_needed, publish_needed)=_conf_needs_action(gconf, conf) if verbose else (False, False)
+        if rebuild_needed:
+            if iso_file:
+                return _("needs to be rebuilt (and existing build @ %s)")%build_strts
+            else:
+                return _("needs to be rebuilt")
+        elif iso_file:
+            if publish_needed:
+                return _("needs to be published")
+            else:
+                return _("existing build @ %s")%build_strts
+    elif isinstance(conf, confs.InstallConfig) or isinstance(conf, confs.FormatConfig) or isinstance(conf, confs.DomainConfig):
+        (rebuild_needed, publish_needed)=_conf_needs_action(gconf, conf) if verbose else (False, False)
+        if publish_needed:
+            return _("needs to be published")
+    return None
+
+def show_status(args):
+    if not "INSECA_ROOT" in os.environ:
+        raise Exception(_("No root path to the global configuration specified (INSECA_ROOT environment variable or '--root' option"))
+    root=os.environ["INSECA_ROOT"]
+    if not os.path.exists("%s/inseca.json"%root):
+        raise Exception(_("Not yet configured, use the 'init' command"))
+    gconf=confs.GlobalConfiguration()
+    print(_("Global configuration Ok (%s)")%(_("master") if gconf.is_master else _("not master")))
+    print(_("Configuration directory: %s")%gconf.path)
+    print(_("Proxy PAC file: %s")%(gconf.proxy_pac_file if gconf.proxy_pac_file else "--"))
+    conf_list=gconf.build_configs
+    print(_("%s build configuration(s)")%len(conf_list))
+    for uid in conf_list:
+        bconf=gconf.get_build_conf(uid)
+        status=_get_config_status(gconf, bconf, args.verbose)
+        if status:
+            print("    Config '%s' (%s): %s"%(bconf.id, bconf.descr, status))
+
+    conf_list=gconf.install_configs
+    print("%s install configuration(s)"%len(conf_list))
+    for uid in conf_list:
+        iconf=gconf.get_install_conf(uid)
+        status=_get_config_status(gconf, iconf, args.verbose)
+        if status:
+            print("    Config '%s' (%s): %s"%(iconf.id, iconf.descr, status))
+
+    conf_list=gconf.format_configs
+    print("%s format configuration(s)"%len(conf_list))
+    for uid in conf_list:
+        fconf=gconf.get_format_conf(uid)
+        status=_get_config_status(gconf, fconf, args.verbose)
+        if status:
+            print("    Config '%s' (%s): %s"%(fconf.id, fconf.descr, status))
+
+    conf_list=gconf.domain_configs
+    print("%s domain configuration(s)"%len(conf_list))
+    for uid in conf_list:
+        dconf=gconf.get_domain_conf(uid)
+        status=_get_config_status(gconf, dconf, args.verbose)
+        if status:
+            print("    Config '%s' (%s): %s"%(dconf.id, dconf.descr, status))
+
+    conf_list=gconf.repo_configs
+    nb=0
+    for ruid in conf_list:
+        rconf=gconf.get_repo_conf(ruid)
+        if rconf.type==confs.RepoType.USERDATA:
+            nb+=1
+    print("%s USERDATA repository configuration(s)"%nb)
+
+    Sync.proxy_pac_file=gconf.proxy_pac_file
+    sobjects=gconf.get_all_sync_objects(gconf.is_master)
+    if len(sobjects)==0:
+        print("No %s configuration defined"%("upload (sync-push)" if gconf.is_master else "download (sync-pull)"))
+    else:
+        print("%s configurations:"%("Upload (sync-push)" if gconf.is_master else "Download (sync-pull)"))
+        for sobj in sobjects:
+            local_st=sobj.root_conf if sobj.is_local else "cloud"
+            print("    %s ('%s', %savailable)"%(sobj.name, local_st, "" if sobj.is_available else "NOT "))
+
+def init(args):
+    # initialize a new INSECA installation
+    confs.GlobalConfiguration.init_root_config()
+
+    # initialize the Git files
+    gconf=confs.get_gconf()
+    if shutil.which("git"):
+        util.print_event("Initializing Git")
+        (status, out, err)=util.exec_sync(["git", "init"], cwd=gconf.path)
+        if status!=0:
+            util.print_event("Error initializing Git: %s"%err)
+        util.write_data_to_file(".borg\nBUILD\nrepos\n*.iso\n*.userdata-specs\n*~\n*#\n", "%s/.gitignore"%gconf.path)
+
+def _repo_get_associated_conf(gconf, rconf):
+    """Get the associated config of a repository config, if any"""
+    if rconf.type==confs.RepoType.USERDATA:
+        return None
+    if rconf.type==confs.RepoType.BUILD:
+        configs=gconf.build_configs
+        for uid in configs:
+            conf=gconf.get_build_conf(uid)
+            if conf.repo_id==rconf.id:
+                return conf
+        raise Exception("BUILD repository '%s' has no associated build configuration"%rconf.id)
+    if rconf.type==confs.RepoType.INSTALL:
+        configs=gconf.install_configs
+        for uid in configs:
+            conf=gconf.get_install_conf(uid)
+            if conf.repo_id==rconf.id:
+                return conf
+        raise Exception("INSTALL repository '%s' has no associated build configuration"%rconf.id)
+    if rconf.type==confs.RepoType.FORMAT:
+        configs=gconf.format_configs
+        for uid in configs:
+            conf=gconf.get_format_conf(uid)
+            if conf.repo_id==rconf.id:
+                return conf
+        raise Exception("FORMAT repository '%s' has no associated build configuration"%rconf.id)
+    if rconf.type==confs.RepoType.DOMAIN:
+        configs=gconf.domain_configs
+        for uid in configs:
+            conf=gconf.get_domain_conf(uid)
+            if conf.repo_id==rconf.id:
+                return conf
+        raise Exception("DOMAIN repository '%s' has no associated build configuration"%rconf.id)
+    raise Exception("CODEBUG, unknown repo type '%s'"%rconf.type)
+
+def list_configs(args):
+    ctype=args.type
+    gconf=confs.GlobalConfiguration()
+    if ctype=="build":
+        configs=gconf.build_configs
+        for uid in configs:
+            conf=gconf.get_build_conf(uid)
+            print("%s: %s"%(conf.id, conf.descr))
+            status=_get_config_status(gconf, conf, args.verbose)
+            if status:
+                print("    %s"%status)
+    elif ctype=="install":
+        configs=gconf.install_configs
+        for uid in configs:
+            conf=gconf.get_install_conf(uid)
+            print("%s: %s"%(conf.id, conf.descr))
+            status=_get_config_status(gconf, conf, args.verbose)
+            if status:
+                print("    %s"%status)
+    elif ctype=="format":
+        configs=gconf.format_configs
+        for uid in configs:
+            conf=gconf.get_format_conf(uid)
+            print("%s: %s"%(conf.id, conf.descr))
+            status=_get_config_status(gconf, conf, args.verbose)
+            if status:
+                print("    %s"%status)
+    elif ctype=="domain":
+        configs=gconf.domain_configs
+        for uid in configs:
+            conf=gconf.get_domain_conf(uid)
+            print("%s: %s"%(conf.id, conf.descr))
+            status=_get_config_status(gconf, conf, args.verbose)
+            if status:
+                print("    %s"%status)
+    elif ctype=="userdata":
+        configs=gconf.repo_configs
+        for uid in configs:
+            conf=gconf.get_repo_conf(uid)
+            if conf.type==confs.RepoType.USERDATA:
+                print("%s: %s"%(conf.id, conf.descr if conf.descr is not None else "--no description--"))
+    elif ctype=="repo":
+        configs=gconf.repo_configs
+        for type in confs.RepoType:
+            if not args.verbose and type!=confs.RepoType.USERDATA:
+                continue
+            print("%s repositories:"%type.value.upper())
+            for uid in configs:
+                rconf=gconf.get_repo_conf(uid)
+                if rconf.type==type:
+                    try:
+                        aconf=_repo_get_associated_conf(gconf, rconf)
+                        if aconf:
+                            print("    %s: %s (for configuration '%s', '%s')"%(rconf.id, rconf.descr if rconf.descr is not None else "--no description--", aconf.id, aconf.descr))
+                        else:
+                            print("    %s: %s"%(rconf.id, rconf.descr if rconf.descr is not None else "--no description--"))
+                    except Exception as e:
+                        print("    %s: %s (WARNING: %s)"%(rconf.id, rconf.descr if rconf.descr is not None else "--no description--", str(e)))
+    else:
+        raise Exception("Unknown config type '%s"%ctype)
+
+def _repo_create(gconf, repo_type, descr):
+    """Creates a new repository"""
+    if not isinstance(repo_type, confs.RepoType):
+        repo_type=confs.RepoType(repo_type)
+
+    # identify an available repo name and its data path
+    if "INSECA_DEFAULT_REPOS_DIR" in os.environ: 
+        base_repo_data_path=os.environ["INSECA_DEFAULT_REPOS_DIR"]
+    else:
+        base_repo_data_path="%s/repos"%gconf.path
+    index=0
+    while True:
+        path1="%s/repo-configurations/repo.%s"%(gconf.path, index)
+        path2="%s/repo.%s"%(base_repo_data_path, index)
+        if not os.path.exists(path1) and not os.path.exists(path2):
+            name="repo.%s"%index
+            repo_data_path=path2
+            break
+        index+=1
+
+    # preparations
+    repo_conf_path="%s/repo-configurations/%s.json"%(gconf.path, name)
+    if os.path.exists(repo_conf_path):
+        raise Exception("Repo configuration path '%s' already exists"%repo_conf_path)
+
+    # create Borg repo
+    borg_repo=Borg.Repo(repo_data_path, None)
+    password=borg_repo.init()
+    
+    # generate config template
+    ruid="repo-%s"%str(uuid.uuid4())
+    conf={
+        "id": ruid,
+        "type": repo_type.value,
+        "descr": descr,
+        "path": os.path.realpath(repo_data_path),
+        "password": password,
+        "compress": repo_type!=confs.RepoType.BUILD
+    }
+    util.write_data_to_file(json.dumps(conf, indent=4), repo_conf_path)
+    return ruid
+
+def _identify_free_filename(base_dir, prefix, ext=None):
+    """Identify a 'free' (inexistant) directory/file name like $base_dir/$prefix.<index>.
+    Returns the full path"""
+    index=0
+    while True:
+        path="%s/%s.%s"%(base_dir, prefix, index)
+        if ext:
+            path=path+ext
+        if not os.path.exists(path):
+            return path
+        index+=1
+
+def config_create(args):
+    # common name and description arguments
+    gconf=confs.GlobalConfiguration()
+    res_path="%s/resources"%prog_dir
+    descr=args.description
+
+    created_conf=None
+    if args.type=="admin-build":
+        # create an ADMIN build configuration (no associated repo)
+        (privdata_encrypt_key_priv, privdata_encrypt_key_pub)=x509.gen_rsa_key_pair()
+
+        path=_identify_free_filename(gconf.path+"/build-configurations", "build-adm")
+        buid="build-%s"%str(uuid.uuid4())
+        repl={
+            "dir": path,
+            "descr": descr,
+            "build": buid
+        }
+        data=util.load_file_contents("%s/template-admin-build.json"%(res_path))
+        data=ValueHolder.replace_variables(data, repl)
+        os.makedirs(path)
+        conf_file="%s/build-configuration.json"%path
+        util.write_data_to_file(data, conf_file)
+
+        privdata_encrypt_key_pub.copy_to("%s/privdata-encrypt-key.pub"%path)
+        privdata_encrypt_key_priv.copy_to("%s/privdata-encrypt-key.priv"%path)
+
+        created_conf=buid
+
+    elif args.type=="build":
+        # create a generic build config and its repo
+        (build_sign_key_priv, build_sign_key_pub)=x509.gen_rsa_key_pair()
+        (userdata_sign_key_priv, userdata_sign_key_pub)=x509.gen_rsa_key_pair()
+        (privdata_encrypt_key_priv, privdata_encrypt_key_pub)=x509.gen_rsa_key_pair()
+        
+        path=_identify_free_filename(gconf.path+"/build-configurations", "build")
+        buid="build-%s"%str(uuid.uuid4())
+        ruid=_repo_create(gconf, confs.RepoType.BUILD, "Repository for build '%s'"%descr)
+
+        repl={
+            "dir": path,
+            "descr": descr,
+            "build": buid,
+            "repo": ruid
+        }
+        data=util.load_file_contents("%s/template-generic-build.json"%(res_path))
+        data=ValueHolder.replace_variables(data, repl)
+        os.makedirs(path)
+        conf_file="%s/build-configuration.json"%path
+        util.write_data_to_file(data, conf_file)
+
+        privdata_encrypt_key_pub.copy_to("%s/privdata-encrypt-key.pub"%path)
+        privdata_encrypt_key_priv.copy_to("%s/privdata-encrypt-key.priv"%path)
+        build_sign_key_pub.copy_to("%s/build-sign-key.pub"%path)
+        build_sign_key_priv.copy_to("%s/build-sign-key.priv"%path)
+        userdata_sign_key_pub.copy_to("%s/userdata-sign-key.pub"%path)
+        userdata_sign_key_priv.copy_to("%s/userdata-sign-key.priv"%path)
+
+        created_conf=buid
+
+    elif args.type=="install":
+        # create an install config and its repo
+        if args.build is None:
+            raise Exception("Build configuration must be specified")
+        build_conf=gconf.get_build_conf(args.build)
+        build_repo=build_conf.repo_id
+        if build_repo is None:
+            raise Exception("Build configuration '%s' does not have any associated repository"%args.build)
+        privdata_enc_privkey=build_conf.privdata_privkey
+
+        userdata_specs=build_conf.userdata_specs
+        userdata={}
+        for component in userdata_specs:
+            userdata[component]={}
+            for entry in userdata_specs[component]:
+                userdata[component][entry]=None
+    
+        (device_metadata_sign_key_priv, device_metadata_sign_key_pub)=x509.gen_rsa_key_pair()
+        (attestation_sign_key_priv, attestation_sign_key_pub)=x509.gen_rsa_key_pair()
+        
+        path=_identify_free_filename(gconf.path+"/install-configurations", "install")
+        iuid="install-%s"%str(uuid.uuid4())
+        created_conf=iuid
+        ruid=_repo_create(gconf, confs.RepoType.INSTALL, "Repository for install '%s'"%descr)
+        password=cgen.generate_password()
+        repl={
+            "descr": descr,
+            "install": iuid,
+            "repo": ruid,
+            "build": build_repo,
+            "rescue": json.dumps(password)[1:-1] # properly encore password as JSON string
+        }
+        data=util.load_file_contents("%s/template-install.json"%(res_path))
+        data=ValueHolder.replace_variables(data, repl, ignore_missing=True)
+
+        conf=json.loads(data)
+        conf["userdata"]=userdata
+        conf_file="%s/install-configuration.json"%path
+        os.makedirs(path)
+        util.write_data_to_file(json.dumps(conf, indent=4, sort_keys=True), conf_file)
+
+        device_metadata_sign_key_pub.copy_to("%s/device-metadata-sign-key.pub"%path)
+        device_metadata_sign_key_priv.copy_to("%s/device-metadata-sign-key.priv"%path) # will be used by the install config
+        attestation_sign_key_pub.copy_to("%s/attestation-sign-key.pub"%path)
+        attestation_sign_key_priv.copy_to("%s/attestation-sign-key.priv"%path)
+        if privdata_enc_privkey:
+            shutil.copyfile(privdata_enc_privkey, "%s/privdata-encrypt-key.priv"%path)
+
+        # build signing key, if available
+        build_sign_key_pub_file=build_conf.signing_pubkey
+        if build_sign_key_pub_file:
+            shutil.copyfile(build_sign_key_pub_file, "%s/build-sign-key.pub"%path)
+            conf["build-skey-pub-file"]="build-sign-key.pub"
+
+        # copy template data
+        for fname in ("grub-config", "user-profile"):
+            tmptar=tempfile.NamedTemporaryFile()
+            tarobj=tarfile.open(tmptar.name, mode='w')
+            tarobj.add("%s/%s"%(res_path, fname), arcname=".", recursive=True)
+            tarobj.close()
+            tarobj=tarfile.open(tmptar.name, mode='r')
+            tarobj.extractall("%s/%s"%(path, fname))
+        os.makedirs("%s/user-documents"%path)
+        shutil.copyfile("%s/default-wallpaper.jpg"%res_path, "%s/default-wallpaper.jpg"%path)
+
+    elif args.type=="format":
+        # create a format config and its repo
+        (device_metadata_sign_key_priv, device_metadata_sign_key_pub)=x509.gen_rsa_key_pair()
+        
+        path=_identify_free_filename(gconf.path+"/format-configurations", "format")
+        iuid="format-%s"%str(uuid.uuid4())
+        created_conf=iuid
+        ruid=_repo_create(gconf, confs.RepoType.FORMAT, "Repository for format '%s'"%descr)
+        password=cgen.generate_password()
+        repl={
+            "descr": descr,
+            "install": iuid,
+            "repo": ruid,
+            "rescue": json.dumps(password)[1:-1] # properly encore password as JSON string
+        }
+        data=util.load_file_contents("%s/template-format.json"%(res_path))
+        data=ValueHolder.replace_variables(data, repl, ignore_missing=True)
+        conf_file="%s/format-configuration.json"%path
+        os.makedirs(path)
+        util.write_data_to_file(data, conf_file)
+
+        device_metadata_sign_key_pub.copy_to("%s/device-metadata-sign-key.pub"%path)
+        device_metadata_sign_key_priv.copy_to("%s/device-metadata-sign-key.priv"%path)
+
+    elif args.type=="domain":
+        # create a new domain configuration and its associated repo
+        conf_file=_identify_free_filename(gconf.path+"/domain-configurations", "domain", ".json")
+        duid="domain-%s"%str(uuid.uuid4())
+        ruid=_repo_create(gconf, confs.RepoType.DOMAIN, "Repository for domain '%s'"%descr)
+        repl={
+            "descr": descr,
+            "domain": duid,
+            "repo": ruid
+        }
+        data=util.load_file_contents("%s/template-domain.json"%(res_path))
+        data=ValueHolder.replace_variables(data, repl)
+        os.makedirs(os.path.dirname(conf_file), exist_ok=True)
+
+        util.write_data_to_file(data, conf_file)
+        created_conf=duid
+
+    elif args.type=="userdata":
+        # create a new userdata repo
+        path=_identify_free_filename(gconf.path+"/repo-configurations", "repo", ".json")
+        ruid=_repo_create(gconf, confs.RepoType.USERDATA, descr)
+        created_conf=ruid
+    else:
+        raise Exception("Unknown config. type '%s'"%args.type)
+
+    # print result
+    (status, out, err)=util.exec_sync([sys.argv[0], "config-infos", created_conf])
+    if status==0:
+        print("%s"%out)
+    else:
+        raise Exception(err)
+
+def _config_remove_one(gconf, uid, confirmation_required):
+    """Remove a single config specified by its UID"""
+    def _assert_confirmation(conf, confirmation_required):
+        if confirmation_required:
+            if isinstance(conf, confs.BuildConfig):
+                if conf.repo_id:
+                    c=input("Confirm removal of build configuration '%s' and its repository (enter YES):"%conf.descr)
+                else:
+                    c=input("Confirm removal of build configuration '%s' (enter YES):"%conf.descr)
+            elif isinstance(conf, confs.InstallConfig):
+                c=input("Confirm removal of install configuration '%s' (enter YES):"%conf.descr)
+            elif isinstance(conf, confs.FormatConfig):
+                c=input("Confirm removal of format configuration '%s' (enter YES):"%conf.descr)
+            elif isinstance(conf, confs.RepoConfig):
+                if conf.type==confs.RepoType.USERDATA:
+                    c=input("Confirm removal of USERDATA repository configuration '%s' (enter YES):"%conf.descr)
+                else:
+                    raise Exception("Can't remove individual repository")
+            elif isinstance(conf, confs.DomainConfig):
+                c=input("Confirm removal of domain configuration '%s' (enter YES):"%conf.descr)
+            if c!="YES":
+                print("Cancelled")
+                return
+
+    # build configuration ?    
+    conf=gconf.get_build_conf(uid, exception_if_not_found=False)
+    if conf:
+        _assert_confirmation(conf, confirmation_required)
+        # ensure no install config uses the associated build repo
+        for iuid in gconf.install_configs:
+            iconf=gconf.get_install_conf(iuid)
+            if iconf.build_id==uid:
+                raise Exception("Build config is referenced by install config '%s'"%iconf.descr)
+
+        # # ensure the associated repository is empty
+        if conf.repo_id:
+            rconf=gconf.get_repo_config(conf.repo_id)
+            if len(rconf.get_all_archives())!=0:
+                raise Exception("Build config's associated repository is not empty")
+
+            _config_remove_one(gconf, conf.repo_id, False)
+        print("To remove BUILD %s: %s"%(uid, conf.descr))
+        print("rm -rf %s"%conf.config_dir)
+        #shutil.rmtree(conf.config_dir)
+        return
+
+    # install configuration ?    
+    conf=gconf.get_install_conf(uid, exception_if_not_found=False)
+    if conf:
+        # ensure no domain config uses this configuration
+        for duid in gconf.domain_configs:
+            dconf=gconf.get_domain_conf(duid)
+            if uid in dconf.install_ids:
+                raise Exception("Install config is referenced by domain config '%s'"%dconf.descr)
+        _config_remove_one(gconf, conf.repo_id, False)
+        print("To remove INSTALL %s: %s"%(uid, conf.descr))
+        print("rm -rf %s"%conf.config_dir)
+        #shutil.rmtree(conf.config_dir)
+        return
+
+    # format configuration ?    
+    conf=gconf.get_format_conf(uid, exception_if_not_found=False)
+    if conf:
+        # ensure no domain config uses this configuration
+        for duid in gconf.domain_configs:
+            dconf=gconf.get_domain_conf(duid)
+            if uid in dconf.format_ids:
+                raise Exception("Format config is referenced by domain config '%s'"%dconf.descr)
+        _config_remove_one(gconf, conf.repo_id, False)
+        print("To remove FORMAT %s: %s"%(uid, conf.descr))
+        print("rm -rf %s"%conf.config_dir)
+        #shutil.rmtree(conf.config_dir)
+        return
+
+    # domain configuration ?    
+    conf=gconf.get_domain_conf(uid, exception_if_not_found=False)
+    if conf:
+        print("To remove DOMAIN %s: %s"%(uid, conf.descr))
+        print("rm -f %s"%conf.config_file)
+        #os.remove(conf.config_file)
+        return
+
+    # repo configuration ?    
+    conf=gconf.get_repo_conf(uid, exception_if_not_found=False)
+    if conf:
+        print("To remove REPO %s: %s"%(uid, conf.descr))
+        print("rm -f %s"%conf.config_file)
+        #os.remove(conf.config_file)
+        return
+
+    raise Exception("Configuration '%s' can't be removed"%uid)
+
+def config_remove(args):
+    if args.verbose:
+        util.print_events=True
+
+    gconf=confs.get_gconf()
+    if not gconf.is_master:
+        raise Exception("Installation is not a master configuration, can't remove configurations")
+
+    if len(args.config)==0:
+        raise Exception("No configuration to remove has been specified")
+
+    # remove the specified configs
+    for uid in args.config:
+        util.print_event("Removing config '%s'"%uid)
+        _config_remove_one(gconf, uid, not args.confirm)
+
+def _print_repo_archives(rconf, indent=""):
+    arlist=rconf.get_all_archives()
+    tslist=list(arlist.keys())
+    tslist.sort(reverse=True)
+    for ts in tslist:
+        print("%s@%s: %s"%(indent, _format_ts(ts), arlist[ts]))
+
+def config_infos(args):
+    uid=args.config
+    gconf=confs.GlobalConfiguration()
+
+    # build configuration ?
+    conf=gconf.get_build_conf(uid, exception_if_not_found=False)
+    if conf:
+        print("Build configuration ID: %s"%conf.id)
+        print("Build type: %s"%conf.build_type.value)
+        print("Description: %s"%conf.descr)
+        print("Configuration file: %s"%conf.config_file)
+        print("Build directory: %s/%s"%(conf.build_dir, conf.id))
+        print("Repo ID: %s"%conf.repo_id)
+        if "signature" not in conf.components:
+            print("Builds are not signed (the 'signature' component is not present)")
+        status=_get_config_status(gconf, conf, args.verbose)
+        if status:
+            print("Status: %s"%status)
+        if conf.repo_id:
+            print("Live Linux archives:")
+            rconf=gconf.get_repo_conf(conf.repo_id)
+            _print_repo_archives(rconf, "    ")
+
+            iconfs=gconf.install_configs
+            print("Referenced by installation configurations:")
+            for iuid in iconfs:
+                iconf=gconf.get_install_conf(iuid)
+                if iconf.build_id==uid:
+                    print("    %s (%s)"%(iconf.id, iconf.descr))
+        return
+
+    # install configuration ?
+    conf=gconf.get_install_conf(uid, exception_if_not_found=False)
+    if conf:
+        print("Install configuration ID: %s"%conf.id)
+        print("Description: %s"%conf.descr)
+        print("Configuration file: %s"%conf.config_file)
+        print("Repo ID: %s"%conf.repo_id)
+        status=_get_config_status(gconf, conf, args.verbose)
+        if status:
+            print("Status: %s"%status)
+        print("Install archives:")
+        rconf=gconf.get_repo_conf(conf.repo_id)
+        _print_repo_archives(rconf, indent="    ")
+        print("Build configuration ID: %s"%conf.build_id)
+        print("Build repository ID: %s"%conf.build_repo_id)
+
+        errors=[]
+
+        # checking match with associated build's USERDATA specifications
+        bconf=gconf.get_build_conf(conf.build_id)
+        userdata_specs=bconf.userdata_specs
+        userdata=conf.userdata
+        for component in userdata_specs:
+            if component not in userdata:
+                errors+=["Missing USERDATA specification for component '%s'"%component]
+            else:
+                for entry in userdata_specs[component]:
+                    edata=userdata_specs[component][entry]
+                    if edata["type"]=="file":
+                        if entry not in userdata[component]:
+                            errors+=["Missing USERDATA attribute '%s' for component '%s'"%(entry, component)]
+                        else:
+                            ruid=userdata[component][entry]
+                            if ruid:
+                                userdataconf=gconf.get_repo_conf(ruid, exception_if_not_found=False)
+                                if userdataconf is None:
+                                    errors+=["Referenced USERDATA repository '%s' for attribute '%s' of component '%s' does not exist"%(ruid, entry, component)]
+                                elif userdataconf.type!=confs.RepoType.USERDATA:
+                                    errors+=["Referenced repository '%s' for attribute '%s' of component '%s' is not a USERDATA repository"%(ruid, entry, component)]
+                            else:
+                                errors+=["Unspecified USERDATA repository for attribute '%s' of component '%s'"%(entry, component)]
+
+                for entry in userdata[component]:
+                    if entry not in userdata_specs[component]:
+                        errors+=["Invalid USERDATA attribute '%s' for component '%s'"%(entry, component)]
+        for component in userdata:
+            if component not in userdata_specs:
+                errors+=["USERDATA specified but not used for component '%s'"%component]
+
+        # checking match of keys
+        path=conf.config_dir
+        i_privkey="%s/privdata-encrypt-key.priv"%path
+        b_privkey=bconf.privdata_privkey
+        if b_privkey is None:
+            if os.path.exists(i_privkey):
+                errors+=["PRIVDATA decrypt key is defined but useless ('%s')"%i_privkey]
+        else:
+            if not os.path.exists(i_privkey):
+                errors+=["PRIVDATA decrypt key is missing ('%s')"%i_privkey]
+            else:
+                idata=util.load_file_contents(i_privkey, binary=True)
+                bdata=util.load_file_contents(b_privkey, binary=True)
+                if idata!=bdata:
+                    errors+=["PRIVDATA decrypt key does not match associated build's key"]
+
+        # report errors, if any
+        if len(errors)>0:
+            print("Errors:")
+            for line in errors:
+                print("    %s"%line)
+        return
+
+    # format configuration ?
+    conf=gconf.get_format_conf(uid, exception_if_not_found=False)
+    if conf:
+        print("Format configuration ID: %s"%conf.id)
+        print("Description: %s"%conf.descr)
+        print("Configuration file: %s"%conf.config_file)
+        print("Repo ID: %s"%conf.repo_id)
+        status=_get_config_status(gconf, conf, args.verbose)
+        if status:
+            print("Status: %s"%status if status else "--")
+        print("Archives of this format config:")
+        rconf=gconf.get_repo_conf(conf.repo_id)
+        _print_repo_archives(rconf, indent="    ")
+        return
+
+    # domain configuration ?
+    conf=gconf.get_domain_conf(uid, exception_if_not_found=False)
+    if conf:
+        print("Domain configuration ID: %s"%conf.id)
+        print("Description: %s"%conf.descr)
+        print("Configuration file: %s"%conf.config_file)
+        print("Repo ID: %s"%conf.repo_id)
+        status=_get_config_status(gconf, conf, args.verbose)
+        if status:
+            print("Status: %s"%status)
+        for iuid in conf.install_ids:
+            print("Available installation")
+            iconf=gconf.get_install_conf(iuid, exception_if_not_found=False)
+            if iconf is not None:
+                print("    Install configuration: %s"%iconf.id)
+                print("    Description: %s"%iconf.descr)
+            else:
+                print("    ERROR: corresponding installation configuration not found")
+        for iuid in conf.format_ids:
+            print("Available format configurations")
+            iconf=gconf.get_format_conf(iuid, exception_if_not_found=False)
+            if iconf is not None:
+                print("    Format configuration: %s"%iconf.id)
+                print("    Description: %s"%iconf.descr)
+            else:
+                print("    ERROR: corresponding format configuration not found")
+        print("Archives of this domain config:")
+        rconf=gconf.get_repo_conf(conf.repo_id)
+        _print_repo_archives(rconf, indent="    ")
+        return
+
+    # repo configuration ?
+    conf=gconf.get_repo_conf(uid, exception_if_not_found=False)
+    if conf:
+        print("Repository configuration ID: %s"%conf.id)
+        print("Description: %s"%conf.descr if conf.descr is not None else "--no description--")
+        print("Configuration file: %s"%conf.config_file)
+        print("Repository type: %s"%str(conf.type))
+        print("Data path: %s"%conf.path)
+        print("Size: %s"%conf.used_space)
+        try:
+            aconf=_repo_get_associated_conf(gconf, conf)
+            if aconf:
+                print("Used by configuration: %s (%s)"%(aconf.id, aconf.descr))
+        except Exception as e:
+            print("WARNING: %s"%str(e))
+        env=conf.get_borg_exec_env()
+        if args.verbose:
+            print("Usage environment:")
+            for name in env:
+                if name.startswith("BORG_"):
+                    print("    export %s=%s"%(name, shlex.quote(env[name])))
+        print("Archives in repository:")
+        _print_repo_archives(conf, indent="    ")
+        return
+    raise Exception("Config '%s' not found"%uid)
+
+def repo_ls(args):
+    uid=args.repo
+    if args.archive is None:
+        gconf=confs.GlobalConfiguration()
+        rconf=gconf.get_repo_conf(uid)
+        _print_repo_archives(rconf)
+    else:
+        gconf=confs.GlobalConfiguration()
+        rconf=gconf.get_repo_conf(uid)
+        data=rconf.borg_repo.list_archive_contents(args.archive)
+        print("%s"%data)
+
+def _sync_push(rconf, sync_obj):
+    src=Sync.SyncLocation(rconf.path, None)
+    dest=Sync.SyncLocation(rconf.id, sync_obj)
+    if not dest.is_available:
+        raise Exception("Destination is not available")
+    if not src.is_available:
+        raise Exception("Source is not available")
+    so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
+    so.sync()
+
+def _sync_pull(rconf, sync_obj):
+    src=Sync.SyncLocation(rconf.id, sync_obj)
+    dest=Sync.SyncLocation(rconf.path, None)
+    if not dest.is_available:
+        raise Exception("Destination is not available")
+    if not src.is_available:
+        raise Exception("Source is not available")
+    util.print_event("Downloading repository '%s'"%rconf.descr)
+    so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
+    so.sync()
+
+def sync_push(args):
+    """Push a repository (or all repositories if not specified) to a target location"""
+    util.print_events=True
+    gconf=confs.GlobalConfiguration()
+
+    if not gconf.is_master:
+        raise Exception("Installation is not a master configuration, cannot push repository's contents")
+
+    target=args.storage
+    sync=gconf.get_target_sync_object(target, True) # write to outside location
+    if args.repos==[]:
+        repos=gconf.repo_configs
+    else:
+        repos=args.repos
+
+    for repo in repos:
+        rconf=gconf.get_repo_conf(repo)
+        print("Pushing '%s' (%s): %s"%(repo, rconf.type.value.upper(), rconf.descr))
+        _sync_push(rconf, sync)
+
+def sync_pull(args):
+    """Using the defined domain configuration(s), update the whole local configuration"""
+    if args.verbose:
+        util.print_events=True
+    gconf=confs.GlobalConfiguration()
+
+    if gconf.is_master:
+        raise Exception("Installation is a master configuration, cannot update")
+
+    target=args.storage
+    sync=gconf.get_target_sync_object(target, False) # read from outside location
+
+    # create TMP directory for the new configuration, which will replace the current one in the end
+    newconfdir=gconf.create_update_dir()
+
+    # update and extract all DOMAIN repos present in the config dir
+    for ruid in gconf.repo_configs:
+        rconf=gconf.get_repo_conf(ruid)
+        if rconf.type==confs.RepoType.DOMAIN:
+            _sync_pull(rconf, sync)
+            (ts, lastarname)=rconf.get_latest_archive()
+            if lastarname:
+                rconf.extract_archive(lastarname, newconfdir)
+
+    # create new GlobalConfiguration from the extracted data
+    ngconf=confs.GlobalConfiguration(path=newconfdir)
+
+    # update all repo's contents
+    updated_repos=[]
+    for ruid in ngconf.repo_configs:
+        rconf=ngconf.get_repo_conf(ruid)
+        _sync_pull(rconf, sync)
+        updated_repos+=[rconf.id]
+    ngconf=confs.GlobalConfiguration(path=newconfdir)
+
+    # for each repo: extract the corresponding data from the last archive
+    util.print_event("Extracting last INSTALL and FORMAT archives")
+    for iuid in ngconf.install_configs + ngconf.format_configs:
+        try:
+            conf=ngconf.get_install_conf(iuid)
+        except:
+            conf=ngconf.get_format_conf(iuid)
+        rconf=ngconf.get_repo_conf(conf.repo_id)
+        (ts, lastarname)=rconf.get_latest_archive()
+        if lastarname:
+            util.print_event("extracting last archive '%s'"%lastarname)
+            #print("config dir: %s"%conf.config_dir)
+            rconf.extract_archive(lastarname, conf.config_dir)
+
+    # remove obsolete repos
+    repos_dir=gconf.path+"/repo-configurations"
+    for dname in os.listdir(repos_dir):
+        try:
+            data=json.load(open("%s/%s"%(repos_dir, dname), "r"))
+            ruid=data["id"]
+            if ruid not in updated_repos:
+                print("Removing repo %s"%ruid)
+                orconf=gconf.get_repo_conf(ruid)
+                orconf.remove()
+        except Exception as e:
+            util.print_event("Could not remove repo. %s: %s"%(ruid, str(e)))
+
+    # finish replacing the current configuration
+    gconf.merge_update()
+
+    # extract last archive of BUILD and USERDATA repos
+    util.print_event("Extracting last BUILD and USERDATA archives")
+    for ruid in updated_repos:
+        rconf=ngconf.get_repo_conf(ruid)
+        if rconf.type in (confs.RepoType.BUILD, confs.RepoType.USERDATA):
+            util.print_event("extracting last archive '%s'"%lastarname)
+            rconf.cache_last_archive()
+
+def repo_prune(args):
+    """Remove all obsolete archives in all the repositories"""
+    gconf=confs.GlobalConfiguration()
+
+    if not gconf.is_master:
+        raise Exception("Installation is not a master configuration, can't prune repositories")
+
+    if args.repos==[]:
+        repos=gconf.repo_configs
+    else:
+        repos=args.repos
+
+    # handle all repos
+    for ruid in repos:
+        if len(repos)>1:
+            print("Analysing repository '%s'"%ruid)
+        rconf=gconf.get_repo_conf(ruid)
+        # keep only the latest and greatest archive in the repo
+        arlist=rconf.get_all_archives()
+        if len(arlist)>0:
+            tslist=list(arlist.keys())
+            tslist.sort(reverse=True)
+            for ts in tslist[1:]:
+                arname=arlist[ts]
+                print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
+                rconf.borg_repo.delete_archive(arname)
+
+def _publish_build(bconf):
+    files=(bconf.image_iso_file, bconf.image_userdata_specs_file)
+    for path in files:
+        if not os.path.exists(path):
+            raise Exception(_("Missing live Linux file '%s'")%path)
+    arpath=os.path.dirname(bconf.image_iso_file)
+    if arpath!=os.path.dirname(bconf.image_userdata_specs_file):
+        raise Exception("CODEBUG: ISO and USERDATA specs. file not in the same directory")
+
+    # check repo
+    if not bconf.repo_id:
+        raise Exception(_("Build configuration does not specify a repository"))
+    gconf=confs.get_gconf()
+    rconf=gconf.get_repo_conf(bconf.repo_id)
+    if rconf.type != confs.RepoType.BUILD:
+        raise Exception(_("Build configuration specifies a non BUILD repository"))
+
+    # signing if specified
+    skey_file=bconf.signing_privkey
+    if skey_file is not None:
+        util.print_event(_("Signing live Linux"))
+        sobj=x509.CryptoKey(util.load_file_contents(skey_file), None)
+        # sign the live Linux ISO
+        hash=cgen.compute_hash_file(bconf.image_iso_file)
+        sig=sobj.sign(hash)
+        util.write_data_to_file(sig, "%s.sign"%bconf.image_iso_file)
+        # sign the USERDATA specs. file
+        hash=cgen.compute_hash_file(bconf.image_userdata_specs_file)
+        sig=sobj.sign(hash)
+        util.write_data_to_file(sig, "%s.sign"%bconf.image_userdata_specs_file)
+    else:
+        util.print_event(_("Not signing live Linux (configuration does not specify any signing key)"))
+
+    # adding archive
+    rconf.borg_repo.create_archive(arpath, rconf.compress)
+
+    # cleanups
+    os.remove(bconf.image_iso_file)
+    os.remove("%s.sign"%bconf.image_iso_file)
+    os.remove(bconf.image_userdata_specs_file)
+    os.remove("%s.sign"%bconf.image_userdata_specs_file)
+
+def _publish_install(iconf):
+    # copy the install's directory's contents
+    tmp=tempfile.TemporaryDirectory()
+    tmptar=tempfile.NamedTemporaryFile()
+    tarobj=tarfile.open(tmptar.name, mode='w')
+    tarobj.add(iconf.config_dir, arcname=".", recursive=True)
+    tarobj.close()
+    tarobj=tarfile.open(tmptar.name, mode='r')
+    tarobj.extractall(tmp.name)
+
+    # create borg archive
+    gconf=confs.get_gconf()
+    rconf=gconf.get_repo_conf(iconf.repo_id)
+    rconf.borg_repo.create_archive(tmp.name, rconf.compress)
+
+def _publish_format(fconf):
+    # copy the format's directory's contents
+    tmp=tempfile.TemporaryDirectory()
+    tmptar=tempfile.NamedTemporaryFile()
+    tarobj=tarfile.open(tmptar.name, mode='w')
+    tarobj.add(fconf.config_dir, arcname=".", recursive=True)
+    tarobj.close()
+    tarobj=tarfile.open(tmptar.name, mode='r')
+    tarobj.extractall(tmp.name)
+
+    # create borg archive
+    gconf=confs.get_gconf()
+    rconf=gconf.get_repo_conf(fconf.repo_id)
+    rconf.borg_repo.create_archive(tmp.name, rconf.compress)
+
+def _publish_domain(dconf):
+    """Add a new domain achive.
+    It contains all the files necessary to generate INSECA installations, where all the repositories's path are replaced by
+    the relative path '<repo-ID>'
+    """
+    # create temp directory where all the files which will be pushed to the repo will be
+    builddir=tempfile.TemporaryDirectory()
+    (status, out, err)=util.exec_sync([sys.argv[0], "--root", builddir.name, "init"])
+    if status!=0:
+        raise Exception("Could not initialize empty global configuration structure: %s"%err)
+
+    # copy domain configuration itself
+    shutil.copyfile(dconf.config_file, "%s/domain-configurations/%s"%(builddir.name, os.path.basename(dconf.config_file)))
+
+    # copy associated repo's configuration
+    gconf=confs.get_gconf()
+    rconf=gconf.get_repo_conf(dconf.repo_id)
+    util.write_data_to_file(json.dumps(rconf.export(new_path=rconf.id), indent=4),
+                                        "%s/repo-configurations/%s.json"%(builddir.name, str(rconf.id)))
+
+    # copy required data from each install ref
+    for iuid in dconf.install_ids:
+        iconf=gconf.get_install_conf(iuid)
+
+        # copy install configuration
+        confdir=os.path.dirname(iconf.config_file)
+        idir="%s/install-configurations/%s"%(builddir.name, os.path.basename(confdir))
+        os.makedirs(idir)
+        shutil.copyfile(iconf.config_file, "%s/%s"%(idir, os.path.basename(iconf.config_file)))
+
+        # copy associated repo's configuration
+        rconf=gconf.get_repo_conf(iconf.repo_id)
+        util.write_data_to_file(json.dumps(rconf.export(new_path=rconf.id), indent=4),
+                                            "%s/repo-configurations/%s.json"%(builddir.name, str(rconf.id)))
+
+        # copy associated build repo's configuration
+        rconf=gconf.get_repo_conf(iconf.build_repo_id)
+        util.write_data_to_file(json.dumps(rconf.export(new_path=rconf.id), indent=4),
+                                            "%s/repo-configurations/%s.json"%(builddir.name, str(rconf.id)))
+
+        # copy userdata repos' configurations
+        for component in iconf.userdata:
+            for key in iconf.userdata[component]:
+                value=iconf.userdata[component][key]
+                if value is None:
+                    raise Exception("No repository configuration specified for component '%s' and userdata '%s'"%(component, key))
+                rconf=gconf.get_repo_conf(value, exception_if_not_found=False)
+                if rconf:
+                    util.write_data_to_file(json.dumps(rconf.export(new_path=rconf.id), indent=4),
+                                                        "%s/repo-configurations/%s.json"%(builddir.name, str(rconf.id)))
+
+    # copy required data from each format ref
+    for fuid in dconf.format_ids:
+        fconf=gconf.get_format_conf(fuid)
+
+        # copy format configuration
+        confdir=os.path.dirname(fconf.config_file)
+        fdir="%s/format-configurations/%s"%(builddir.name, os.path.basename(confdir))
+        os.makedirs(fdir)
+        shutil.copyfile(fconf.config_file, "%s/%s"%(fdir, os.path.basename(fconf.config_file)))
+
+        # copy associated repo's configuration
+        rconf=gconf.get_repo_conf(fconf.repo_id)
+        util.write_data_to_file(json.dumps(rconf.export(new_path=rconf.id), indent=4),
+                                            "%s/repo-configurations/%s.json"%(builddir.name, str(rconf.id)))
+
+    # create global config file
+    deploy={}
+    for obj in gconf.get_all_sync_objects(False):
+        deploy[obj.name]={
+            "root": obj.root_conf
+        }
+        if obj.conf_file is not None:
+            bname=os.path.basename(obj.conf_file)
+            if not os.path.isfile(obj.conf_file):
+                raise Exception("Missing storage credential file '%s'"%obj.conf_file)
+            shutil.copyfile(obj.conf_file, "%s/storage-credentials/%s"%(builddir.name, bname))
+        else:
+            bname=None
+        deploy[obj.name]["reader-conf"]=bname
+    data={
+        "deploy": deploy,
+        "is-master": False
+    }
+    util.write_data_to_file(json.dumps(data, indent=4), "%s/inseca.json"%builddir.name)
+
+    # include proxy PAC if defined AND is below the INSECA_ROOT directory
+    pfile=gconf.proxy_pac_file
+    if pfile and pfile.startswith(gconf.path):
+        shutil.copyfile(pfile, "%s/proxy.pac"%builddir.name)
+
+    # create borg archive
+    rconf=gconf.get_repo_conf(dconf.repo_id)
+    rconf.borg_repo.create_archive(builddir.name, rconf.compress)
+
+def _config_publish_one(gconf, uid):
+    """Publish a single config specified by its UID"""
+    # build configuration ?    
+    conf=gconf.get_build_conf(uid, exception_if_not_found=False)
+    if conf:
+        _publish_build(conf)
+        return
+    
+    # install configuration ?    
+    conf=gconf.get_install_conf(uid, exception_if_not_found=False)
+    if conf:
+        _publish_install(conf)
+        return
+
+    # format configuration ?    
+    conf=gconf.get_format_conf(uid, exception_if_not_found=False)
+    if conf:
+        _publish_format(conf)
+        return
+
+    # domain configuration ?    
+    conf=gconf.get_domain_conf(uid, exception_if_not_found=False)
+    if conf:
+        _publish_domain(conf)
+        return
+
+    raise Exception("Configuration '%s' can't be published"%uid)
+
+def config_publish(args):
+    if args.verbose:
+        util.print_events=True
+    gconf=confs.get_gconf()
+    if not gconf.is_master:
+        raise Exception("Installation is not a master configuration, can't publish")
+
+    if len(args.config)>0:
+        # publish the specified configs
+        for uid in args.config:
+            util.print_event("Publishing config '%s'"%uid)
+            _config_publish_one(gconf, uid)
+    else:
+        # publish all configs (not repo ones!)
+        for uid in gconf.build_configs:
+            conf=gconf.get_build_conf(uid)
+            if conf.repo_id and os.path.exists(conf.image_iso_file):
+                util.print_event("Publishing config '%s'"%uid)
+                _publish_build(conf)
+        for uid in gconf.install_configs:
+            conf=gconf.get_install_conf(uid)
+            util.print_event("Publishing config '%s'"%uid)
+            _publish_install(conf)
+        for uid in gconf.format_configs:
+            conf=gconf.get_format_conf(uid)
+            util.print_event("Publishing config '%s'"%uid)
+            _publish_format(conf)
+        for uid in gconf.domain_configs:
+            conf=gconf.get_domain_conf(uid)
+            util.print_event("Publishing config '%s'"%uid)
+            _publish_domain(conf)
+
+def userdata_import(args):
+    """Adds an archive to a USERDATA repository"""
+    repo_id=args.repo
+    data_path=args.path
+    gconf=confs.GlobalConfiguration()
+
+    if not gconf.is_master:
+        raise Exception("Installation is not a master configuration, can't import userdata")
+
+    rconf=gconf.get_repo_conf(repo_id)
+    if rconf.type != confs.RepoType.USERDATA:
+        raise Exception("Invalid non USERDATA repository")
+    if not os.path.isdir(data_path):
+        raise Exception("'%s' is not a directory (or does not exist)"%data_path)
+    rconf.borg_repo.create_archive(data_path, rconf.compress)
+
+def userdata_add(args):
+    gconf=confs.GlobalConfiguration()
+
+    if not gconf.is_master:
+        raise Exception("Installation is not a master configuration, can't add userdata")
+
+    rconf=gconf.get_repo_conf(args.repo)
+    if rconf.type!=confs.RepoType.USERDATA:
+        raise Exception("Invalid non USERDATA repository")
+    (ts, last_arname)=rconf.borg_repo.get_latest_archive()
+
+    # check that the file to add actually exist
+    files=args.files
+    for file in files:
+        if not os.path.exists(file):
+            raise Exception("File '%s' to add does not exist"%file)
+        if not os.path.isfile(file):
+            raise Exception("File '%s' to add is not a regular file"%file)
+
+    tmpdir=tempfile.TemporaryDirectory()
+    if last_arname is not None:
+        # mount last archive and copy all the files in a TMP directory
+        mp=rconf.mount(last_arname)
+        try:
+            tmptar=tempfile.NamedTemporaryFile()
+            tarobj=tarfile.open(tmptar.name, mode='w')
+            tarobj.add(mp, arcname=".", recursive=True)
+            tarobj.close()
+            tarobj=tarfile.open(tmptar.name, mode='r')
+            tarobj.extractall(tmpdir.name)
+        finally:
+            rconf.umount(last_arname)
+
+    # add specified files
+    for file in files:
+        shutil.copyfile(file, "%s/%s"%(tmpdir.name, os.path.basename(file)))
+
+    # create new archive
+    rconf.borg_repo.create_archive(tmpdir.name, rconf.compress)
+
+def userdata_del(args):
+    ruid=args.repo
+    gconf=confs.GlobalConfiguration()
+
+    if not gconf.is_master:
+        raise Exception("Installation is not a master configuration, can't delete userdata")
+
+    rconf=gconf.get_repo_conf(ruid)
+    if rconf.type!=confs.RepoType.USERDATA:
+        raise Exception("Invalid non USERDATA repository")
+    (ts, last_arname)=rconf.borg_repo.get_latest_archive()
+    if last_arname is None:
+        raise Exception("No archive to delete from in repository")
+
+    # mount last archive, check that file to remove are present, and
+    # copy all the files in a TMP directory
+    tmpdir=tempfile.TemporaryDirectory()
+    mp=rconf.mount(last_arname)
+    try:
+        files=args.files
+        for file in files:
+            arfile="%s/%s"%(mp, file)
+            if not os.path.exists(arfile):
+                raise Exception("File '%s' to delete does not exist"%arfile)
+            if not os.path.isfile(arfile):
+                raise Exception("File '%s' to delete is not a regular file"%arfile)
+
+        tmptar=tempfile.NamedTemporaryFile()
+        tarobj=tarfile.open(tmptar.name, mode='w')
+        tarobj.add(mp, arcname=".", recursive=True)
+        tarobj.close()
+        tarobj=tarfile.open(tmptar.name, mode='r')
+        tarobj.extractall(tmpdir.name)
+    finally:
+        rconf.umount(last_arname)
+
+    # remove specified files
+    for file in files:
+        arfile="%s/%s"%(tmpdir.name, file)
+        os.remove(arfile)
+
+    # create new archive
+    rconf.borg_repo.create_archive(tmpdir.name, rconf.compress)
+
+def build(args):
+    if args.verbose:
+        util.print_events=True
+    gconf=confs.GlobalConfiguration()
+    for buid in args.build:
+        bconf=gconf.get_build_conf(buid)
+        print("Building configuration '%s': %s"%(bconf.id, bconf.descr))
+        builder=LiveBuilder.Builder(buid)
+        builder.prepare_build_dir()
+        builder.copy_resources()
+        if "INSECA_DONT_BUILD" not in os.environ:
+            cleaned=False
+            try:
+                builder.build()
+                print("Generated file %s"%builder.image_file)
+                builder.compute_user_data_specs()
+                builder.clean_build_dir()
+                cleaned=True
+                if args.publish:
+                    # publish build if it has been requested
+                    if bconf.repo_id and os.path.exists(bconf.image_iso_file):
+                        util.print_event("Publishing build '%s'"%buid)
+                        _publish_build(bconf)
+            finally:
+                if not cleaned:
+                    builder.clean_build_dir()
+        else:
+            util.write_data_to_file("Not building (INSECA_DONT_BUILD)", builder.build_data_file, append=True)
+            print("Not building the Live Linux (INSECA_DONT_BUILD)")
+            print("Live build preparation is in: %s"%builder.livedir)
+            builder.compute_user_data_specs()
+
+def gen_params(args):
+    gconf=confs.GlobalConfiguration()
+    iconf=gconf.get_install_conf(args.config, exception_if_not_found=False)
+    fconf=None
+    if not iconf:
+        fconf=gconf.get_format_conf(args.config, exception_if_not_found=False)
+        if not fconf:
+            raise Exception("Unknown install/format configuration '%s'"%args.config)
+    if iconf:
+        (linuximage, linuxuserdata)=gconf.get_install_elements(iconf)
+        pset=Installer.ParamsSet(iconf, linuxuserdata)
+        templ={"_components": {}}
+    else:
+        fconf=gconf.get_format_conf(args.config)
+        pset=Installer.ParamsSet(fconf)
+        templ={}
+            
+
+    params=pset.params
+    print("Required parameters: %s"%json.dumps(params, indent=4, sort_keys=True))
+    for key in params:
+        if key=="_components":
+            for cname in params["_components"]:
+                templ["_components"][cname]={}
+                for ckey in params["_components"][cname]:
+                    entry=params["_components"][cname][ckey]
+                    default=""
+                    if "default" in entry:
+                        default=entry["default"]
+                    templ["_components"][cname][ckey]=default
+        else:
+            entry=params[key]
+            default=""
+            if "default" in entry:
+                default=entry["default"]
+            templ[key]=default
+    print("\nTemplate: %s"%json.dumps(templ, indent=4, sort_keys=True))
+
+def dev_install(args):
+    target=args.target
+    if args.verbose:
+        util.print_events=True
+    gconf=confs.GlobalConfiguration()
+
+    # install config specified?
+    iconf=gconf.get_install_conf(args.config, exception_if_not_found=False)
+    if iconf:
+        (linuximage, linuxuserdata)=gconf.get_install_elements(iconf, args.archive)
+
+        # analyse parameter's values
+        paramsf=args.params_file
+        paramsf=os.path.realpath(paramsf)
+        if not os.path.exists(paramsf):
+            raise Exception("Missing file '%s'"%paramsf)
+        params=json.load(open(paramsf, "r"))
+
+        # mix all the inputs
+        if target.startswith("/dev"):
+            creator=Installer.DeviceInstaller(iconf, linuximage, linuxuserdata, params, target)
+        else:
+            creator=Installer.ImageInstaller(iconf, linuximage, linuxuserdata, params, target, args.vm_size)
+
+        # actual work
+        creator.validate()
+        creator.install()
+        creator=None
+        gc.collect()
+        return
+
+    # build config specified?
+    bconf=gconf.get_build_conf(args.config, exception_if_not_found=False)
+    if bconf:
+        if bconf.build_type==confs.BuildType.WKS:
+            raise Exception("Workstation build types must be installed using an install. configuration")
+        if args.archive: # use specified archive
+            if bconf.repo_id:
+                rconf=gconf.get_repo_conf(bconf.repo_id)
+                mp=rconf.mount(args.archive)
+                iso_file="%s/live-linux.iso"%mp
+        else:
+            # check there is an existing ISO file
+            iso_file=bconf.image_iso_file
+            if not os.path.exists(iso_file):
+                if bconf.repo_id:
+                    # get the ISO file from the latest repo's archive
+                    rconf=gconf.get_repo_conf(bconf.repo_id)
+                    (ts, arname)=rconf.get_latest_archive()
+                    if ts:
+                        mp=rconf.mount(arname)
+                    iso_file="%s/live-linux.iso"%mp
+
+        if not iso_file:  
+            raise Exception("No ISO file available for this build")
+        chunk=4*1024*1024 # 4Mib
+        size=os.stat(iso_file).st_size
+        ndone=0
+        nts=0
+        try:
+            with open(iso_file, "rb") as fd_read:
+                with open(target, "wb") as fd_write:
+                    while True:
+                        data=fd_read.read(chunk)
+                        fd_write.write(data)
+                        ndone+=len(data)
+                        ts=util.get_timestamp()
+                        if nts!=ts:
+                            util.print_event("%s%% copied"%int(ndone*100/size))
+                            nts=ts
+                        if ndone==size:
+                            break
+            util.print_event("Forcing sync.")
+            os.sync()
+            return
+        except Exception as e:
+            raise Exception("Error writing ISO image: %s"%str(e))
+
+    raise Exception("Invalid configuration '%s'"%args.config)
+
+def dev_dump(args):
+    """Make a dd like copy of a device to a file"""
+    devfile=args.devfile
+    outfile=args.outfile
+    if args.verbose:
+        util.print_events=True
+
+    # check we'v got enough free space
+    size=os.stat(devfile).st_size
+    outfile=os.path.realpath(outfile)
+    stat=shutil.disk_usage(outfile)
+    if stat.free<size:
+        raise Exception("Can't dump device: not enough free space")
+
+    # dump
+    chunk=4*1024*1024 # 4Mib
+    ndone=0
+    nts=0
+    try:
+        with open(devfile, "rb") as fd_read:
+            with open(outfile, "wb") as fd_write:
+                while True:
+                    data=fd_read.read(chunk)
+                    fd_write.write(data)
+                    ndone+=len(data)
+                    ts=util.get_timestamp()
+                    if nts!=ts:
+                        util.print_event("%s%% copied"%int(ndone*100/size))
+                        nts=ts
+                    if ndone==size:
+                        break
+        util.print_event("Forcing sync.")
+        os.sync()
+        return
+    except Exception as e:
+        raise Exception("Error dumping device: %s"%str(e))
+
+def devices(args):
+    """List all mass storage devices, including the internal ones if verbose display requested"""
+    devices=util.get_disks()
+    for devfile in devices:
+        devdata=devices[devfile]
+        displ=devdata["useable"]
+        if args.verbose:
+            displ=True
+        if displ:
+            if devdata["internal-disk"]:
+                print("INTERNAL %s\t%s Gb (%s)"%(devfile, devdata["size-G"], devdata["model"]))
+            else:
+                print("plugged  %s\t%s Gb (%s)"%(devfile, devdata["size-G"], devdata["model"]))
+
+def dev_update_linux(args):
+    target=args.target
+    if args.verbose:
+        util.print_events=True
+
+    # get the configuration ID of the device
+    gconf=confs.GlobalConfiguration()
+    dev=Device.Device(args.target)
+    try:
+        udata=dev.get_unprotected_data()
+        confid=udata["confid"]
+        iconf=gconf.get_install_conf(confid)
+        util.print_event("Device's installation configuration is: %s"%confid)
+    except Exception:
+        raise Exception("Could not identify device's configuration")
+
+    # umount all partitions of @target
+    Device.umount_all_partitions(target)
+
+    # get the actual live Linux to use
+    (linuximage, linuxuserdata)=gconf.get_install_elements(iconf, args.archive)
+
+    # create updater object and update
+    dkey=iconf.password_rescue
+    dev.define_a_decryptor(dkey)
+    mp_internal=dev.mount(Live.partid_internal)
+    mp_dummy=dev.mount(Live.partid_dummy)
+    mp_live=dev.mount(Live.partid_live)
+
+    # get the device's associated credentials
+    # as pdata["@internal/password"], pdata["@data/password"] and pdata["blob0"]
+    pdata=dev.get_protected_data()
+    blob0=pdata["blob0"]
+    int_password=pdata["@internal/password"]
+    data_password=pdata["@data/password"]
+    if target.startswith("/dev"):
+        updater=Installer.DeviceUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
+                                        int_password, data_password, linuximage, target)
+    else:
+        updater=Installer.ImageUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
+                                       int_password, data_password, linuximage, target)
+    updater.update()
+
+    # remove any staged update
+    stage_dir="/update-staging"
+    stage_dir="%s/%s"%(mp_internal, stage_dir)
+    if os.path.exists(stage_dir):
+        for fname in os.listdir(stage_dir):
+            os.remove("%s/%s"%(stage_dir, fname))
+
+def dev_format(args):
+    paramsf=args.params_file
+    target=args.target
+    if args.verbose:
+        util.print_events=True
+
+    gconf=confs.GlobalConfiguration()
+    fconf=gconf.get_format_conf(args.format)
+
+    # analyse parameter's values
+    paramsf=os.path.realpath(paramsf)
+    if not os.path.exists(paramsf):
+        raise Exception("Missing file '%s'"%paramsf)
+    params=json.load(open(paramsf, "r"))
+
+    # mix all the inputs
+    import Installer
+    if target.startswith("/dev"):
+        creator=Installer.DeviceFormatter(fconf, params, target)
+    else:
+        raise Exception("Can't format a VM image")
+
+    # actual work
+    creator.validate()
+    creator.install()
+    creator=None
+    gc.collect()
+
+def _prepare_config_data(domain_confs):
+    """Prepare a minimal structure for an INSECA global configuration, and incudes:
+    - the repo configuration for the domain
+    - a valid inseca.json file
+    """
+    util.print_event("Preparing configuration from specified domain(s)")
+    gconf=confs.GlobalConfiguration()
+    tmpdir=tempfile.TemporaryDirectory()
+
+    # prepare template
+    prog_path=sys.argv[0]
+    (status, out, err)=util.exec_sync([prog_path, "--root", tmpdir.name, "init"])
+    if status!=0:
+        raise Exception("Could not initialize empty global configuration structure: %s"%err)
+
+    # copy repo configurations associated to the specified domain configurations
+    ref_ts=0
+    ref_rconf=None
+    ref_arname=None
+    for duid in domain_confs:
+        dconf=gconf.get_domain_conf(duid)
+        rconf=gconf.get_repo_conf(dconf.repo_id)
+        (ts, lastarname)=rconf.get_latest_archive()
+        if lastarname is None:
+            raise Exception("Domain '%s' has no published version"%duid)
+        if ref_ts<ts:
+            ref_ts=ts
+            ref_rconf=rconf
+            ref_arname=lastarname
+        util.write_data_to_file(json.dumps(rconf.export(new_path=rconf.id), indent=4),
+                                 "%s/repo-configurations/%s.json"%(tmpdir.name, rconf.id))
+
+    # use the most recent published domain configuration to extract global configuration elements
+    if ref_rconf is None:
+        raise Exception("No useable domain")
+    try:
+        mp=ref_rconf.mount(ref_arname)
+        shutil.copyfile("%s/inseca.json"%mp, "%s/inseca.json"%tmpdir.name)
+        if os.path.exists("%s/proxy.pac"%mp):
+            shutil.copyfile("%s/proxy.pac"%mp, "%s/proxy.pac"%tmpdir.name)
+        for fname in os.listdir("%s/storage-credentials"%mp):
+            shutil.copyfile("%s/storage-credentials/%s"%(mp, fname), "%s/storage-credentials/%s"%(tmpdir.name, fname))
+    finally:
+        ref_rconf.umount(ref_arname)
+
+    # create TAR archive
+    tmpfile=tempfile.NamedTemporaryFile()
+    tar=tarfile.open(tmpfile.name, mode="w:xz")
+    for entry in os.listdir(tmpdir.name):
+        tar.add("%s/%s"%(tmpdir.name, entry), arcname=entry, recursive=True)
+    tar.close()
+    return tmpfile
+
+def _generate_new_iso_file(iso_file, new_iso_file, extra_conf_file):
+    """Prepare a copy of the specified ISO file, including the
+    extra config file."""
+    if not os.path.exists(iso_file):
+        raise Exception("ISO file '%s' does not exist"%iso_file)
+
+    try:
+        # copy ISO file to a new TMP file
+        util.print_event("Making a copy of the live Linux ISO file")
+        shutil.copyfile(iso_file, new_iso_file)
+
+        # compute the EFI's partition offset in the ISO
+        (status, out, err)=util.exec_sync(["/sbin/fdisk", "-l", new_iso_file])
+        if status!=0:
+            raise Exception("Could not identify the contents of the ISO image")
+        offset=0
+        for line in out.splitlines():
+            if "EFI" in line:
+                parts=line.split()
+                offset=int(parts[1])*512
+        if offset==0:
+            raise Exception("Could not identfy the EFI partition's offset in the ISO image")
+
+        # create extra file to store the extra config file data
+        util.print_event("Preparing zone to store the configuration")
+        extra=tempfile.NamedTemporaryFile()
+        f=open(extra.name, "a")
+        f.truncate(1*1024*1024) # force size to 1Mb
+        f.close()
+        (status, out, err)=util.exec_sync(["/sbin/mkfs.ext4", extra.name]) 
+
+        # mount extra file and copy the extra config into it
+        extra_mp=tempfile.TemporaryDirectory()
+        extra_mounted=False
+        try:
+            (status, out, err)=util.exec_sync(["sudo", "mount", "-o", "loop,rw", extra.name, extra_mp.name])
+            if status!=0:
+                raise Exception("Could not mount extra data: %s"%err)
+            extra_mounted=True
+            (status, out, err)=util.exec_sync(["sudo", "cp", "-a", extra_conf_file, "%s/config.txz.enc"%extra_mp.name])
+            if status!=0:
+                raise Exception("Could not copy extra data: %s"%err)
+        finally:
+            if extra_mounted:
+                (status, out, err)=util.exec_sync(["sudo", "umount", extra_mp.name])
+
+        # mount the new ISO image and the EFI partition within the ISO image and indicate offset to the extra file
+        efi_mp=tempfile.TemporaryDirectory()
+        efi_mounted=False
+        try:
+            (status, out, err)=util.exec_sync(["sudo", "mount", "-o", "loop,rw,offset=%d,uid=%d"%(offset, os.getuid()),
+                                               new_iso_file, efi_mp.name])
+            if status!=0:
+                raise Exception("Could not mount EFI partition in ISO file: %s"%err)
+            efi_mounted=True
+            util.write_data_to_file("%d"%os.path.getsize(iso_file), "%s/key-offset"%efi_mp.name)
+        finally:
+            if efi_mounted:
+                (status, out, err)=util.exec_sync(["sudo", "umount", efi_mp.name])
+
+        # concatenate extra file to the ISO
+        util.print_event("Finalizing the new 'ISO' file")
+        r=open(extra.name, "rb")
+        w=open(new_iso_file, "ab")
+        w.write(r.read())
+        r=None
+        w=None
+
+        return new_iso_file
+    except Exception as e:
+        # remove copy if ISO file
+        try:
+            os.remove(new_iso_file)
+        except Exception:
+            pass
+        raise e
+
+def gen_admin_iso(args):
+    if len(args.domains)==0:
+        raise Exception("At least one domain configuration must be specified")
+    iso_img_file=None
+    if args.build!="-":
+        if os.getuid()!=0:
+            raise Exception("The '%s' command must be run as root"%args.cmde)
+        builder=LiveBuilder.Builder(args.build)
+        iso_img_file=builder.image_file
+        if not os.path.exists(iso_img_file):
+            raise Exception("Can't generate admin image: the base image has not been built")
+    
+    conf_tar=_prepare_config_data(args.domains)
+
+    if iso_img_file is None:
+        cfile="_config.txz"
+        shutil.copyfile(conf_tar.name, cfile)
+        print("Generated config file: %s"%cfile)
+    else:
+        # determine random password
+        password=cgen.generate_password(12)
+        print("Password for new file is: %s"%password)
+
+        # encrypt config data
+        encobj=CryptoPass.CryptoPassword(password)
+        econf_tar=encobj.encrypt(util.load_file_contents(conf_tar.name, binary=True), return_tmpobj=True)
+
+        # generate new ISO
+        new_iso_file="%s.new"%iso_img_file
+        _generate_new_iso_file(iso_img_file, new_iso_file, econf_tar.name)
+        print("Generated new file: %s"%new_iso_file)
+
+def _get_protected_data(dev, dkey):
+    try:
+        dev.define_a_decryptor(dkey)
+        return dev.get_protected_data()
+    except:
+        raise Exception("Could not decrypt protected data (wrong decryption key?)")
+
+def dev_ident(args):
+    # 1st pass to read the meta data
+    gconf=confs.GlobalConfiguration()
+    dev=Device.Device(args.devfile)
+    udata=dev.get_unprotected_data()
+
+    # try to verify the device
+    try:
+        dkey=args.decrypt_key # decrypt password
+        verif_error=None
+        if "confid" not in udata:
+            raise Exception("Not an INSECA device (no 'confid' attribute)")
+
+        confid=udata["confid"]
+        conf=gconf.get_install_conf(confid, exception_if_not_found=False)
+        if not conf:
+            conf=gconf.get_format_conf(confid, exception_if_not_found=False)
+        if conf:
+            if dkey is None:
+                dkey=conf.password_rescue
+            pubkey=conf.devicemeta_pubkey
+            if os.path.exists(pubkey):
+                # identify how verification will be done
+                (status, out, err)=util.exec_sync(["openssl", "x509", "-subject", "-noout", "-in", pubkey])
+                if status==0:
+                    how={"type": "certificate", "cert-file": pubkey}
+                else:
+                    how={"type": "key", "public-key-file": pubkey}
+                # NB: for now, all the device's signature is performed using a key, no password
+                #     how={"type": "password", "password": pubkey}
+
+                # try to identify a signature ID
+                verified=False
+                for sid in dev.get_signature_ids():
+                    verifier={sid: how}
+                    try:
+                        dev.verify(verifier)
+                        udata=dev.get_unprotected_data()
+                        verified=True
+                        break
+                    except Exception:
+                        pass
+                if not verified:
+                    raise Exception("Altered device or wrong verification key in configuration")
+        else:
+            raise Exception("Missing configuration's public key to verify signature")
+    except Exception as e:
+        verif_error=str(e)
+
+    # create the result information
+    infos={}
+    infos["unprotected"]=udata
+    infos["unprotected"]["verification-error"]=verif_error
+
+    # decrypt protected data if key is provided
+    if args.protected and dkey is not None:
+        pdata=_get_protected_data(dev, dkey)
+        if pdata is not None:
+            infos["protected"]=pdata
+
+    # extra infos
+    infos["hardware-id"]=dev.get_hardware_id()
+    infos["dev-format"]=dev.get_partitions_layout()
+
+    print("%s"%json.dumps(infos, indent=4))
+
+def dev_mount(args):
+    gconf=confs.GlobalConfiguration()
+    dev=Device.Device(args.devfile)
+    udata=dev.get_unprotected_data()
+    if "confid" not in udata:
+        raise Exception("Not an INSECA device (no 'confid' attribute)")
+    confid=udata["confid"]
+    dkey=args.decrypt_key
+    if dkey is None:
+        conf=gconf.get_install_conf(confid, exception_if_not_found=False)
+        if not conf:
+            conf=gconf.get_format_conf(confid, exception_if_not_found=False)
+        if conf:
+            dkey=conf.password_rescue
+    _get_protected_data(dev, dkey)
+    dev.mount(args.partition_id, args.mountpoint, auto_umount=False)
+
+def dev_umount(args):
+    dev=Device.Device(args.devfile)
+    dev.umount(args.partition_id)
+
+def dev_wipe(args):
+    if not args.devfile.startswith("/dev/"):
+        raise Exception("Invalid device specification")
+    if not args.confirm:
+        c=input("Confirm wipe of '%s' (enter YES):"%args.devfile)
+        if c!="YES":
+            print("Cancelled")
+            return
+    if args.verbose:
+        util.print_events=True
+    dev=Device.Device(args.devfile)
+    dev.wipe()
+
+def _vm_stop(vm_name):
+    args=["virsh", "-q", "list", "--all"]
+    (status, out, err)=util.exec_sync(args)
+    if status!=0:
+        raise Exception("Could not list declared VM: %s"%err)
+    for line in out.splitlines():
+        if vm_name in line:
+            args=["virsh", "destroy", vm_name]
+            (status, out, err)=util.exec_sync(args)
+            args=["virsh", "undefine", vm_name, "--nvram"]
+            (status, out, err)=util.exec_sync(args)
+            break
+
+def dev_run_in_vm(args):
+    import namesgenerator
+    vm_name=namesgenerator.get_random_name()
+    _vm_stop(vm_name)
+    if not args.devfile.startswith("/dev/"):
+        # make sure the VM image is in a place suitable for apparmor
+        pass
+    # umount all partitions of @target
+    Device.umount_all_partitions(args.devfile)
+
+    runargs=["virt-install", "--virt-type", "kvm", "--name", vm_name, "--memory", "4096", "--import",
+          "--disk", "%s,bus=virtio"%args.devfile, "--os-variant", "debian9", "--graphics", "spice", "--video", "qxl",
+          "--channel", "spicevmc", "--network", "default"]
+    if not args.bios:
+        runargs+=["--boot", "uefi"]
+    (status, out, err)=util.exec_sync(runargs)
+    if status!=0:
+        raise Exception("Could not start VM '%s': %s"%(vm_name, err))
+    # closing the window => terminate the VM
+    _vm_stop(vm_name)
+
+def _get_and_validate_password(args):
+    password=None
+    if args.passenv:
+        if args.passenv in os.environ:
+            password=args.passenv
+        else:
+            raise Exception("Environment variable '%s' does not exist"%args.passenv)
+    if args.password:
+        password=args.password
+    if not password:
+        import getpass
+        pw1=getpass.getpass(_("New password: "))
+        pw2=getpass.getpass(_("Confirmation: "))
+        if pw1!=pw2:
+            raise Exception(_("Passwords mismatch"))
+        password=pw1
+    cgen.validate_password(password)
+    return password
+
+def _get_blob0(dev):
+    gconf=confs.GlobalConfiguration()
+    udata=dev.get_unprotected_data()
+    if "confid" not in udata:
+        raise Exception("Not an INSECA device (no 'confid' attribute)")
+    confid=udata["confid"]
+    conf=gconf.get_install_conf(confid, exception_if_not_found=False)
+    if not conf:
+        conf=gconf.get_format_conf(confid, exception_if_not_found=False)
+    if conf:
+        dkey=conf.password_rescue
+    pdata=_get_protected_data(dev, dkey)
+    try:
+        return pdata["blob0"]
+    except Exception:
+        raise Exception("Invalid device's metadata")
+
+def dev_users(args):
+    """List all users declared in a device"""
+    dev=Device.Device(args.devfile)
+    mp_dummy=dev.mount(Live.partid_dummy)
+    users=Live.get_users(mp_dummy)
+    for user in users:
+        print("%s"%user)
+
+def dev_user_add(args):
+    """Add a user to a device"""
+    # get and validate password
+    password=_get_and_validate_password(args)
+
+    # get blob0
+    dev=Device.Device(args.devfile)
+    blob0=_get_blob0(dev)
+
+    # user name
+    mp_dummy=dev.mount(Live.partid_dummy)
+    username=args.user.strip()
+    if username in Live.get_users(mp_dummy):
+        raise Exception("User '%s' already exists"%username)
+
+    # declare user
+    Live.declare_user(mp_dummy, username, password, blob0)
+
+def dev_user_del(args):
+    """Remove a user from a device"""
+    # get blob0
+    dev=Device.Device(args.devfile)
+    blob0=_get_blob0(dev)
+
+    # user name
+    mp_dummy=dev.mount(Live.partid_dummy)
+    username=args.user.strip()
+    if username not in Live.get_users(mp_dummy):
+        raise Exception("User '%s' does not exist")
+
+    # delete user
+    mp_internal=dev.mount(Live.partid_internal)
+    Live.delete_user(mp_dummy, username, mp_internal)
+
+def dev_user_password(args):
+    """Reset the user's password"""
+    # get and validate password
+    password=_get_and_validate_password(args)
+
+    # get blob0
+    dev=Device.Device(args.devfile)
+    blob0=_get_blob0(dev)
+
+    # user name
+    mp_dummy=dev.mount(Live.partid_dummy)
+    users=Live.get_users(mp_dummy)
+    if args.user not in users:
+        raise Exception("Invalid user '%s'"%args.user)
+
+    # actually reset the password
+    Live.reset_user_password(mp_dummy, args.user, password, blob0)
+
+
+def gen_keypair(args):
+    prefix=args.prefix
+    dirname=os.path.dirname(prefix)
+    if dirname:
+        os.makedirs(dirname, exist_ok=True)
+    (key_priv, key_pub)=x509.gen_rsa_key_pair()
+    key_priv.copy_to(prefix+".priv")
+    key_pub.copy_to(prefix+".pub")
+    os.chmod(prefix+".priv", 0o600)
+
+#
+# Main
+#
+args = parser.parse_args()
+
+if args.root is not None:
+    os.environ["INSECA_ROOT"]=args.root
+if args.repos_dir is not None:
+    os.environ["INSECA_DEFAULT_REPOS_DIR"]=args.repos_dir
+if args.components_dir is not None:
+    os.environ["INSECA_EXTRA_COMPONENTS"]=args.components_dir
+if args.cache_dir is not None:
+    os.environ["INSECA_CACHE_DIR"]=args.cache_dir
+
+try:
+    if args.cmde is None:
+        print("%s"%parser.format_help())
+    else:
+        map={
+            "init": init,
+            "status": show_status,
+            "configs": list_configs,
+            "config-infos": config_infos,
+            "config-create": config_create,
+            "config-remove": config_remove,
+            "config-publish": config_publish,
+            "repo-ls": repo_ls,
+            "repo-prune": repo_prune,
+            "userdata-import": userdata_import,
+            "userdata-add": userdata_add,
+            "userdata-del": userdata_del,
+            "build": build,
+            "dev-install": dev_install,
+            "gen-params": gen_params,
+            "sync-push": sync_push,
+            "sync-pull": sync_pull,
+            "gen-admin-iso": gen_admin_iso,
+            "devices": devices,
+            "dev-update-linux": dev_update_linux,
+            "dev-format": dev_format,
+            "dev-ident": dev_ident,
+            "dev-mount": dev_mount,
+            "dev-umount": dev_umount,
+            "dev-wipe": dev_wipe,
+            "dev-dump": dev_dump,
+            "dev-run-in-vm": dev_run_in_vm,
+            "dev-users": dev_users,
+            "dev-user-add": dev_user_add,
+            "dev-user-del": dev_user_del,
+            "dev-user-password": dev_user_password,
+            "gen-keypair": gen_keypair
+        }
+        if args.cmde in map:
+            if args.cmde in root_required_commands and os.getuid()!=0:
+                # execute the same command with sudo
+                print(_("This command needs root privileges"))
+                args=[]
+                for arg in sys.argv[1:]:
+                    pass
+                args=sys.argv[1:]
+                options={
+                    "--root": os.environ["INSECA_ROOT"]
+                }
+                if "INSECA_EXTRA_COMPONENTS" in os.environ:
+                    options["--components-dir"]=os.environ["INSECA_EXTRA_COMPONENTS"]
+                for option in options:
+                    toadd=True
+                    if not option in args:
+                        for arg in args:
+                            if arg.startswith("%s="%option):
+                                toadd=False
+                                break
+                    else:
+                        toadd=False
+                    if toadd:
+                        args=[option, options[option]]+args
+                args=["sudo", sys.argv[0]]+args
+                p=util.exec_async(args)
+                p.wait()
+                sys.exit(p.returncode)
+            map[args.cmde](args)
+        else:
+            print("%s"%parser.format_help())
+except Exception as e:
+    #raise e
+    print("Error: %s"%str(e), file=sys.stderr)
+    sys.exit(1)

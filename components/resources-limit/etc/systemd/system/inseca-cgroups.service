@@ -1,0 +1,12 @@
+[Unit]
+Description=Load cgroup configs and automatic process association
+After=remote-fs.target
+
+[Service]
+Type=forking
+ExecStartPre=/usr/sbin/cgconfigparser -L /etc/cgconfig.d
+ExecStart=/usr/sbin/cgrulesengd --logfile=/var/log/cgrulesengd.log
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target

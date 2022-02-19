@@ -1,0 +1,10 @@
+[Desktop Entry]
+Encoding=UTF-8
+Name=Configuration INSECA
+GenericName=Configuration INSECA
+Comment=Configuration INSECA
+Exec=/opt/inseca-config/inseca-config
+Icon=/opt/inseca-config/inseca-config.png
+Terminal=false
+Type=Application
+Categories=Application;

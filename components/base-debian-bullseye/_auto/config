@@ -1,0 +1,29 @@
+#!/bin/sh
+
+set -e
+echo "CONFIG proxy: $http_proxy"
+apt_proxy=""
+[ "$http_proxy" != "" ] && {
+	apt_proxy="--apt-http-proxy $http_proxy"
+	export "http_proxy=$http_proxy"
+	export "https_proxy=$http_proxy"
+}
+
+lb config noauto \
+	--distribution bullseye \
+	--apt-options "--yes -oAPT::Immediate-Configure=0" \
+	--security false --updates true --backports false \
+	$apt_proxy \
+	--bootappend-live "boot=live components lang=fr_FR.UTF-8 locales=fr_FR.UTF-8 keyboard-layouts=fr keyboard-model=pc105 timezone=Europe/Paris username=insecauser hostname=inseca-system noprompt noeject quiet splash net.ifnames=0 biosdevname=0 nottyautologin noroot" \
+	--bootloaders "syslinux,grub-efi" \
+	--archive-areas "main contrib non-free" \
+	--iso-volume "INSECA" \
+	--debootstrap-options "--include=apt-transport-https,ca-certificates,openssl" \
+	--uefi-secure-boot enable \
+	--debug --verbose \
+	"${@}"
+
+# --chroot-squashfs-compression-type xz \
+# --chroot-squashfs-compression-level 0 \
+# --chroot-filesystem ext4 \
+# --mirror-bootstrap http://ftp.fr.debian.org/debian/ --mirror-binary http://deb.debian.org/debian/ \

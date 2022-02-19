@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Administration INSECA
+GenericName=Administration INSECA
+Comment=Administration of INSECA devices
+Exec=sudo /opt/inseca-admin/inseca-admin
+Icon=/opt/inseca-admin/inseca-admin.png
+Terminal=false
+Type=Application
+Categories=Utility
+X-GNOME-Autostart-enabled=true

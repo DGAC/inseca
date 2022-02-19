@@ -1,0 +1,6 @@
+#
+# Don't display the "dummy" and "live" partitions to the user
+#
+
+SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="dummy", ENV{UDISKS_IGNORE}="1"
+SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="live", ENV{UDISKS_IGNORE}="1"

@@ -1,0 +1,20 @@
+{
+    "descr": "Adds and 'admin' user with a randomly generated password",
+    "provides": [],
+    "requires": [],
+    "builddata": {
+        "username": {
+            "descr": "Name of the admin user",
+            "type": "str"
+        },
+        "password": {
+            "descr": "User's password, or null to be generated automatically",
+            "type": "str"
+        },
+        "ssh-public-key": {
+            "descr": "SSH public key file to connect to the user via SSH",
+            "type": "file"
+        }
+    },
+    "userdata": {}
+}

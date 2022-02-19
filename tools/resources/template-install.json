@@ -1,0 +1,50 @@
+{
+    "id": "{install}",
+    "descr": "{descr}",
+    "repo": "{repo}",
+    "build-repo": "{build}",
+    "devicemeta-skey-priv-file": "device-metadata-sign-key.priv",
+    "devicemeta-skey-pub-file": "device-metadata-sign-key.pub",
+    "build-skey-pub-file": null,
+    "password-rescue": "{rescue}",
+
+    "parameters": {
+        "firstname": {
+            "descr": "Prénom de l'utilisateur",
+            "type": "str",
+            "attest": true
+        },
+        "lastname": {
+            "descr": "Nom de l'utilisateur",
+            "type": "str",
+            "attest": true
+        },
+        "email": {
+            "descr": "Adresse e-mail de l'utilisateur",
+            "type": "str",
+            "attest": true
+        },
+        "usage-context": {
+            "descr": "Contexte d'utilisation",
+            "type": "str",
+            "attest": true
+        }
+    },
+    "dev-format": {
+        "unprotected": {
+            "context": "{usage-context}",
+            "user-firstname": "{firstname}",
+            "user-lastname": "{lastname}",
+            "user-email": "{email}"
+        }
+    },
+    "install": {
+        "grub": "grub-config",
+        "attestation-skey-priv-file": "attestation-sign-key.priv",
+        "privdata-ekey-priv-file": "privdata-encrypt-key.priv",
+        "default-profile": "user-profile",
+        "default-documents": "user-documents",
+        "default-wallpaper": "default-wallpaper.jpg"
+    },
+    "userdata": {}
+}

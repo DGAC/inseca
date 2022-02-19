@@ -1,0 +1,17 @@
+{ 
+  "build-dir" : "{dir}/BUILD",
+  "descr" : "{descr}",
+  "id" : "{build}",
+  "privdata-ekey-pub-file" : "privdata-encrypt-key.pub",
+  "privdata-ekey-priv-file": "privdata-encrypt-key.priv",
+  "repo" : null,
+  "validity-months" : 6,
+  "version" : "0.0.1",
+  "components" : {
+    "base-debian-bullseye" : null,
+    "inseca-live-admin" : null,
+    "inseca-admin-ui" : null,
+    "veracrypt": null,
+    "admin-user": null
+  }
+}

@@ -1,0 +1,61 @@
+#!/bin/sh
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+set -e
+
+# add libcgroup v2 and associated tools
+cat > /etc/apt/sources.list.d/testing.list << EOF
+deb http://deb.debian.org/debian/ testing main contrib non-free
+EOF
+
+cat > /etc/apt/preferences.d/10backports << EOF
+Package: *
+Pin: release a=testing
+Pin-Priority: 150
+EOF
+
+cat > /etc/apt/preferences.d/20cgroup << EOF
+Package: cgroup-tools
+Pin: release a=testing
+Pin-Priority: 600
+
+Package: libcgroup1
+Pin: release a=testing
+Pin-Priority: 600
+EOF
+
+echo "Installing libgroupsv2 -- forcing install in current Debian version"
+apt -y upgrade cgroup-tools libcgroup1
+echo "Installing libgroupsv2 -- setup testing repos"
+apt -y update
+echo "Installing libgroupsv2 -- Apt cache policy:"
+apt-cache policy
+apt -y upgrade cgroup-tools libcgroup1
+echo "Installing libgroupsv2 -- done"
+
+rm -f /etc/apt/sources.list.d/testing.list /etc/apt/preferences.d/10backports /etc/apt/preferences.d/20cgroup
+apt -y update
+
+# start the service
+for svce in inseca-cgroups
+do
+	systemctl start $svce
+	systemctl enable $svce
+done
+

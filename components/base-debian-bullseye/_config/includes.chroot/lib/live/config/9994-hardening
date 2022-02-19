@@ -1,0 +1,102 @@
+#!/bin/sh
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+dmesg -n 1
+
+# the following line prevents Wayland from starting
+#mount -o remount,rw,nosuid,nodev,noexec,relatime,hidepid=2 -t proc /proc
+
+# recommandations ANSSI, serveurs
+
+# Filtrage par chemin inverse
+sysctl -w net.ipv4.conf.all.rp_filter=1
+sysctl -w net.ipv4.conf.default.rp_filter=1
+# Ne pas envoyer de redirections ICMP
+sysctl -w net.ipv4.conf.all.send_redirects=0
+sysctl -w net.ipv4.conf.default.send_redirects=0
+# Refuser les paquets de source routing
+sysctl -w net.ipv4.conf.all.accept_source_route=0
+sysctl -w net.ipv4.conf.default.accept_source_route=0
+# Ne pas accepter les ICMP de type redirect
+sysctl -w net.ipv4.conf.all.accept_redirects=0
+sysctl -w net.ipv4.conf.all.secure_redirects=0
+sysctl -w net.ipv4.conf.default.accept_redirects=0
+sysctl -w net.ipv4.conf.default.secure_redirects=0
+# Loguer les paquets ayant des IPs anormales
+sysctl -w net.ipv4.conf.all.log_martians=1
+# RFC 1337
+sysctl -w net.ipv4.tcp_rfc1337=1
+# Ignorer les réponses non conformes à la RFC 1122
+sysctl -w net.ipv4. icmp_ignore_bogus_error_responses=1
+# Augmenter la plage pour les ports éphémères
+sysctl -w net.ipv4.ip_local_port_range=32768 65535
+# Utiliser les SYN cookies
+sysctl -w net.ipv4.tcp_syncookies=1
+# Désactiver le support des "router solicitations"
+sysctl -w net.ipv6.conf.all.router_solicitations=0
+sysctl -w net.ipv6.conf.default.router_solicitations=0
+# Ne pas accepter les "router preferences" par "router advertisements"
+sysctl -w net.ipv6.conf.all.accept_ra_rtr_pref=0
+sysctl -w net.ipv6.conf.default.accept_ra_rtr_pref=0
+# Pas de configuration auto des prefix par "router advertisements"
+sysctl -w net.ipv6.conf.all.accept_ra_pinfo=0
+sysctl -w net.ipv6.conf.default.accept_ra_pinfo=0
+# Pas d'apprentissage du routeur par défaut par "router advertisements"
+sysctl -w net.ipv6.conf.all.accept_ra_defrtr=0
+sysctl -w net.ipv6.conf.default.accept_ra_defrtr=0
+# Pas de configuration auto des adresses à partir des "router advertisements "
+sysctl -w net.ipv6.conf.all.autoconf=0
+sysctl -w net.ipv6.conf.default.autoconf=0
+# Ne pas accepter les ICMP de type redirect
+sysctl -w net.ipv6.conf.all.accept_redirects=0
+sysctl -w net.ipv6.conf.default.accept_redirects=0
+# Refuser les packets de source routing
+sysctl -w net.ipv6.conf.all.accept_source_route=0
+sysctl -w net.ipv6.conf.default.accept_source_route=0
+# Nombre maximal d'adresses autoconfigurées par interface
+sysctl -w net.ipv6.conf.all.max_addresses=1
+sysctl -w net.ipv6.conf.default.max_addresses=1
+
+
+# recommandations ANSSI
+
+# Désactivation des SysReq
+sysctl -w kernel.sysrq=0
+# Pas de core dump des exécutables setuid
+sysctl -w fs.suid_dumpable=0
+# Interdiction de déréférencer des liens vers des fichiers dont
+# l'utilisateur courant n'est pas le propriétaire
+# Peut empêcher certains programmes de fonctionner correctement
+sysctl -w fs.protected_symlinks=1
+sysctl -w fs.protected_hardlinks=1
+# Activation de l'ASLR
+sysctl -w kernel.randomize_va_space=2
+# Interdiction de mapper de la mémoire dans les adresses basses (0)
+sysctl -w vm.mmap_min_addr=65536
+# Espace de choix plus grand pour les valeurs de PID
+sysctl -w kernel.pid_max=65536
+# Obfuscation des adresses mémoire kernel
+sysctl -w kernel.kptr_restrict=1
+# Restriction d'accès au buffer dmesg
+sysctl -w kernel.dmesg_restrict=1
+# Restreint l'utilisation du sous système perf
+sysctl -w kernel.perf_event_paranoid=2
+sysctl -w kernel. perf_event_max_sample_rate=1
+sysctl -w kernel.perf_cpu_time_max_percent=1
+
