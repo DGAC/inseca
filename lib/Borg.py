@@ -42,6 +42,8 @@ class Repo:
         self._tmp_dir=None
         self._mountpoints={} # key=archive name, value=[tmp directory name (as a string) where it is mounted, Popen object]
         self._borg_prog=shutil.which("borg") # so Python does not have to search the borg exe while shuting down (in the __del__ method)
+        if self._borg_prog is None:
+            raise Exception("Could not find the 'borg' program, make sure Borg Backup is installed")
 
     def __del__(self):
         self.umount_all()

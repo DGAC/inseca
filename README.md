@@ -37,7 +37,7 @@ What follows should work out of the box on any Linux distribution but has only b
 
 ### Preparation steps
 1. install the dependencies:
-  - rclone, python 3 with the pacparser, gi, dbus, requests, sqlite3 modules
+  - rclone, borg backup, python 3 with the pacparser, gi, dbus, requests, sqlite3 modules
   - GTK3 libraries
   - the Docker engine
 1. create the required Docker images: run `make` from the `$SRCDIR/docker-images/grub-bios/` and the `$SRCDIR/docker-images/livebuild/` directories
