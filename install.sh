@@ -25,6 +25,9 @@ apt install python3 python3-pacparser -y
 echo "### Installation of GTK libraries ###"
 apt install libgtk-3-dev -y
 
+echo "### Installation of borgbackup ###"
+apt install borgbackup -y
+
 echo "### Installation of git ###"
 apt install git -y
 
