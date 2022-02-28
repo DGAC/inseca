@@ -87,11 +87,6 @@ def compute_partitions_table_hash(devfile, disktype):
         else:
             raise Exception("Unknown partitioning type '%s'"%disktype)
 
-    # debug
-    fp=open(devfile, "r+b")
-    name="/tmp/%s.dump"%util.get_timestamp(as_str=True)
-    util.write_data_to_file(fp.read(34*512), name)
-
     return "%s|%s"%("sha256", h)
 
 def compute_partition_hash(partfile):
