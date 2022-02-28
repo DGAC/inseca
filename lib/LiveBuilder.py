@@ -246,7 +246,7 @@ Name: %s
             exec_env=os.environ.copy()
             exec_env["BUILD_DIR"]=self._livedir
             exec_env["BUILD_DATA_FILE"]=self._build_data_file
-            exec_env["COMPONENT_DIR"]=cpath
+            exec_env["COMPONENT_DIR"]=os.path.realpath(cpath)
             exec_env["CONF_DIR"]=self._confdir
             exec_env["LIVE_DIR"]=self._fs_dir
             exec_env["LIBS_DIR"]=os.path.realpath(self._scriptdir+"/../lib")
