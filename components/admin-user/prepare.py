@@ -42,10 +42,11 @@ hash=crypt.crypt(password)
 # prepare user creation in the Live image
 destdir="%s/lib/live/config"%os.environ["LIVE_DIR"]
 os.makedirs(destdir, exist_ok=True)
-util.write_data_to_file("""#!/bin/sh
+data="""#!/bin/sh
 passwd_hash='%s'
 /sbin/useradd -r -m -s /bin/bash -p "$passwd_hash" "%s"
-"""%(hash, username), "%s/9995-admin-user"%destdir, perms=0o755)
+"""%(hash, username)
+util.write_data_to_file(data, "%s/9995-admin-user-decl"%destdir, perms=0o755)
 
 # keep track of the password
 util.write_data_to_file("Admin username: %s\nAdmin password: %s\n"%(username, password), os.environ["BUILD_DATA_FILE"], append=True)
