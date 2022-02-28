@@ -265,6 +265,24 @@ class BootProcess:
         if status!=0:
             raise Exception("Could not change logged user's password: %s"%err)
 
+        # deactivate GDM autologin
+        gdmconf_file="/etc/gdm3/daemon.conf"
+        econf=util.load_file_contents(gdmconf_file)
+        nconf=[]
+        for line in econf.splitlines():
+            parts=line.split("=")
+            if len(parts)==2 and parts[0] in ("AutomaticLoginEnable", "TimedLoginEnable"):
+                nconf+=["%s=false"%parts[0]]
+            else:
+                nconf+=[line]
+        nconf="\n".join(nconf)
+        util.write_data_to_file(nconf, gdmconf_file)
+        (status, out, err)=util.exec_sync(["systemctl", "reload", "gdm"])
+        if status==0:
+            syslog.syslog(syslog.LOG_INFO, "Deactivated GDM autologin")
+        else:
+            syslog.syslog(syslog.LOG_WARNING, "Could not deactivate GDM autologin: %s"%err)
+
         try:
             privtmp=self._live_env.privdata_dir
             os.makedirs(privtmp, mode=0o700)
