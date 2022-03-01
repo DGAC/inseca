@@ -30,6 +30,7 @@ This program is useable but still _rough_, at least regarding areas such as:
 - error reporting, especially in the configuration files handling where one is prone to make mistakes
 - installation: there is no installation procedure, just download and run
 - some components are not yet complete, some features don't yet work as expected
+- expect some bugs
 
 
 ## Quick start
@@ -37,10 +38,10 @@ What follows should work out of the box on any Linux distribution but has only b
 
 ### Preparation steps
 - install the dependencies :
-  - rclone : https://rclone.org/downloads/
-  - borgbackup
+  - rclone: https://rclone.org/downloads/
+  - borgbackup: https://www.borgbackup.org/
   - python3 and python3-pacparser (python 3 with the pacparser)
-  - git
+  - git: https://git-scm.com/
   - dbus
   - make
   - requests (already included with Python3)
@@ -48,12 +49,12 @@ What follows should work out of the box on any Linux distribution but has only b
   - libgtk-3-dev (GTK3 libraries)
   - the Docker engine : https://docs.docker.com/engine/install/
 
-- create the required Docker images: run `make` from the `$SRCDIR/docker-images/grub-bios/` and the `$SRCDIR/docker-images/livebuild/` directories
 - download INSECA in dedicated directory (refered to as `$SRCDIR` afterwards)
+- create the required Docker images: run `make` from the `$SRCDIR/docker-images/grub-bios/` and the `$SRCDIR/docker-images/livebuild/` directories
 - set the local environment variables: `cd $SRCDIR/tools && source ./set-env.sh` if you are using bash
 - download VeraCrypt as a DEB file from https://www.veracrypt.fr/en/Downloads.html in the `$SRCDIR/components/veracrypt/packages.deb/` directory
 
->For Debian distributions, you can use the script `install.sh` with root privileges and bash installed.
+For Debian / Ubuntu distributions, you can use the script `setup-debian.sh` (requires root privileges at some point).
 
 One the installation is finished, check that the `inseca` program can be run: `inseca -h` should display the help.
 
