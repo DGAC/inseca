@@ -30,27 +30,39 @@ This program is useable but still _rough_, at least regarding areas such as:
 - error reporting, especially in the configuration files handling where one is prone to make mistakes
 - installation: there is no installation procedure, just download and run
 - some components are not yet complete, some features don't yet work as expected
+- expect some bugs
 
 
 ## Quick start
 What follows should work out of the box on any Linux distribution but has only been tested using Debian. YMMV.
 
 ### Preparation steps
-1. install the dependencies:
-  - rclone, borg backup, python 3 with the pacparser, gi, dbus, requests, sqlite3 modules
-  - GTK3 libraries
-  - the Docker engine
-1. create the required Docker images: run `make` from the `$SRCDIR/docker-images/grub-bios/` and the `$SRCDIR/docker-images/livebuild/` directories
-1. download INSECA in dedicated directory (refered to as `$SRCDIR` afterwards)
-1. set the local environment variables: `cd $SRCDIR/tools && source ./set-env.sh` if you are using bash
-1. download VeraCrypt as a DEB file from https://www.veracrypt.fr/en/Downloads.html in the `$SRCDIR/components/veracrypt/packages.deb/` directory
-1. check that the `inseca` program can be run: `inseca -h` should display the help.
+- install the dependencies :
+  - rclone: https://rclone.org/downloads/
+  - borgbackup: https://www.borgbackup.org/
+  - python3 and python3-pacparser (python 3 with the pacparser)
+  - git: https://git-scm.com/
+  - dbus
+  - make
+  - requests (already included with Python3)
+  - sqlite3 modules (already included with Python3)
+  - libgtk-3-dev (GTK3 libraries)
+  - the Docker engine : https://docs.docker.com/engine/install/
+
+- download INSECA in dedicated directory (refered to as `$SRCDIR` afterwards)
+- create the required Docker images: run `make` from the `$SRCDIR/docker-images/grub-bios/` and the `$SRCDIR/docker-images/livebuild/` directories
+- set the local environment variables: `cd $SRCDIR/tools && source ./set-env.sh` if you are using bash
+- download VeraCrypt as a DEB file from https://www.veracrypt.fr/en/Downloads.html in the `$SRCDIR/components/veracrypt/packages.deb/` directory
+
+For Debian / Ubuntu distributions, you can use the script `setup-debian.sh` (requires root privileges at some point).
+
+One the installation is finished, check that the `inseca` program can be run: `inseca -h` should display the help.
 
 ### First configuration
 To create a global configuration:
-1. create a dedicated directory and define the `$INSECA_ROOT` environment variable to point to it
-1. initialize the configuration's structure, run: `inseca init`
-1. create a default build configuration: `inseca config-create build "My first INSECA build"`
-1. build the associated live Linux: `inseca build "My first INSECA build"`
+- create a dedicated directory and define the `$INSECA_ROOT` environment variable to point to it
+- initialize the configuration's structure, run: `inseca init`
+- create a default build configuration: `inseca config-create build "My first INSECA build"`
+- build the associated live Linux: `inseca build "My first INSECA build"`
 
 These steps, if sucessfull, ensure that INSECA is operational, from that point, refer to the documentation and build your own ecosystem.
