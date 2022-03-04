@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: INSECA 2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-02-18 17:47+0100\n"
+"POT-Creation-Date: 2022-03-04 09:50+0100\n"
 "PO-Revision-Date: 2022-01-30 14:30+0100\n"
 "Last-Translator: Vivien Malerba <vmalerba@gmail.com>\n"
 "Language-Team: français <vmalerba@gmail.com>\n"
@@ -114,408 +114,408 @@ msgstr ""
 msgid "Can't create security data in non creation mode"
 msgstr ""
 
-#: ../lib/Borg.py:98
+#: ../lib/Borg.py:100
 #, fuzzy, python-format
 msgid "Could not initialize repository: %s"
 msgstr "Impossible de lister les archives '%s'"
 
-#: ../lib/Borg.py:120
+#: ../lib/Borg.py:122
 #, fuzzy, python-format
 msgid "Could not create archive: %s"
 msgstr "Impossible de lister les archives '%s'"
 
-#: ../lib/Borg.py:139 ../lib/Borg.py:179 ../lib/Borg.py:203 ../lib/Borg.py:244
-#: ../lib/Borg.py:281
+#: ../lib/Borg.py:141 ../lib/Borg.py:181 ../lib/Borg.py:205 ../lib/Borg.py:246
+#: ../lib/Borg.py:283
 msgid "Incomplete synchronisation, retry later"
 msgstr ""
 
-#: ../lib/Borg.py:141
+#: ../lib/Borg.py:143
 #, python-format
 msgid "Failed to get archives list: %s"
 msgstr ""
 
-#: ../lib/Borg.py:181
+#: ../lib/Borg.py:183
 #, python-format
 msgid "Could not list archives: %s"
 msgstr "Impossible de lister les archives '%s'"
 
-#: ../lib/Borg.py:190
-msgid "Archive to extract is not specified"
-msgstr ""
-
 #: ../lib/Borg.py:192
-#, python-format
-msgid "Destination path '%s' does not exist"
+msgid "Archive to extract is not specified"
 msgstr ""
 
 #: ../lib/Borg.py:194
 #, python-format
+msgid "Destination path '%s' does not exist"
+msgstr ""
+
+#: ../lib/Borg.py:196
+#, python-format
 msgid "Destination path '%s' is not a directory"
 msgstr ""
 
-#: ../lib/Borg.py:205
+#: ../lib/Borg.py:207
 #, python-format
 msgid "Could not extract archive: %s"
 msgstr ""
 
-#: ../lib/Borg.py:246
+#: ../lib/Borg.py:248
 #, python-brace-format
 msgid "Could not mount archive '{archive_name}': {err}"
 msgstr ""
 
-#: ../lib/Borg.py:249
+#: ../lib/Borg.py:251
 #, python-brace-format
 msgid "Mounted archive '{archive_name}' on '{mp}'"
 msgstr ""
 
-#: ../lib/Borg.py:274
+#: ../lib/Borg.py:276
 #, python-format
 msgid "Could not umount archive '%s': timed out"
 msgstr ""
 
-#: ../lib/Borg.py:283
+#: ../lib/Borg.py:285
 #, python-brace-format
 msgid "Could not umount archive '{archive_name}': {err}"
 msgstr ""
 
-#: ../lib/Borg.py:291
+#: ../lib/Borg.py:293
 #, python-brace-format
 msgid "Unmounted archive '{archive_name}' (was mounted on '{mp}')"
 msgstr ""
 
-#: ../lib/Configurations.py:48 ../lib/Configurations.py:65
+#: ../lib/Configurations.py:49 ../lib/Configurations.py:66
 #, python-format
 msgid "Missing attribute '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:52
+#: ../lib/Configurations.py:53
 #, python-format
 msgid "Invalid attribute '%s': should not be null"
 msgstr ""
 
-#: ../lib/Configurations.py:54
+#: ../lib/Configurations.py:55
 #, python-format
 msgid "Invalid attribute '%s': wrong data type"
 msgstr ""
 
-#: ../lib/Configurations.py:58
+#: ../lib/Configurations.py:59
 #, python-format
 msgid "Expected a dictionary, got: %s"
 msgstr ""
 
-#: ../lib/Configurations.py:62
+#: ../lib/Configurations.py:63
 #, python-format
 msgid "Invalid attribute '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:68
+#: ../lib/Configurations.py:69
 msgid "Invalid 'descr' attribute: wrong type"
 msgstr ""
 
-#: ../lib/Configurations.py:70
+#: ../lib/Configurations.py:71
 #, python-format
 msgid "Invalid 'type' attribute '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:72
+#: ../lib/Configurations.py:73
 msgid "Invalid 'attest' attribute: wrong type"
 msgstr ""
 
-#: ../lib/Configurations.py:78
+#: ../lib/Configurations.py:79
 #, python-format
 msgid "Wrong value '%s' for a string parameter"
 msgstr ""
 
-#: ../lib/Configurations.py:85
+#: ../lib/Configurations.py:86
 #, python-format
 msgid "Missing file '%s' identified in parameter"
 msgstr ""
 
-#: ../lib/Configurations.py:88
+#: ../lib/Configurations.py:89
 #, python-format
 msgid "Wrong value '%s' for parameter"
 msgstr ""
 
-#: ../lib/Configurations.py:93
+#: ../lib/Configurations.py:94
 #, python-format
 msgid "Wrong value '%s' for a filesystem parameter"
 msgstr ""
 
-#: ../lib/Configurations.py:134 ../lib/Configurations.py:314
-#: ../lib/Configurations.py:491 ../lib/Configurations.py:629
-#: ../lib/Configurations.py:700
+#: ../lib/Configurations.py:135 ../lib/Configurations.py:361
+#: ../lib/Configurations.py:538 ../lib/Configurations.py:676
+#: ../lib/Configurations.py:747
 #, python-brace-format
 msgid "Invalid file '{configfile}' format: {err}"
 msgstr ""
 
-#: ../lib/Configurations.py:194
+#: ../lib/Configurations.py:196
 #, python-format
 msgid "Missing live Linux signing private key file '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:206
+#: ../lib/Configurations.py:208
 #, python-format
 msgid "Missing live Linux signing public key file '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:428
+#: ../lib/Configurations.py:475
 #, python-brace-format
 msgid "Invalid install configuration '{config_file}': {err}"
 msgstr ""
 
-#: ../lib/Configurations.py:453 ../lib/Configurations.py:591
+#: ../lib/Configurations.py:500 ../lib/Configurations.py:638
 #, python-format
 msgid "Invalid parameter '%s': already part of core configuration"
 msgstr ""
 
-#: ../lib/Configurations.py:463 ../lib/Configurations.py:601
+#: ../lib/Configurations.py:510 ../lib/Configurations.py:648
 #, python-brace-format
 msgid ""
 "Invalid configuration entry '{entry}' in section '{section}': already part "
 "of core configuration"
 msgstr ""
 
-#: ../lib/Configurations.py:568
+#: ../lib/Configurations.py:615
 #, python-brace-format
 msgid "Invalid format configuration '{config_file}': {err}"
 msgstr ""
 
-#: ../lib/Configurations.py:745
+#: ../lib/Configurations.py:792
 #, python-brace-format
 msgid "Could not get actual size of '{self.path}': {err}"
 msgstr ""
 
-#: ../lib/Configurations.py:770
+#: ../lib/Configurations.py:817
 msgid "Invalid configuration: not a dictionary"
 msgstr ""
 
-#: ../lib/Configurations.py:784
+#: ../lib/Configurations.py:831
 #, python-brace-format
 msgid "Invalid repo configuration '{config_file}': {err}"
 msgstr ""
 
-#: ../lib/Configurations.py:789
+#: ../lib/Configurations.py:836
 #, python-brace-format
 msgid ""
 "Invalid repo configuration '{config_file}': path '{path}' does not exist"
 msgstr ""
 
-#: ../lib/Configurations.py:794
+#: ../lib/Configurations.py:841
 #, python-brace-format
 msgid "Invalid repo configuration '{config_file}': invalid type '{self._type}'"
 msgstr ""
 
-#: ../lib/Configurations.py:916
+#: ../lib/Configurations.py:963
 #, python-format
 msgid "Root directory '%s' is not empty"
 msgstr ""
 
-#: ../lib/Configurations.py:937
+#: ../lib/Configurations.py:984
 msgid "INSECA_ROOT environment variable is not defined"
 msgstr ""
 
-#: ../lib/Configurations.py:940
+#: ../lib/Configurations.py:987
 #, python-format
 msgid ""
 "Directory '%s' pointed by INSECA_ROOT environment variable does not exist"
 msgstr ""
 
-#: ../lib/Configurations.py:947
+#: ../lib/Configurations.py:994
 #, python-format
 msgid "Top directory '%s' is missing"
 msgstr ""
 
-#: ../lib/Configurations.py:949
+#: ../lib/Configurations.py:996
 #, python-format
 msgid "'%s' should be a directory"
 msgstr ""
 
-#: ../lib/Configurations.py:994
+#: ../lib/Configurations.py:1041
 msgid "The archives_cache_dir property has not yet been defined"
 msgstr ""
 
-#: ../lib/Configurations.py:1036
+#: ../lib/Configurations.py:1083
 #, python-format
 msgid "Global configuration file '%s' is missing"
 msgstr ""
 
-#: ../lib/Configurations.py:1055
+#: ../lib/Configurations.py:1102
 #, python-brace-format
 msgid "'reader-conf' file '{fname}' not found for entry '{entry}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1062
+#: ../lib/Configurations.py:1109
 #, python-brace-format
 msgid "'writer-conf' file '{fname}' not found for entry '{entry}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1100
+#: ../lib/Configurations.py:1147
 #, python-format
 msgid "Unknown synchronization target '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1145
+#: ../lib/Configurations.py:1192
 #, python-brace-format
 msgid "Build configuration '{conf.id}' already exists (from '{path}')"
 msgstr ""
 
-#: ../lib/Configurations.py:1165 ../lib/Configurations.py:1200
+#: ../lib/Configurations.py:1212 ../lib/Configurations.py:1247
 #, python-brace-format
 msgid "Install configuration '{conf.id}' already exists (from '{path}')"
 msgstr ""
 
-#: ../lib/Configurations.py:1180
+#: ../lib/Configurations.py:1227
 #, python-format
 msgid "Missing format configuration file '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1184
+#: ../lib/Configurations.py:1231
 #, python-brace-format
 msgid "Format configuration '{conf.id}' already exists (from '{path}')"
 msgstr ""
 
-#: ../lib/Configurations.py:1224
+#: ../lib/Configurations.py:1271
 #, python-brace-format
 msgid "Repository configuration '{conf.id}' already exists (from '{path}')"
 msgstr ""
 
-#: ../lib/Configurations.py:1240
+#: ../lib/Configurations.py:1287
 #, python-brace-format
 msgid ""
 "Install configuration '' references inexistant build ID '{iconf.build_id}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1244
+#: ../lib/Configurations.py:1291
 #, python-brace-format
 msgid ""
 "Install configuration '{path}' references live Linux build configuration "
 "which has no associated repository"
 msgstr ""
 
-#: ../lib/Configurations.py:1248
+#: ../lib/Configurations.py:1295
 #, python-brace-format
 msgid ""
 "Install configuration '{path}' references inexistant build repository 'iconf."
 "build_repo_id'"
 msgstr ""
 
-#: ../lib/Configurations.py:1252
+#: ../lib/Configurations.py:1299
 #, python-brace-format
 msgid ""
 "Install configuration '{path}' references build repo ID '{iconf."
 "build_repo_id}' which is not of type BUILD"
 msgstr ""
 
-#: ../lib/Configurations.py:1257
+#: ../lib/Configurations.py:1304
 #, python-brace-format
 msgid ""
 "Install configuration '{path}' references inexistant repo ID '{iconf."
 "repo_id}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1260
+#: ../lib/Configurations.py:1307
 #, python-format
 msgid ""
 "Install configuration '%s' references repo ID which is not of type INSTALL"
 msgstr ""
 
-#: ../lib/Configurations.py:1269
+#: ../lib/Configurations.py:1316
 #, python-brace-format
 msgid ""
 "Format configuration '{path}' references inexistant repo ID '{fconf.repo_id}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1272
+#: ../lib/Configurations.py:1319
 #, python-format
 msgid ""
 "Format configuration '%s' references repo ID which is not of type FORMAT"
 msgstr ""
 
-#: ../lib/Configurations.py:1281
+#: ../lib/Configurations.py:1328
 #, python-brace-format
 msgid ""
 "Build configuration '{path}' references inexistant repo ID '{bconf.repo_id}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1284
+#: ../lib/Configurations.py:1331
 #, python-format
 msgid "Build configuration '%s' references repo ID which is not of type BUILD"
 msgstr ""
 
-#: ../lib/Configurations.py:1292
+#: ../lib/Configurations.py:1339
 #, python-brace-format
 msgid ""
 "Domain configuration '{path}' references inexistant repo ID '{dconf.repo_id}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1296
+#: ../lib/Configurations.py:1343
 #, python-brace-format
 msgid ""
 "Domain configuration '{path}' references domain repo ID '{dconf.repo_id}' "
 "which is not of type DOMAIN"
 msgstr ""
 
-#: ../lib/Configurations.py:1299
+#: ../lib/Configurations.py:1346
 #, python-format
 msgid ""
 "Invalid 'install-ref' part in domain configuration: references unknown "
 "install configuration '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1324 ../lib/Configurations.py:1354
-#: ../lib/Configurations.py:1384 ../lib/Configurations.py:1414
+#: ../lib/Configurations.py:1371 ../lib/Configurations.py:1401
+#: ../lib/Configurations.py:1431 ../lib/Configurations.py:1461
 msgid "More than one matching configuration"
 msgstr ""
 
-#: ../lib/Configurations.py:1331
+#: ../lib/Configurations.py:1378
 #, python-format
 msgid "Unknown build configuration '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1361
+#: ../lib/Configurations.py:1408
 #, python-format
 msgid "Unknown install configuration '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1391
+#: ../lib/Configurations.py:1438
 #, python-format
 msgid "Unknown format configuration '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1421
+#: ../lib/Configurations.py:1468
 #, python-format
 msgid "Unknown domain configuration '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1439
+#: ../lib/Configurations.py:1486
 #, python-format
 msgid "Unknown repo configuration '%s'"
 msgstr ""
 
-#: ../lib/Configurations.py:1456
+#: ../lib/Configurations.py:1503
 msgid "No build archive available"
 msgstr ""
 
-#: ../lib/Configurations.py:1459 ../lib/Configurations.py:1481
+#: ../lib/Configurations.py:1506 ../lib/Configurations.py:1528
 #, python-format
 msgid "No archive '%s' in repository"
 msgstr ""
 
-#: ../lib/Configurations.py:1467
+#: ../lib/Configurations.py:1514
 #, python-brace-format
 msgid ""
 "Build repo '{rconf.id}' seems corrupted: missing the 'live-linux.iso' file "
 "in archive '{barname}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1470
+#: ../lib/Configurations.py:1517
 #, python-brace-format
 msgid ""
 "Build repo '{rconf.id}' seems corrupted: missing the 'live-linux.userdata-"
 "specs' file in archive '{barname}'"
 msgstr ""
 
-#: ../lib/Configurations.py:1510
+#: ../lib/Configurations.py:1557
 msgid ""
 "Archives cache directory cannot be a subdirectory of the configuration's "
 "global directory"

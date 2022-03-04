@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: INSECA 2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-01-30 15:17+0100\n"
+"POT-Creation-Date: 2022-03-04 09:50+0100\n"
 "PO-Revision-Date: 2022-01-30 09:41+0100\n"
 "Last-Translator: Vivien Malerba <vmalerba@gmail.com>\n"
 "Language-Team:français <vmalerba@gmail.com>\n"
@@ -18,106 +18,104 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n > 1)\n"
 "X-Generator: Gtranslator 3.30.1\n"
 
-#: ../tools/inseca:53
+#: ../tools/inseca:56
 msgid "Specify the equivalent of INSECA_ROOT"
 msgstr "Spécifie l'équivalent de INSECA_ROOT"
 
-#: ../tools/inseca:54
+#: ../tools/inseca:57
 msgid "Specify the equivalent of INSECA_EXTRA_COMPONENTS"
 msgstr "Spécifie l'équivalent de INSECA_EXTRA_COMPONENTS"
 
-#: ../tools/inseca:55
+#: ../tools/inseca:58
 msgid "Specify the equivalent of INSECA_DEFAULT_REPOS_DIR"
 msgstr "Spécifie l'équivalent de INSECA_DEFAULT_REPOS_DIR"
 
-#: ../tools/inseca:56
+#: ../tools/inseca:59
 msgid "Specify the equivalent of INSECA_CACHE_DIR"
 msgstr "Spécifie l'équivalent de INSECA_CACHE_DIR"
 
-#: ../tools/inseca:57
+#: ../tools/inseca:60
 msgid "Display more information"
 msgstr "Affiche plus d'informations"
 
-#: ../tools/inseca:59
+#: ../tools/inseca:62
 msgid "Allowed commands"
 msgstr "Commandes autorisées"
 
-#: ../tools/inseca:61
+#: ../tools/inseca:64
 msgid "Initialize a new INSECA global configuration structure"
 msgstr "Initialise une nouvelle structure globale de configuration INSECA"
 
-#: ../tools/inseca:62
+#: ../tools/inseca:65
 msgid "Display the global status"
 msgstr "Affiche le statut global"
 
-#: ../tools/inseca:64
+#: ../tools/inseca:67
 msgid "List all the configurations of the specific type"
 msgstr "Liste toutes les configurations d'un type spécifique"
 
-#: ../tools/inseca:66
+#: ../tools/inseca:69
 msgid "Config type: build | install | format | domain | userdata"
 msgstr "Type de configuration: build | install | format | domain | userdata"
 
-#: ../tools/inseca:68
+#: ../tools/inseca:71
 msgid "Show information about a specific configuration"
 msgstr "Affiche les informations d'une configuration spécifique"
 
-#: ../tools/inseca:69
+#: ../tools/inseca:72
 msgid "Configuration ID"
 msgstr "ID de confirmation"
 
-#: ../tools/inseca:71
+#: ../tools/inseca:74
 msgid "Create a new configuration"
 msgstr "Créé une nouvelle configuration"
 
-#: ../tools/inseca:72
+#: ../tools/inseca:75
 msgid ""
 "Config type: admin-build | build | install | format | domain | repo | "
 "userdata"
 msgstr ""
 "Type de configuration: build | install | format | domain | repo | userdata"
 
-#: ../tools/inseca:73
+#: ../tools/inseca:76
 msgid "Referenced Build ID if config type is 'install' (ignored otherwise)"
 msgstr "ID de 'build' si le type de configuration est 'install' (ignoré sinon)"
 
-#: ../tools/inseca:74
+#: ../tools/inseca:77
 msgid "Configuration's description"
 msgstr "Description de la configuration"
 
-#: ../tools/inseca:76
+#: ../tools/inseca:79
 msgid "Publish a configuration's contents to its specified repository"
 msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
 
-#: ../tools/inseca:77
+#: ../tools/inseca:80
 msgid "Configuration(s) ID(s), or empty to specify all the configurations"
 msgstr ""
 "ID(s) de configurations(s), ou vide pour spécifier toutes les configurations"
 
-#: ../tools/inseca:79
+#: ../tools/inseca:82
 msgid "Remove a configuration and its associated repository"
 msgstr "Supprime une configuration et le dépôt associé"
 
-#: ../tools/inseca:80
+#: ../tools/inseca:83
 msgid "Configuration(s) ID(s)"
 msgstr "ID(s) de Confirmation(s)"
 
-#: ../tools/inseca:81 ../tools/inseca:146
+#: ../tools/inseca:84 ../tools/inseca:152
 msgid "Confirm the removal without any confirmation asked"
 msgstr "Confirme la suppression sans demander de confirmation"
 
-#: ../tools/inseca:83
+#: ../tools/inseca:86
 msgid "Build a live Linux"
 msgstr "Construit un live Linux"
 
-#: ../tools/inseca:84
-msgid ""
-"Build configuration ID(s) (set INSECA_DONT_BUILD=1 to only prepare build)"
-msgstr ""
-"ID(s) de configuration de build (définir INSECA_DONT_BUILD=1 pour ne faire "
-"que la préparation)"
+#: ../tools/inseca:87
+#, fuzzy
+msgid "Build configuration ID(s)"
+msgstr "%s configuration(s) de build"
 
-#: ../tools/inseca:85
+#: ../tools/inseca:88
 msgid ""
 "Automatically publish the build (if the build configuration has defined a "
 "repository)"
@@ -125,54 +123,59 @@ msgstr ""
 "Publier automatiquement la construction (si la configuration de build a "
 "défini un dépôt)"
 
-#: ../tools/inseca:87
+#: ../tools/inseca:89
+msgid "Don't actually build the live Linux, only prepare the files"
+msgstr ""
+
+#: ../tools/inseca:91
 msgid "List all contents of the specified repository"
 msgstr "Liste toutes les configurations d'un type spécifique"
 
-#: ../tools/inseca:88 ../tools/inseca:95 ../tools/inseca:99 ../tools/inseca:103
+#: ../tools/inseca:92 ../tools/inseca:99 ../tools/inseca:103
+#: ../tools/inseca:107
 msgid "Repository ID"
 msgstr "ID du dépôt"
 
-#: ../tools/inseca:89
+#: ../tools/inseca:93
 msgid "Archive ID, to list files in that archive"
 msgstr "ID d'une archive, pour lister les fichiers de cette archive"
 
-#: ../tools/inseca:91
+#: ../tools/inseca:95
 msgid ""
 "Remove all obsolete archives in the repositories (or specified repository)"
 msgstr ""
 "Supprime toutes les archives obsolètes des dépôts (ou su dépôt spécifié)"
 
-#: ../tools/inseca:92 ../tools/inseca:108
+#: ../tools/inseca:96 ../tools/inseca:112
 msgid "Repository or repositories ID(s)"
 msgstr "ID(s) de(s) Dépôt(s)"
 
-#: ../tools/inseca:94
+#: ../tools/inseca:98
 msgid "Import data (replace any existing) in a USERDATA repository"
 msgstr ""
 "Importe des données (ramplaçant celles existantes) dans un dépôt USERDATA"
 
-#: ../tools/inseca:96
+#: ../tools/inseca:100
 msgid "Directory containing the files to add"
 msgstr "Répertoire contenant les fichiers à ajouter"
 
-#: ../tools/inseca:98
+#: ../tools/inseca:102
 msgid "Add files(s) in a USERDATA repository"
 msgstr "Ajoute des fichiers à un dépôt USERDATA"
 
-#: ../tools/inseca:100
+#: ../tools/inseca:104
 msgid "Files to add"
 msgstr "Fichiers à ajouter"
 
-#: ../tools/inseca:102
+#: ../tools/inseca:106
 msgid "Remove files(s) from a USERDATA repository"
 msgstr "Supprime des fichiers d'un dépôt USERDATA"
 
-#: ../tools/inseca:104
+#: ../tools/inseca:108
 msgid "Files to delete"
 msgstr "Fichiers à supprimer"
 
-#: ../tools/inseca:106
+#: ../tools/inseca:110
 msgid ""
 "Upload the master configuration (or only some repositories) to the specified "
 "target storage"
@@ -180,16 +183,16 @@ msgstr ""
 "Télécharge la configuration maître (ou seulement certains dépôts) vers "
 "l'espace de stockage spécifié"
 
-#: ../tools/inseca:107 ../tools/inseca:111
+#: ../tools/inseca:111 ../tools/inseca:115
 msgid "Storage target"
 msgstr "Espace de stockage"
 
-#: ../tools/inseca:110
+#: ../tools/inseca:114
 msgid "Download the whole configuration from the specified target storage"
 msgstr ""
 "Télécharge la configuration complète depuis un espace de stockage spécifié"
 
-#: ../tools/inseca:113
+#: ../tools/inseca:117
 msgid ""
 "Generate an admin 'iso' image from an admin build and domain(s) "
 "configuration(s)"
@@ -197,7 +200,7 @@ msgstr ""
 "Créé une image 'iso' d'administration à partir d'une configuration de build "
 "et de domaine(s)"
 
-#: ../tools/inseca:114
+#: ../tools/inseca:118
 msgid ""
 "Build configuration (must already have been built); pass '-' to generate "
 "debug file only"
@@ -205,14 +208,14 @@ msgstr ""
 "Configuration de build (doit déjà avoir été construite); utiliser '-' pour "
 "générer seulement une fichier de déboggage"
 
-#: ../tools/inseca:115
+#: ../tools/inseca:119
 msgid ""
 "Domain(s) configuration(s) which will be available in the admin environment"
 msgstr ""
 "Configuration(s) de domaine qui seront disponible(s) dans l'environnement "
 "d'administration"
 
-#: ../tools/inseca:117
+#: ../tools/inseca:121
 msgid ""
 "Generate a template of the parameters required to create an INSECA "
 "installation or format a device"
@@ -220,25 +223,29 @@ msgstr ""
 "Génère un modèle de paramètres requis pour créer une installation INSECA ou "
 "formater un périphérique"
 
-#: ../tools/inseca:118
+#: ../tools/inseca:122
 msgid "Install/format configuration"
 msgstr "Configuration d'install ou de format"
 
-#: ../tools/inseca:120
+#: ../tools/inseca:124
 msgid "Generate an RSA keys pair"
 msgstr "Génère une paire de clés RSA"
 
-#: ../tools/inseca:121
+#: ../tools/inseca:125
 msgid "Base name for the generated key files: <prefix>.pub and <prefix>.priv"
 msgstr ""
 "Base du nom de fichier pour les clés générées: <prefixe>.pub et <prefixe>."
 "priv"
 
-#: ../tools/inseca:123
+#: ../tools/inseca:127
+msgid "List all mass storage devices in the system"
+msgstr ""
+
+#: ../tools/inseca:129
 msgid "Create an INSECA installation"
 msgstr "Crée une installation INSECA"
 
-#: ../tools/inseca:124
+#: ../tools/inseca:130
 msgid ""
 "Install (for workstation install) or build (for simple live Linux) "
 "configuration to use"
@@ -246,207 +253,244 @@ msgstr ""
 "Configuration d'install (de type 'workstation') ou de build (pour un simple "
 "live Linux)"
 
-#: ../tools/inseca:125
+#: ../tools/inseca:131
 msgid "Device or VM image file to install to"
 msgstr "Périphérique ou image disque de VM à utiliser pour l'installation"
 
-#: ../tools/inseca:126
+#: ../tools/inseca:132
 msgid ""
 "File containing the parameters for the installation (for install "
 "configurations)"
 msgstr ""
 
-#: ../tools/inseca:127
+#: ../tools/inseca:133
 msgid "Size of the VM image file in Gb (if target is a VM image file)"
 msgstr ""
 
-#: ../tools/inseca:128 ../tools/inseca:132
+#: ../tools/inseca:134 ../tools/inseca:138
 msgid ""
 "Specific archive ID to get the live Linux image (instead of the last "
 "available)"
 msgstr ""
 
-#: ../tools/inseca:130
+#: ../tools/inseca:136
 msgid "Update the live Linux of an INSECA installation"
 msgstr ""
 
-#: ../tools/inseca:131
+#: ../tools/inseca:137
 msgid "Device or VM image file to update"
 msgstr ""
 
-#: ../tools/inseca:134
+#: ../tools/inseca:140
 msgid "Format a storage device using a format configuration"
 msgstr ""
 
-#: ../tools/inseca:135
+#: ../tools/inseca:141
 msgid "Format configuration to use"
 msgstr ""
 
-#: ../tools/inseca:136
+#: ../tools/inseca:142
 msgid "File containing the parameters for the format"
 msgstr ""
 
-#: ../tools/inseca:137
+#: ../tools/inseca:143
 msgid "Device file to install to"
 msgstr ""
 
-#: ../tools/inseca:139
+#: ../tools/inseca:145
 msgid "Identifies an INSECA device"
 msgstr "Identifie un périphérique INSECA"
 
-#: ../tools/inseca:140 ../tools/inseca:145 ../tools/inseca:149
-#: ../tools/inseca:153 ../tools/inseca:159 ../tools/inseca:163
-#: ../tools/inseca:166 ../tools/inseca:172 ../tools/inseca:176
+#: ../tools/inseca:146 ../tools/inseca:151 ../tools/inseca:155
+#: ../tools/inseca:159 ../tools/inseca:163 ../tools/inseca:169
+#: ../tools/inseca:173 ../tools/inseca:176 ../tools/inseca:182
+#: ../tools/inseca:186
 msgid "Device's associated file (e.g. /dev/sda)"
 msgstr "Fichier associé au périphérique (par ex. /dev/sda)"
 
-#: ../tools/inseca:141
+#: ../tools/inseca:147
 msgid "Also get the protected (encrypted) information"
 msgstr ""
 
-#: ../tools/inseca:142 ../tools/inseca:156
+#: ../tools/inseca:148 ../tools/inseca:166
 msgid "Force a specific decryption key to get the protected data"
 msgstr ""
 
-#: ../tools/inseca:144
-msgid "Remove everything on an INSECA device"
-msgstr ""
-
-#: ../tools/inseca:148
-msgid "Starts an INSECA device in a VM"
-msgstr ""
-
 #: ../tools/inseca:150
-msgid "Boot in Legacy BIOS mode instead of UEFI"
-msgstr ""
-
-#: ../tools/inseca:152
-msgid "Mount a partition of an INSECA device"
+msgid "Remove everything on a device"
 msgstr ""
 
 #: ../tools/inseca:154
-msgid "Partition ID name to mount"
-msgstr "ID (nom) de la partition à monter"
+msgid "Makes a byte for byte copy of a device to a file (like dd)"
+msgstr ""
 
-#: ../tools/inseca:155
-msgid "Directory where the partition will be mounted"
+#: ../tools/inseca:156
+msgid "File to copy data to"
 msgstr ""
 
 #: ../tools/inseca:158
+msgid "Starts an INSECA device in a VM"
+msgstr ""
+
+#: ../tools/inseca:160
+msgid "Boot in Legacy BIOS mode instead of UEFI"
+msgstr ""
+
+#: ../tools/inseca:162
+msgid "Mount a partition of an INSECA device"
+msgstr ""
+
+#: ../tools/inseca:164
+msgid "Partition ID name to mount"
+msgstr "ID (nom) de la partition à monter"
+
+#: ../tools/inseca:165
+msgid "Directory where the partition will be mounted"
+msgstr ""
+
+#: ../tools/inseca:168
 msgid "Unmount a mounted partition of an INSECA device"
 msgstr "Dé-monte une partition montée d'un périphérique INSECA"
 
-#: ../tools/inseca:160
+#: ../tools/inseca:170
 msgid "Partition ID (name) to umount"
 msgstr "ID (nom) de la partition à dé-monter"
 
-#: ../tools/inseca:162
+#: ../tools/inseca:172
 msgid "List the users declared"
 msgstr "Liste tous les utilisateurs déclarés"
 
-#: ../tools/inseca:165
+#: ../tools/inseca:175
 msgid "Add a new user"
 msgstr "Ajoute un nouvel utilisateur"
 
-#: ../tools/inseca:167
+#: ../tools/inseca:177
 msgid "User to add"
 msgstr "Utilisateur à ajouter"
 
-#: ../tools/inseca:168
+#: ../tools/inseca:178
 msgid "Password (use '-' to get from stdin)"
 msgstr "Mot de passe (utiliser '-' si fourni via stdin)"
 
-#: ../tools/inseca:169 ../tools/inseca:179
+#: ../tools/inseca:179 ../tools/inseca:189
 msgid "Name of the environment variable containing the password"
 msgstr "Nom de la variable d'environnement contenant le mot de passe"
 
-#: ../tools/inseca:171
+#: ../tools/inseca:181
 msgid "Delete a user"
 msgstr "Supprimer un utilisateur"
 
-#: ../tools/inseca:173
+#: ../tools/inseca:183
 msgid "User to delete"
 msgstr "Utilisateur à supprimer"
 
-#: ../tools/inseca:175
+#: ../tools/inseca:185
 msgid "Reset the user's password"
 msgstr "Réinitialise le mot de passe d'un utilisateur"
 
-#: ../tools/inseca:177
+#: ../tools/inseca:187
 msgid "User for which the password will be reset"
 msgstr "Utilisateur dont le mot de passe sera réinitialisé"
 
-#: ../tools/inseca:178
+#: ../tools/inseca:188
 msgid "Password to use (use '-' if provided via stdin)"
 msgstr "Mot de passe (utiliser '-' si fourni via stdin)"
 
-#: ../tools/inseca:263
+#: ../tools/inseca:273
 #, python-format
 msgid "needs to be rebuilt (and existing build @ %s)"
 msgstr "doit être reconstruit (et construction existante @ %s)"
 
-#: ../tools/inseca:265
+#: ../tools/inseca:275
 msgid "needs to be rebuilt"
 msgstr "doit être reconstruit"
 
-#: ../tools/inseca:268 ../tools/inseca:274
+#: ../tools/inseca:278 ../tools/inseca:284
 msgid "needs to be published"
 msgstr "doit être publié"
 
-#: ../tools/inseca:270
+#: ../tools/inseca:280
 #, python-format
 msgid "existing build @ %s"
 msgstr "construction existante @ %s"
 
-#: ../tools/inseca:279
+#: ../tools/inseca:289
 msgid ""
 "No root path to the global configuration specified (INSECA_ROOT environment "
 "variable or '--root' option"
 msgstr ""
 
-#: ../tools/inseca:282
+#: ../tools/inseca:292
 msgid "Not yet configured, use the 'init' command"
 msgstr "Pas encore configuré, utiliser la commande 'init'"
 
-#: ../tools/inseca:284
+#: ../tools/inseca:294
 #, python-format
 msgid "Global configuration Ok (%s)"
 msgstr "Configuration globale Ok (%s)"
 
-#: ../tools/inseca:284
+#: ../tools/inseca:294
 msgid "master"
 msgstr "principale"
 
-#: ../tools/inseca:284
+#: ../tools/inseca:294
 msgid "not master"
 msgstr "non principale"
 
-#: ../tools/inseca:285
+#: ../tools/inseca:295
 #, python-format
 msgid "Configuration directory: %s"
 msgstr "Répertoire de configuration: %s"
 
-#: ../tools/inseca:286
+#: ../tools/inseca:296
 #, python-format
 msgid "Proxy PAC file: %s"
 msgstr "Fichier proxy PAC: %s"
 
-#: ../tools/inseca:288
+#: ../tools/inseca:298
 #, python-format
 msgid "%s build configuration(s)"
 msgstr "%s configuration(s) de build"
 
-#: ../tools/inseca:2086
+#: ../tools/inseca:1141
+#, python-format
+msgid "Missing live Linux file '%s'"
+msgstr ""
+
+#: ../tools/inseca:1148
+#, fuzzy
+msgid "Build configuration does not specify a repository"
+msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
+
+#: ../tools/inseca:1152
+#, fuzzy
+msgid "Build configuration specifies a non BUILD repository"
+msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
+
+#: ../tools/inseca:1157
+#, fuzzy
+msgid "Signing live Linux"
+msgstr "Construit un live Linux"
+
+#: ../tools/inseca:1168
+msgid "Not signing live Linux (configuration does not specify any signing key)"
+msgstr ""
+
+#: ../tools/inseca:2061
 msgid "New password: "
 msgstr "Nouveau mot de passe: "
 
-#: ../tools/inseca:2087
+#: ../tools/inseca:2062
 msgid "Confirmation: "
 msgstr "Confirmation: "
 
-#: ../tools/inseca:2089
+#: ../tools/inseca:2064
 msgid "Passwords mismatch"
 msgstr "Les mots de passe ne correspondent pas"
+
+#: ../tools/inseca:2212
+msgid "This command needs root privileges"
+msgstr ""
 
 #~ msgid "Name of the environment variable containing the password to use"
 #~ msgstr "Nom de la variable d'environnement contenant le mot de passe"

@@ -84,8 +84,9 @@ sparser.add_argument("config", nargs=argparse.REMAINDER, help=_("Configuration(s
 sparser.add_argument("--confirm", help=_("Confirm the removal without any confirmation asked"), action="store_true")
 
 sparser=subparsers.add_parser("build", help=_("Build a live Linux"))
-sparser.add_argument("build", nargs=argparse.REMAINDER, help=_("Build configuration ID(s) (set INSECA_DONT_BUILD=1 to only prepare build)"))
+sparser.add_argument("build", nargs=argparse.REMAINDER, help=_("Build configuration ID(s)"))
 sparser.add_argument("-p", "--publish", help=_("Automatically publish the build (if the build configuration has defined a repository)"), action="store_true")
+sparser.add_argument("-n", "--dry", help=_("Don't actually build the live Linux, only prepare the files"), action="store_true")
 
 sparser=subparsers.add_parser("repo-ls", help=_("List all contents of the specified repository"))
 sparser.add_argument("repo", help=_("Repository ID"))
@@ -1463,10 +1464,15 @@ def build(args):
     for buid in args.build:
         bconf=gconf.get_build_conf(buid)
         print("Building configuration '%s': %s"%(bconf.id, bconf.descr))
-        builder=LiveBuilder.Builder(buid)
+        builder=LiveBuilder.Builder(buid, args.dry)
         builder.prepare_build_dir()
         builder.copy_resources()
-        if "INSECA_DONT_BUILD" not in os.environ:
+        if args.dry:
+            util.write_data_to_file("Not building", builder.build_data_file, append=True)
+            print("Not building the Live Linux")
+            print("Live build preparation is in: %s"%builder.livedir)
+            builder.compute_user_data_specs()
+        else:
             cleaned=False
             try:
                 builder.build()
@@ -1482,11 +1488,6 @@ def build(args):
             finally:
                 if not cleaned:
                     builder.clean_build_dir()
-        else:
-            util.write_data_to_file("Not building (INSECA_DONT_BUILD)", builder.build_data_file, append=True)
-            print("Not building the Live Linux (INSECA_DONT_BUILD)")
-            print("Live build preparation is in: %s"%builder.livedir)
-            builder.compute_user_data_specs()
 
 def gen_params(args):
     gconf=confs.GlobalConfiguration()
