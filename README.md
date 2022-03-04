@@ -55,6 +55,7 @@ What follows should work out of the box on any Linux distribution but has only b
 - download VeraCrypt as a DEB file from https://www.veracrypt.fr/en/Downloads.html in the `$SRCDIR/components/veracrypt/packages.deb/` directory
 
 For Debian / Ubuntu distributions, you can use the script `setup-debian.sh` (requires root privileges at some point).
+If you have Fedora, you can use the script `setup-fedora.sh` (requires root privileges at some point).
 
 One the installation is finished, check that the `inseca` program can be run: `inseca -h` should display the help.
 
