@@ -28,36 +28,36 @@ sudo apt full-upgrade -y
 sudo apt clean
 
 echo -e "\n### Installation of rclone ###"
-sudo apt install rclone 
+sudo apt install -y rclone 
 
 echo -e "\n### Installation of python3 with pacparser ###"
-sudo apt install python3 python3-pacparser -y
+sudo apt install -y python3 python3-pacparser
 
 echo -e "\n### Installation of GTK libraries ###"
-sudo apt install libgtk-3-dev -y
+sudo apt install -y libgtk-3-dev
 
 echo -e "\n### Installation of borgbackup ###"
-sudo apt install borgbackup -y
+sudo apt install -y borgbackup
 
 echo -e "\n### Installation of git ###"
-sudo apt install git -y
+sudo apt install -y git
 
 echo -e "\n### Installation of dbus ###"
-sudo apt install dbus -y
+sudo apt install -y dbus
 
 echo -e "\n### Installation of make ###"
-sudo apt install make -y
+sudo apt install -y make
 
 echo -e "\n### Installation of Docker ###"
-sudo apt install docker.io -y
+sudo apt install -y docker.io
 
 echo -e "\n### Installation of INSECA ###"
-sudo apt install wget -y
+sudo apt install -y wget
 git clone https://github.com/DGAC/inseca
 pushd inseca/docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null
 pushd inseca/docker-images/livebuild > /dev/null && sudo make && popd > /dev/null
 
-echo -e "\n### Installation of Veracrypt ###"
+echo -e "\n### Downloading Veracrypt ###"
 pushd inseca/components/veracrypt/packages.deb > /dev/null
 github_latest_release() {
     basename $(curl -fs -o/dev/null -w %{redirect_url} $1/releases/latest)

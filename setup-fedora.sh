@@ -1,51 +1,68 @@
 #!/bin/bash
 
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
 set -e
 
 echo -e "\n### Install INSECA ###"
 echo -e "\nThis script uses sudo to obtain root privileges when required"
 
 echo -e "\n### Checks for the latest updates ###"
-sudo yum update -y
-sudo yum upgrade -y
-sudo yum clean packages
+sudo dnf update -y
+sudo dnf upgrade -y
+sudo dnf clean packages
 
 echo -e "\n### Installation of rclone ###"
-sudo yum install rclone -y
+sudo dnf install -y rclone
 
 echo -e "\n### Installation of python3 with pacparser ###"
-sudo yum install python3 python3-pycparser -y
+sudo dnf install -y python3 python3-pycparser
 
 echo -e "\n### Installation of GTK libraries ###"
-sudo yum install gtk3 -y
+sudo dnf install -y gtk3
 
 echo -e "\n### Installation of borgbackup ###"
-sudo yum install borgbackup -y
+sudo dnf install -y borgbackup
 
 echo -e "\n### Installation of git ###"
-sudo yum install git -y
+sudo dnf install -y git
 
 echo -e "\n### Installation of dbus ###"
-sudo yum install dbus -y
+sudo dnf install -y dbus
 
 echo -e "\n### Installation of make ###"
-sudo yum install make -y
+sudo dnf install -y make
 
 echo -e "\n### Installation of Docker ###"
 sudo dnf -y install dnf-plugins-core
 sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
-sudo dnf install docker-ce docker-ce-cli containerd.io
+sudo dnf install -y docker-ce docker-ce-cli containerd.io
 
 echo -e "\n### Installation of INSECA ###"
-sudo yum install wget openssl -y
+sudo dnf install -y wget openssl
 git clone https://github.com/DGAC/inseca
 sudo systemctl unmask docker
 sudo systemctl start docker
 pushd inseca/docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null
 pushd inseca/docker-images/livebuild > /dev/null && sudo make && popd > /dev/null
 
-echo -e "\n### Installation of Veracrypt ###"
-sudo yum install dpkg-dev -y
+echo -e "\n### Downloading Veracrypt ###"
+sudo dnf install -y dpkg-dev
 pushd inseca/components/veracrypt/packages.deb > /dev/null
 github_latest_release() {
     basename $(curl -fs -o/dev/null -w %{redirect_url} $1/releases/latest)
