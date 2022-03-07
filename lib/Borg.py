@@ -32,6 +32,8 @@ _ = gettext.gettext
 
 class BorgRepoIncomplete(Exception):
     pass
+class BorgMemoryError(Exception):
+    pass
 
 class Repo:
     def __init__(self, repo_dir, password, config_dir=None, cache_dir=None):
@@ -86,6 +88,21 @@ class Repo:
         cenv["BORG_CACHE_DIR"]=self.cache_dir
         return cenv
 
+    def _borg_err_to_exception(self, context, err):
+        if "Data integrity error" in err:
+            raise BorgRepoIncomplete("%s: %s"%(context, _("Incomplete synchronisation, retry later")))
+        elif "MemoryError" in err:
+            raise BorgMemoryError("%s: %s"%(context, _("Not enough memory(?)")))
+        raise Exception("%s: %s"%(context, err))
+
+    def _borg_run(self, args, context, stdin_data=None, cwd=None):
+        """Execute Borg, handle errors and return the execution's output"""
+        (status, out, err)=util.exec_sync([self._borg_prog]+args, exec_env=self.get_exec_env(),
+                                          stdin_data=stdin_data, cwd=cwd)
+        if status!=0:
+            self._borg_err_to_exception(context, err)
+        return out
+
     def init(self):
         """Initialize a Borg repository.
         If no password was specified when the object was created, one is randomly generated.
@@ -94,10 +111,8 @@ class Repo:
         os.makedirs(self._repo_dir)
         if not self._password:
             self._password=cgen.generate_password()
-        (status, out, err)=util.exec_sync([self._borg_prog, "init", "--encryption=repokey",
-                                          self._repo_dir], exec_env=self.get_exec_env())
-        if status!=0:
-            raise Exception(_("Could not initialize repository: %s")%err)
+        self._borg_run(["init", "--encryption=repokey", self._repo_dir],
+                       _("Could not initialize repository"))
 
         # change segment size to 32Mb
         newconf=[]
@@ -116,10 +131,8 @@ class Repo:
         # create archive
         arname=str(uuid.uuid4())
         util.print_event(("Creating archive '%s'")%arname)
-        (status, out, err)=util.exec_sync([self._borg_prog, "create", "-C", "lzma,9" if compress else "none", "::%s"%arname, "."],
-                                        stdin_data="Y", cwd=datadir, exec_env=self.get_exec_env())
-        if status!=0:
-            raise Exception(_("Could not create archive: %s")%err)
+        self._borg_run(["create", "-C", "lzma,9" if compress else "none", "::%s"%arname, "."],
+                        _("Could not create archive"), stdin_data="Y", cwd=datadir)
 
         # change ownership of the files if program was executed using sudo
         if "SUDO_UID" in os.environ and "SUDO_GID" in os.environ:
@@ -135,12 +148,7 @@ class Repo:
         """Get a list of all the archives as a dictionary indexed by the timestamp the archive was created
         and where values are the associated archives' name"""
         # the "Y" is necessary so that repos. can be relocated
-        (status, out, err)=util.exec_sync([self._borg_prog, "list"], stdin_data="Y", exec_env=self.get_exec_env())
-        if status!=0:
-            if "Data integrity error" in err:
-                raise BorgRepoIncomplete(_("Incomplete synchronisation, retry later"))
-            else:
-                raise Exception(_("Failed to get archives list: %s")%err)
+        out=self._borg_run(["list"], _("Failed to get archives list"), stdin_data="Y")
         res={}
         
         for line in out.splitlines():
@@ -175,12 +183,7 @@ class Repo:
         """Tells if a specific archive is in the repository"""
         if archive_name in self._mountpoints:
             return True
-        (status, out, err)=util.exec_sync([self._borg_prog, "list"], exec_env=self.get_exec_env())
-        if status!=0:
-            if "Data integrity error" in err:
-                raise BorgRepoIncomplete(_("Incomplete synchronisation, retry later"))
-            else:
-                raise Exception(_("Could not list archives: %s")%err)
+        out=self._borg_run(["list"], _("Could not list archives"))
         for line in out.splitlines():
             if line.startswith("%s "%archive_name):
                 return True
@@ -198,35 +201,18 @@ class Repo:
         try:
             os.chdir(destdir)
             #util.print_event("Extracting archive %s in %s"%(archive_name, destdir))
-            (status, out, err)=util.exec_sync([self._borg_prog, "extract", "::%s"%archive_name, "--sparse"],
-                                            exec_env=self.get_exec_env())
-            if status!=0:
-                if "Data integrity error" in err:
-                    raise BorgRepoIncomplete(_("Incomplete synchronisation, retry later"))
-                else:
-                    raise Exception(_("Could not extract archive: %s")%err)
+            self._borg_run(["extract", "::%s"%archive_name, "--sparse"], _("Could not extract archive"))
         finally:
             os.chdir(cwd)
 
     def list_archive_contents(self, arname):
         """List all the files in the archive
         Returns: the raw textual output"""
-        (status, out, err)=util.exec_sync([self._borg_prog, "list", "::%s"%arname], exec_env=self.get_exec_env())
-        if status!=0:
-            if "Data integrity error" in err:
-                raise BorgRepoIncomplete("Incomplete synchronisation, retry later")
-            else:
-                raise Exception("Could not list files in archive: %s"%err)
-        return out
+        return self._borg_run(["list", "::%s"%arname], _("Could not list files in archive"))
 
     def delete_archive(self, arname):
         """Delete the specified archive from the reposiroty"""
-        (status, out, err)=util.exec_sync([self._borg_prog, "delete", "::%s"%arname], stdin_data="Y", exec_env=self.get_exec_env())
-        if status!=0:
-            if "Data integrity error" in err:
-                raise BorgRepoIncomplete("Incomplete synchronisation, retry later")
-            else:
-                raise Exception("Could not delete archive: %s"%err)
+        self._borg_run(["delete", "::%s"%arname], _("Could not delete archive"), stdin_data="Y")
 
     def mount(self, archive_name):
         """Mounts the specified archive somewhere and returns the mount point"""
@@ -242,10 +228,7 @@ class Repo:
         ret=proc.poll()
         if ret is not None:
             (out, err)=proc.communicate()
-            if "Data integrity error" in err:
-                raise BorgRepoIncomplete(_("Incomplete synchronisation, retry later"))
-            else:
-                raise Exception(_(f"Could not mount archive '{archive_name}': {err}"))
+            self._borg_err_to_exception(_("Could not mount archive '%s'"%archive_name), err)
 
         self._mountpoints[archive_name]=[mp, proc]
         util.print_event(_(f"Mounted archive '{archive_name}' on '{mp}'"))
@@ -277,12 +260,7 @@ class Repo:
             else:
                 break
         # force umount
-        (status, out, err)=util.exec_sync([self._borg_prog, "umount", mp]) # no need to define the BORG_* environment variables
-        if status!=0:
-            if "Data integrity error" in err:
-                raise BorgRepoIncomplete(_("Incomplete synchronisation, retry later"))
-            else:
-                raise Exception(_("Could not umount archive '{archive_name}': {err}"))
+        self._borg_run(["umount", mp], _("Could not umount archive '%s'"%archive_name))
 
         del self._mountpoints[archive_name]
         try:
