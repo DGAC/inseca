@@ -21,6 +21,7 @@ import enum
 import datetime
 import calendar
 import shutil
+import sys
 import Utils as util
 import Filesystem
 import Sync
@@ -32,6 +33,11 @@ lib_dir=os.path.dirname(__file__)
 gettext.bindtextdomain("inseca-lib", lib_dir+"/locales")
 gettext.textdomain("inseca-lib")
 _ = gettext.gettext
+
+# file names
+file_iso="live-linux.iso"
+file_userdata="live-linux.userdata-specs"
+file_infos="infos.json"
 
 def _validate_attributes(data, specs):
     """Check that @data respects the specifications
@@ -132,6 +138,7 @@ class BuildConfig:
         except Exception as e:
             err=str(e)
             raise Exception(_(f"Invalid file '{configfile}' format: {err}"))
+        self._scriptdir=os.path.realpath(os.path.dirname(sys.argv[0]))
 
     @property
     def id(self):
@@ -213,15 +220,20 @@ class BuildConfig:
 
     @property
     def components(self):
+        """Get the list of components and their configuration."""
         return self._components
 
     @property
     def image_iso_file(self):
-        return "%s/%s/live-linux.iso"%(self._build_dir, self._id)
+        return "%s/%s/%s"%(self._build_dir, self._id, file_iso)
 
     @property
     def image_userdata_specs_file(self):
-        return "%s/%s/live-linux.userdata-specs"%(self._build_dir, self._id)
+        return "%s/%s/%s"%(self._build_dir, self._id, file_userdata)
+
+    @property
+    def image_infos_file(self):
+        return "%s/%s/%s"%(self._build_dir, self._id, file_infos)
 
     @property
     def userdata_specs(self):
@@ -295,6 +307,50 @@ class BuildConfig:
         self._build_dir=data["build-dir"]
         self._components=data["components"]
         self._descr=data["descr"]
+
+    def validate(self):
+        """Check that the configuration is coherent"""
+        # global check
+        cdefs={} # key=component ID, value=component's configuration
+        for cid in self._components:
+            cpath=self.get_component_src_path(cid)
+            if not os.path.exists(cpath):
+                raise Exception("Component '%s' does not have any config.json configuration file"%cid)
+            try:
+                cdata=json.load(open(cpath+"/config.json", "r"))
+            except Exception as e:
+                raise Exception("Invalid or unreadable config.json configuration file for component '%s'"%cid)
+            cdefs[cid]=cdata
+            if "provides" not in cdata:
+                raise Exception("Configuration of component '%s' is invalid: no 'provides' attribute"%cid)
+
+        # search the 'base' and 'components-init' features
+        base=None
+        cinit=None
+        for cid in self._components:
+            cdata=cdefs[cid]
+            if "base" in cdata["provides"]:
+                if base:
+                    raise Exception("The 'base' feature is present in more than one component")
+                base=True
+            if "components-init" in cdata["provides"]:
+                if cinit:
+                    raise Exception("The 'components-init' feature is present in more than one component")
+                cinit=True
+        if not base:
+            raise Exception("Missing a 'base' component")
+        if not cinit:
+            raise Exception("Missing a 'components-init' component")
+
+    def get_component_src_path(self, component):
+        path="%s/../components/%s"%(self._scriptdir, component)
+        if os.path.exists(path):
+            return path
+        if "INSECA_EXTRA_COMPONENTS" in os.environ:
+            path="%s/%s"%(os.environ["INSECA_EXTRA_COMPONENTS"], component)
+            if os.path.exists(path):
+                return path
+        raise Exception("Component '%s' not found"%component)
 
 #
 # Install configurations
@@ -957,6 +1013,8 @@ class GlobalConfiguration:
         self._load_repo_configs()
 
         # identify the build ID associated to install configs
+        # NB: on admin environments, there is no build config => this step will actually not provide
+        #     the build_id
         for iuid in self._install_configs:
             iconf=self._install_configs[iuid]
             for uid in self._build_configs:
@@ -1443,6 +1501,7 @@ class GlobalConfiguration:
         """Analyse @install_conf and returns the elements required to manage installations as a tuple:
         - the path to the live Linux ISO file
         - the path to userdata specs file
+        - the build infos
         If @archive is specified, it is used instead of the last one available
         NB: call release_install_elements() when the returned resources are not used anymore
         """
@@ -1462,14 +1521,20 @@ class GlobalConfiguration:
         cdir=rconf.get_archive_dir_from_cache(barname)
         if cdir is None:
             cdir=rconf.mount(barname)
-        linuximage="%s/live-linux.iso"%cdir
+        linuximage="%s/%s"%(cdir, file_iso)
         if not os.path.exists(linuximage):
-            raise Exception(_(f"Build repo '{rconf.id}' seems corrupted: missing the 'live-linux.iso' file in archive '{barname}'"))
-        linuxuserdata="%s/live-linux.userdata-specs"%cdir
-        if not os.path.exists(linuxuserdata):
-            raise Exception(_(f"Build repo '{rconf.id}' seems corrupted: missing the 'live-linux.userdata-specs' file in archive '{barname}'"))
+            raise Exception(_(f"Build repo '{rconf.id}' seems corrupted: missing the '{file_iso}' file in archive '{barname}'"))
 
-        return (linuximage, linuxuserdata)
+        linuxuserdata="%s/%s"%(cdir, file_userdata)
+        if not os.path.exists(linuxuserdata):
+            raise Exception(_(f"Build repo '{rconf.id}' seems corrupted: missing the '{file_userdata}' file in archive '{barname}'"))
+
+        infosfile="%s/%s"%(cdir, file_infos)
+        if not os.path.exists(infosfile):
+            raise Exception(_(f"Build repo '{rconf.id}' seems corrupted: missing the '{file_infos}' file in archive '{barname}'"))
+        infos=json.load(open(infosfile, "r"))
+
+        return (linuximage, linuxuserdata, infos)
 
     def release_install_elements(self, install_conf, archive=None):
         """Release resources accessed when get_install_elements() was called"""
@@ -1484,7 +1549,10 @@ class GlobalConfiguration:
         if barname is not None:
             cdir=rconf.get_archive_dir_from_cache(barname)
             if cdir is None:
-                rconf.umount(barname)
+                try:
+                    rconf.umount(barname)
+                except:
+                    pass
 
     def umount_all_repos(self):
         """Force unmounting all the repositories' archives which are still mounted"""
