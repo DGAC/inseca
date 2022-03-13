@@ -42,13 +42,16 @@ class AdminDeviceInitJob(Job.Job):
             # init device (partitionning)
             self._context.init_device(self._password)
 
-            # extract the embedded configuration in /internal/configurations
+            # mount internal partition
             obj=PartitionEncryption.Enc("luks", self._context.internal_partfile, self._password)
+
+            # extract the embedded configuration in /internal/configurations
             os.makedirs("/internal", mode=0o700, exist_ok=True)
             obj.mount("/internal")
-            os.makedirs("/internal/configurations", mode=0o700, exist_ok=True)
             tarobj=tarfile.open(self._conf_file, mode="r")
-            tarobj.extractall("/internal/configurations")
+            tarobj.extractall("/internal")
+
+            # umount internal partition
             obj.umount()
 
             self.result=None
@@ -186,7 +189,7 @@ class ComputeInstallElementsJob(Job.Job):
         try:
             import InstallerComponent
             self._feedback_component.add_event("Analysing configuration...")
-            (linuximage, linuxuserdata)=self._gconf.get_install_elements(self._iconf)
+            (linuximage, linuxuserdata, infos)=self._gconf.get_install_elements(self._iconf)
             params=InstallerComponent.Params(self._gconf, self._dconf, self._iconf, linuxuserdata)
             self._gconf.release_install_elements(self._iconf)
             self.result=params

@@ -225,9 +225,8 @@ def _conf_needs_action(gconf, conf):
         publish_needed=False
 
         files_ts=confs.get_last_file_modification_ts(conf.config_dir, conf.build_dir)
-        builder=LiveBuilder.Builder(conf.id)
         for component in conf.components:
-            component_dir=builder.get_component_src_path(component)
+            component_dir=conf.get_component_src_path(component)
             component_ts=confs.get_last_file_modification_ts(component_dir)
             if component_ts>files_ts:
                 files_ts=component_ts
@@ -1160,6 +1159,10 @@ def _publish_build(bconf):
         hash=cgen.compute_hash_file(bconf.image_userdata_specs_file)
         sig=sobj.sign(hash)
         util.write_data_to_file(sig, "%s.sign"%bconf.image_userdata_specs_file)
+        # sign the infos.json
+        hash=cgen.compute_hash_file(bconf.image_infos_file)
+        sig=sobj.sign(hash)
+        util.write_data_to_file(sig, "%s.sign"%bconf.image_infos_file)
     else:
         util.print_event(_("Not signing live Linux (configuration does not specify any signing key)"))
 
@@ -1497,35 +1500,38 @@ def gen_params(args):
         fconf=gconf.get_format_conf(args.config, exception_if_not_found=False)
         if not fconf:
             raise Exception("Unknown install/format configuration '%s'"%args.config)
-    if iconf:
-        (linuximage, linuxuserdata)=gconf.get_install_elements(iconf)
-        pset=Installer.ParamsSet(iconf, linuxuserdata)
-        templ={"_components": {}}
-    else:
-        fconf=gconf.get_format_conf(args.config)
-        pset=Installer.ParamsSet(fconf)
-        templ={}
-            
-
-    params=pset.params
-    print("Required parameters: %s"%json.dumps(params, indent=4, sort_keys=True))
-    for key in params:
-        if key=="_components":
-            for cname in params["_components"]:
-                templ["_components"][cname]={}
-                for ckey in params["_components"][cname]:
-                    entry=params["_components"][cname][ckey]
-                    default=""
-                    if "default" in entry:
-                        default=entry["default"]
-                    templ["_components"][cname][ckey]=default
+    try:
+        if iconf:
+            (linuximage, linuxuserdata, infos)=gconf.get_install_elements(iconf)
+            pset=Installer.ParamsSet(iconf, linuxuserdata)
+            templ={"_components": {}}
         else:
-            entry=params[key]
-            default=""
-            if "default" in entry:
-                default=entry["default"]
-            templ[key]=default
-    print("\nTemplate: %s"%json.dumps(templ, indent=4, sort_keys=True))
+            fconf=gconf.get_format_conf(args.config)
+            pset=Installer.ParamsSet(fconf)
+            templ={}
+
+        params=pset.params
+        print("Required parameters: %s"%json.dumps(params, indent=4, sort_keys=True))
+        for key in params:
+            if key=="_components":
+                for cname in params["_components"]:
+                    templ["_components"][cname]={}
+                    for ckey in params["_components"][cname]:
+                        entry=params["_components"][cname][ckey]
+                        default=""
+                        if "default" in entry:
+                            default=entry["default"]
+                        templ["_components"][cname][ckey]=default
+            else:
+                entry=params[key]
+                default=""
+                if "default" in entry:
+                    default=entry["default"]
+                templ[key]=default
+        print("\nTemplate: %s"%json.dumps(templ, indent=4, sort_keys=True))
+    finally:
+        if iconf:
+            gconf.release_install_elements(iconf)
 
 def dev_install(args):
     target=args.target
@@ -1536,26 +1542,33 @@ def dev_install(args):
     # install config specified?
     iconf=gconf.get_install_conf(args.config, exception_if_not_found=False)
     if iconf:
-        (linuximage, linuxuserdata)=gconf.get_install_elements(iconf, args.archive)
+        try:
+            (linuximage, linuxuserdata, infos)=gconf.get_install_elements(iconf, args.archive)
 
-        # analyse parameter's values
-        paramsf=args.params_file
-        paramsf=os.path.realpath(paramsf)
-        if not os.path.exists(paramsf):
-            raise Exception("Missing file '%s'"%paramsf)
-        params=json.load(open(paramsf, "r"))
+            # analyse parameter's values
+            paramsf=args.params_file
+            if not isinstance(paramsf, str):
+                raise Exception(_("The params-file argument is missing"))
+            paramsf=os.path.realpath(paramsf)
+            if not os.path.exists(paramsf):
+                raise Exception("Missing file '%s'"%paramsf)
+            try:
+                params=json.load(open(paramsf, "r"))
+            except Exception:
+                raise Exception(_("Invalid or unreadable '%s' file")%paramsf)
 
-        # mix all the inputs
-        if target.startswith("/dev"):
-            creator=Installer.DeviceInstaller(iconf, linuximage, linuxuserdata, params, target)
-        else:
-            creator=Installer.ImageInstaller(iconf, linuximage, linuxuserdata, params, target, args.vm_size)
+            if target.startswith("/dev"):
+                creator=Installer.DeviceInstaller(iconf, linuximage, linuxuserdata, params, target, infos)
+            else:
+                creator=Installer.ImageInstaller(iconf, linuximage, linuxuserdata, params, target, args.vm_size, infos)
 
-        # actual work
-        creator.validate()
-        creator.install()
-        creator=None
-        gc.collect()
+                creator.validate()
+                creator.install()
+                creator=None
+        finally:
+            # cleanups
+            gconf.release_install_elements(iconf, args.archive)
+            gc.collect()
         return
 
     # build config specified?
@@ -1677,36 +1690,40 @@ def dev_update_linux(args):
     # umount all partitions of @target
     Device.umount_all_partitions(target)
 
-    # get the actual live Linux to use
-    (linuximage, linuxuserdata)=gconf.get_install_elements(iconf, args.archive)
+    try:
+        # get the actual live Linux to use
+        (linuximage, linuxuserdata, infos)=gconf.get_install_elements(iconf, args.archive)
+        print("I: %s"%infos)
 
-    # create updater object and update
-    dkey=iconf.password_rescue
-    dev.define_a_decryptor(dkey)
-    mp_internal=dev.mount(Live.partid_internal)
-    mp_dummy=dev.mount(Live.partid_dummy)
-    mp_live=dev.mount(Live.partid_live)
+        # create updater object and update
+        dkey=iconf.password_rescue
+        dev.define_a_decryptor(dkey)
+        mp_internal=dev.mount(Live.partid_internal)
+        mp_dummy=dev.mount(Live.partid_dummy)
+        mp_live=dev.mount(Live.partid_live)
 
-    # get the device's associated credentials
-    # as pdata["@internal/password"], pdata["@data/password"] and pdata["blob0"]
-    pdata=dev.get_protected_data()
-    blob0=pdata["blob0"]
-    int_password=pdata["@internal/password"]
-    data_password=pdata["@data/password"]
-    if target.startswith("/dev"):
-        updater=Installer.DeviceUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
-                                        int_password, data_password, linuximage, target)
-    else:
-        updater=Installer.ImageUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
-                                       int_password, data_password, linuximage, target)
-    updater.update()
+        # get the device's associated credentials
+        # as pdata["@internal/password"], pdata["@data/password"] and pdata["blob0"]
+        pdata=dev.get_protected_data()
+        blob0=pdata["blob0"]
+        int_password=pdata["@internal/password"]
+        data_password=pdata["@data/password"]
+        if target.startswith("/dev"):
+            updater=Installer.DeviceUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
+                                            int_password, data_password, linuximage, target, infos)
+        else:
+            updater=Installer.ImageUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
+                                           int_password, data_password, linuximage, target, infos)
+        updater.update()
 
-    # remove any staged update
-    stage_dir="/update-staging"
-    stage_dir="%s/%s"%(mp_internal, stage_dir)
-    if os.path.exists(stage_dir):
-        for fname in os.listdir(stage_dir):
-            os.remove("%s/%s"%(stage_dir, fname))
+        # remove any staged update
+        stage_dir="/update-staging"
+        stage_dir="%s/%s"%(mp_internal, stage_dir)
+        if os.path.exists(stage_dir):
+            for fname in os.listdir(stage_dir):
+                os.remove("%s/%s"%(stage_dir, fname))
+    finally:
+        gconf.release_install_elements(iconf, args.archive)
 
 def dev_format(args):
     paramsf=args.params_file
@@ -1736,18 +1753,21 @@ def dev_format(args):
     creator=None
     gc.collect()
 
-def _prepare_config_data(domain_confs):
+def _prepare_config_data(domain_confs, bconf):
     """Prepare a minimal structure for an INSECA global configuration, and incudes:
     - the repo configuration for the domain
     - a valid inseca.json file
+    - the PRIVDATA encrypt private key to decrypt any PRIVDATA and component's init code (if @bconf is not None)
     """
     util.print_event("Preparing configuration from specified domain(s)")
     gconf=confs.GlobalConfiguration()
     tmpdir=tempfile.TemporaryDirectory()
 
     # prepare template
+    confdir="%s/configurations"%tmpdir.name
+    os.makedirs(confdir, mode=0o700)
     prog_path=sys.argv[0]
-    (status, out, err)=util.exec_sync([prog_path, "--root", tmpdir.name, "init"])
+    (status, out, err)=util.exec_sync([prog_path, "--root", confdir, "init"])
     if status!=0:
         raise Exception("Could not initialize empty global configuration structure: %s"%err)
 
@@ -1766,20 +1786,26 @@ def _prepare_config_data(domain_confs):
             ref_rconf=rconf
             ref_arname=lastarname
         util.write_data_to_file(json.dumps(rconf.export(new_path=rconf.id), indent=4),
-                                 "%s/repo-configurations/%s.json"%(tmpdir.name, rconf.id))
+                                 "%s/repo-configurations/%s.json"%(confdir, rconf.id))
 
     # use the most recent published domain configuration to extract global configuration elements
     if ref_rconf is None:
         raise Exception("No useable domain")
     try:
         mp=ref_rconf.mount(ref_arname)
-        shutil.copyfile("%s/inseca.json"%mp, "%s/inseca.json"%tmpdir.name)
+        shutil.copyfile("%s/inseca.json"%mp, "%s/inseca.json"%confdir)
         if os.path.exists("%s/proxy.pac"%mp):
-            shutil.copyfile("%s/proxy.pac"%mp, "%s/proxy.pac"%tmpdir.name)
+            shutil.copyfile("%s/proxy.pac"%mp, "%s/proxy.pac"%confdir)
         for fname in os.listdir("%s/storage-credentials"%mp):
-            shutil.copyfile("%s/storage-credentials/%s"%(mp, fname), "%s/storage-credentials/%s"%(tmpdir.name, fname))
+            shutil.copyfile("%s/storage-credentials/%s"%(mp, fname), "%s/storage-credentials/%s"%(confdir, fname))
     finally:
         ref_rconf.umount(ref_arname)
+
+    # include PRIVDATA's private key, if any
+    if bconf and bconf.privdata_privkey:
+        credsdir="%s/credentials"%tmpdir.name
+        os.makedirs(credsdir, mode=0o700)
+        shutil.copyfile(bconf.privdata_privkey, "%s/privdata-ekey.priv"%credsdir)
 
     # create TAR archive
     tmpfile=tempfile.NamedTemporaryFile()
@@ -1870,15 +1896,18 @@ def gen_admin_iso(args):
     if len(args.domains)==0:
         raise Exception("At least one domain configuration must be specified")
     iso_img_file=None
+    bconf=None
     if args.build!="-":
-        if os.getuid()!=0:
-            raise Exception("The '%s' command must be run as root"%args.cmde)
+        gconf=confs.GlobalConfiguration()
+        bconf=gconf.get_build_conf(args.build)
+        if bconf.build_type!=confs.BuildType.ADMIN:
+            raise Exception(_("The build config is not an ADMIN build"))
         builder=LiveBuilder.Builder(args.build)
         iso_img_file=builder.image_file
         if not os.path.exists(iso_img_file):
-            raise Exception("Can't generate admin image: the base image has not been built")
+            raise Exception("Can't generate admin image: the live Linux ISO image is not present")
     
-    conf_tar=_prepare_config_data(args.domains)
+    conf_tar=_prepare_config_data(args.domains, bconf)
 
     if iso_img_file is None:
         cfile="_config.txz"

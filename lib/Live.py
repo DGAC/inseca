@@ -35,6 +35,7 @@ import CryptoX509 as x509
 import CryptoGen as cgen
 import FingerprintChunks as fpchunks
 import FingerprintHash as fphash
+import Configurations as confs
 
 # IDs of the partitions used by INSECA
 partid_dummy="dummy"
@@ -83,6 +84,25 @@ def _efi_ignore(root, relative):
 #
 # Misc.
 #
+def deactivate_gdm_autologin():
+    """Make sure GDM's autologin is turned off"""
+    gdmconf_file="/etc/gdm3/daemon.conf"
+    econf=util.load_file_contents(gdmconf_file)
+    nconf=[]
+    for line in econf.splitlines():
+        parts=line.split("=")
+        if len(parts)==2 and parts[0] in ("AutomaticLoginEnable", "TimedLoginEnable"):
+            nconf+=["%s=false"%parts[0]]
+        else:
+            nconf+=[line]
+    nconf="\n".join(nconf)
+    util.write_data_to_file(nconf, gdmconf_file)
+    (status, out, err)=util.exec_sync(["systemctl", "reload", "gdm"])
+    if status==0:
+        syslog.syslog(syslog.LOG_INFO, "Deactivated GDM autologin")
+    else:
+        syslog.syslog(syslog.LOG_WARNING, "Could not deactivate GDM autologin: %s"%err)
+
 def compute_integrity_fingerprint(dev, blob1_priv, live_hash):
     """Computes the "integrity fingerprint" of the device, using the @live_hash*
     fingerprints which already must have been computed/verified.
@@ -149,8 +169,8 @@ def install_live_linux_files_from_iso(live_path, source_dir):
         srcfile="%s/live/%s"%(source_dir, fname)
         shutil.copyfile(srcfile, "%s/%s"%(live_path, fname))
 
-class BootProcess:
-    """Class to help asserting integrity of the device. See the Installer object to understand the operations
+class BootProcessWKS:
+    """Class to help asserting integrity of a "workstation" device. See the Installer object to understand the operations
     performed here"""
     def __init__(self, live_env):
         if not isinstance(live_env, Environ):
@@ -266,68 +286,14 @@ class BootProcess:
             raise Exception("Could not change logged user's password: %s"%err)
 
         # deactivate GDM autologin
-        gdmconf_file="/etc/gdm3/daemon.conf"
-        econf=util.load_file_contents(gdmconf_file)
-        nconf=[]
-        for line in econf.splitlines():
-            parts=line.split("=")
-            if len(parts)==2 and parts[0] in ("AutomaticLoginEnable", "TimedLoginEnable"):
-                nconf+=["%s=false"%parts[0]]
-            else:
-                nconf+=[line]
-        nconf="\n".join(nconf)
-        util.write_data_to_file(nconf, gdmconf_file)
-        (status, out, err)=util.exec_sync(["systemctl", "reload", "gdm"])
-        if status==0:
-            syslog.syslog(syslog.LOG_INFO, "Deactivated GDM autologin")
-        else:
-            syslog.syslog(syslog.LOG_WARNING, "Could not deactivate GDM autologin: %s"%err)
+        deactivate_gdm_autologin()
 
         try:
-            privtmp=self._live_env.privdata_dir
-            os.makedirs(privtmp, mode=0o700)
-            # extraction of /privdata.tar.enc file (whioch contains the PRIVDATA of all the components)
-            if os.path.exists("/privdata.tar.enc"):
-                eobj=x509.CryptoKey(util.load_file_contents("/internal/credentials/privdata-ekey.priv"), None)
-                edata=util.load_file_contents("/privdata.tar.enc")
-                resfile=eobj.decrypt(edata, return_tmpobj=True)
-                (status, out, err)=util.exec_sync(["tar", "xf", resfile.name, "-C", privtmp])
-                if status!=0:
-                    raise Exception("Error extracting privdata.tar.enc: %s"%err)
-                syslog.syslog(syslog.LOG_INFO, "privdata.tar.enc extracted in %s"%privtmp)
-
-            # extract each component's PRIVDATA file AS-IS in /
-            exec_env=os.environ.copy()
-            exec_env["PYTHONPATH"]=os.path.dirname(__file__)
-            components=os.listdir(privtmp)
-            for component in components:
-                if os.path.exists("%s/%s"%(privtmp, component)):
-                    try:
-                        syslog.syslog(syslog.LOG_INFO, "Copying PRIVDATA for component '%s' to root"%component)
-                        tmptar=tempfile.NamedTemporaryFile()
-                        tmptar.close()
-                        tarobj=tarfile.open(tmptar.name, mode='w')
-                        tarobj.add("%s/%s"%(privtmp, component), arcname=".", recursive=True)
-                        tarobj.close()
-                        tarobj=tarfile.open(tmptar.name, mode='r')
-                        tarobj.extractall("/")
-                    except Exception as e:
-                        syslog.syslog(syslog.LOG_ERR, "Failed to extact PRIVDATA for component '%s': %s"%(component, str(e)))
+            # extract the PRIVDATA of all the components
+            self._live_env.extract_privdata()
 
             # extract all the component's specific code
-            if os.path.exists("/live-config.tar.enc"):
-                eobj=x509.CryptoKey(util.load_file_contents("/internal/credentials/privdata-ekey.priv"), None)
-                edata=util.load_file_contents("/live-config.tar.enc")
-                resfile=eobj.decrypt(edata, return_tmpobj=True)
-                comp_live_config_dir=self._live_env.components_live_config_dir
-                if os.path.exists(comp_live_config_dir):
-                    syslog.syslog(syslog.LOG_WARNING, "CODEBUG: directory '%s' should not exist"%comp_live_config_dir)
-                    shutil.rmtree(comp_live_config_dir)
-                os.makedirs(comp_live_config_dir, mode=0o700)
-                (status, out, err)=util.exec_sync(["tar", "xf", resfile.name, "-C", comp_live_config_dir])
-                if status!=0:
-                    raise Exception("Error extracting live config. code")
-                syslog.syslog(syslog.LOG_INFO, "live-config.tar.enc extracted in %s"%comp_live_config_dir)
+            self._live_env.extract_live_config_scripts()
 
             # create SSH server keys if on 1st boot (we don't want to have the same SSH keys on all the devices)
             os.makedirs(self._live_env.ssh_keys_dir, exist_ok=True, mode=0o700)
@@ -356,25 +322,6 @@ class BootProcess:
         except Exception as e:
             self._live_env.events.add_exception_event("post-start", str(e))
             syslog.syslog(syslog.LOG_ERR, "post-start failed: %s"%str(e))
-
-    def configure_components(self, stage):
-        """Configure all the components for which there is a configure<stage>.py script"""
-        assert(isinstance(stage, int))
-        comp_live_config_dir=self._live_env.components_live_config_dir
-        if os.path.exists(comp_live_config_dir):
-            exec_env=os.environ.copy()
-            exec_env["PYTHONPATH"]=os.path.dirname(__file__)
-            for component in os.listdir(comp_live_config_dir):
-                script="%s/%s/configure%s.py"%(comp_live_config_dir, component, stage)
-                # use the configure.py script, if any
-                if os.path.exists(script):
-                    syslog.syslog(syslog.LOG_INFO, "Initializing component '%s', stage %d"%(component, stage))
-                    exec_env["PRIVDATA_DIR"]="/%s/%s"%(self._live_env.privdata_dir, component)
-                    exec_env["USERDATA_DIR"]="/internal/components/%s"%component
-                    syslog.syslog(syslog.LOG_INFO, "Exec env: %s"%exec_env)
-                    (status, out, err)=util.exec_sync([script], exec_env=exec_env)
-                    if status!=0:
-                        raise Exception("Error initializing component '%s': %s"%(component, err))
 
 #
 # users settings' backup and restore parameters
@@ -609,12 +556,26 @@ _user_config_definition={
 
 
 class Environ:
-    """Object to get information about a live environment"""
+    """Object to get information about a "workstation" or "admin" live environment"""
     def __init__(self):
         self._live_devpart=util.get_root_live_partition()
         self._live_devfile=util.get_device_of_partition(self._live_devpart)
 
-        self._events=Events()
+        # determine live Linux type
+        infos_file="/opt/share/keyinfos.json"
+        try:
+            infos=json.load(open(infos_file, "r"))
+            self._live_type=confs.BuildType(infos["build-type"])
+        except:
+            raise Exception("Invalid or missing keyinfos.json file")
+
+        self._events=None
+        self._ssh_keys_dir=None
+        self._default_profile_dir=None
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+            self._events=Events()
+            self._ssh_keys_dir="/internal/ssh"
+            self._default_profile_dir="/internal/default-profile"
 
         self._logged=None
         self._uid=None
@@ -622,8 +583,6 @@ class Environ:
 
         self._startup_done=False
         self._update_startup_status()
-        self._ssh_keys_dir="/internal/ssh"
-        self._default_profile_dir="/internal/default-profile"
 
         self.components_live_config_dir="/tmp/components-live-config"
         self.privdata_dir="/tmp/privdata"
@@ -632,9 +591,12 @@ class Environ:
         """Computes/updates the "startup status" of the environment: if the /internal directory is a mount point"""
         if self._startup_done:
             return
-        (status, out, err)=util.exec_sync(["findmnt", "/internal"])
-        if status==0:
-            self._startup_done=True
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+            (status, out, err)=util.exec_sync(["findmnt", "/internal"])
+            if status==0:
+                self._startup_done=True
+        else:
+            self._startup_done=True # basic live Linux => no startup performed
 
     @property
     def events(self):
@@ -698,6 +660,8 @@ class Environ:
         """Name of the directory where the user specific config files are kept (saved at shutdown and restored)
         upon sucessful authentication.
         It is created if it does yet exist"""
+        assert self._live_type==confs.BuildType.WKS
+
         user_uuid=util.load_file_contents("%s/user_uuid"%_get_run_dir())
         path="/internal/user-config/%s"%user_uuid
         os.makedirs(path, exist_ok=True, mode=0o700)
@@ -719,11 +683,90 @@ class Environ:
         os.environ["XAUTHORITY"]="/run/user/%d/gdm/Xauthority"%self.uid
 
     #
+    # PRIVDATA
+    #
+    def extract_privdata(self):
+        """Decrypt and extract /privdata.tar.enc file (which contains the PRIVDATA of all the components)"""
+        privtmp=self.privdata_dir
+        os.makedirs(privtmp, mode=0o700)
+        if os.path.exists("/privdata.tar.enc"):
+            eobj=x509.CryptoKey(util.load_file_contents("/internal/credentials/privdata-ekey.priv"), None)
+            edata=util.load_file_contents("/privdata.tar.enc")
+            resfile=eobj.decrypt(edata, return_tmpobj=True)
+            (status, out, err)=util.exec_sync(["tar", "xf", resfile.name, "-C", privtmp])
+            if status!=0:
+                raise Exception("Error extracting privdata.tar.enc: %s"%err)
+            syslog.syslog(syslog.LOG_INFO, "privdata.tar.enc extracted in %s"%privtmp)
+
+        # extract each component's PRIVDATA file AS-IS in /
+        exec_env=os.environ.copy()
+        exec_env["PYTHONPATH"]=os.path.dirname(__file__)
+        components=os.listdir(privtmp)
+        for component in components:
+            if os.path.exists("%s/%s"%(privtmp, component)):
+                try:
+                    syslog.syslog(syslog.LOG_INFO, "Copying PRIVDATA for component '%s' to root"%component)
+                    tmptar=tempfile.NamedTemporaryFile()
+                    tmptar.close()
+                    tarobj=tarfile.open(tmptar.name, mode='w')
+                    tarobj.add("%s/%s"%(privtmp, component), arcname=".", recursive=True)
+                    tarobj.close()
+                    tarobj=tarfile.open(tmptar.name, mode='r')
+                    tarobj.extractall("/")
+                except Exception as e:
+                    syslog.syslog(syslog.LOG_ERR, "Failed to extact PRIVDATA for component '%s': %s"%(component, str(e)))
+
+    #
+    # component's config
+    #
+    def extract_live_config_scripts(self):
+        """Decrypt and extract the source code of all the component's configure scripts"""
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+            privkey_file="/internal/credentials/privdata-ekey.priv"
+        else:
+            privkey_file="/credentials/privdata-ekey.priv"
+        if os.path.exists("/live-config.tar.enc"):
+            eobj=x509.CryptoKey(util.load_file_contents(privkey_file), None)
+            edata=util.load_file_contents("/live-config.tar.enc")
+            resfile=eobj.decrypt(edata, return_tmpobj=True)
+
+            if os.path.exists(self.components_live_config_dir):
+                syslog.syslog(syslog.LOG_WARNING, "CODEBUG: directory '%s' should not exist"%self.components_live_config_dir)
+                shutil.rmtree(self.components_live_config_dir)
+
+            os.makedirs(self.components_live_config_dir, mode=0o700)
+            (status, out, err)=util.exec_sync(["tar", "xf", resfile.name, "-C", self.components_live_config_dir])
+            if status!=0:
+                raise Exception("Error extracting live config. code")
+            syslog.syslog(syslog.LOG_INFO, "live-config.tar.enc extracted in %s"%self.components_live_config_dir)
+
+    def configure_components(self, stage):
+        """Configure all the components for which there is a configure<stage>.py script"""
+        assert isinstance(stage, int)
+
+        if os.path.exists(self.components_live_config_dir):
+            exec_env=os.environ.copy()
+            exec_env["PYTHONPATH"]=os.path.dirname(__file__)
+            for component in os.listdir(self.components_live_config_dir):
+                script="%s/%s/configure%s.py"%(self.components_live_config_dir, component, stage)
+                # use the configure.py script, if any
+                if os.path.exists(script):
+                    syslog.syslog(syslog.LOG_INFO, "Initializing component '%s', stage %d"%(component, stage))
+                    exec_env["PRIVDATA_DIR"]="/%s/%s"%(self.privdata_dir, component)
+                    if self._live_type==confs.BuildType.WKS:
+                        exec_env["USERDATA_DIR"]="/internal/components/%s"%component
+                    (status, out, err)=util.exec_sync([script], exec_env=exec_env)
+                    if status!=0:
+                        raise Exception("Error initializing component '%s': %s"%(component, err))
+
+    #
     # User setting management
     #
     def user_config_backup(self):
         """Back up pre-defined user settings to the directory associated to the user.
         Needs to be run as root"""
+        assert self._live_type==confs.BuildType.WKS
+
         syslog.syslog(syslog.LOG_INFO, "Starting backing up user config")
         config_dir=self.config_dir
         path="%s/NO-BACKUP"%config_dir
@@ -751,6 +794,8 @@ class Environ:
 
     def user_config_restore(self):
         """Restore any previously backed up user settings, if any"""
+        assert self._live_type==confs.BuildType.WKS
+
         config_dir=self.config_dir
         definition=_user_config_definition
         for key in definition:
@@ -768,6 +813,8 @@ class Environ:
 
     def user_config_remove(self):
         """Remove any previously backed up user settings and mark the settings as not to be saved the next time"""
+        assert self._live_type==confs.BuildType.WKS
+
         config_dir=self.config_dir
         exp=None
         for fname in os.listdir(config_dir):
@@ -778,7 +825,6 @@ class Environ:
         util.write_data_to_file("", "%s/NO-BACKUP"%config_dir)
         if exp:
             raise exp
-
 
     #
     # Desktop Environment interactions

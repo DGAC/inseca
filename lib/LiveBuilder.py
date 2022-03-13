@@ -75,6 +75,10 @@ class Builder:
         return self._bconf.image_userdata_specs_file
 
     @property
+    def image_infos_file(self):
+        return self._bconf.image_infos_file
+
+    @property
     def livedir(self):
         return self._livedir
 
@@ -87,16 +91,6 @@ class Builder:
 
         for entry in (self._packages_list_dir, self._packages_extra_dir, self._fs_dir):
             os.makedirs(entry, exist_ok=True)
-
-    def get_component_src_path(self, component):
-        path="%s/../components/%s"%(self._scriptdir, component)
-        if os.path.exists(path):
-            return path
-        if "INSECA_EXTRA_COMPONENTS" in os.environ:
-            path="%s/%s"%(os.environ["INSECA_EXTRA_COMPONENTS"], component)
-            if os.path.exists(path):
-                return path
-        raise Exception("Component '%s' not found"%component)
 
     def _compute_userdata_parameters(self):
         """Compute all the user data parameters (required by some components during
@@ -111,7 +105,7 @@ class Builder:
         """
         all_params={}
         for component in self._components:
-            cpath=self.get_component_src_path(component)
+            cpath=self._bconf.get_component_src_path(component)
             cconf_file="%s/config.json"%cpath
             if os.path.exists(cconf_file):
                 data=json.load(open(cconf_file, "r"))
@@ -187,7 +181,7 @@ Name: %s
         # copy each component
         for component in self._components:
             print("Preparing component '%s'"%component)
-            cpath=self.get_component_src_path(component)
+            cpath=self._bconf.get_component_src_path(component)
             component_files=os.listdir(cpath)
             if not os.path.isdir(cpath):
                 raise Exception("Component '%s' is not a directory"%component)
@@ -293,12 +287,15 @@ Name: %s
         data={
             "version": "%s %s"%(self._bconf.version, self._name),
             "valid-from": util.get_timestamp(),
-            "valid-to": self._bconf.valid_to
+            "valid-to": self._bconf.valid_to,
+            "build-id": self._bconf.id,
+            "build-type": self._bconf.build_type.value
         }
         path="%s/opt/share"%self._fs_dir
         fname="%s/keyinfos.json"%path
         os.makedirs(path, exist_ok=True)
         util.write_data_to_file(json.dumps(data, indent=4, sort_keys=True), fname)
+        util.write_data_to_file(json.dumps(data, indent=4, sort_keys=True), self.image_infos_file)
 
         built_iso="%s/live-image-amd64.hybrid.iso"%self._livedir
 

@@ -41,7 +41,7 @@ class InsecaStartupJob(Job.Job):
     def run(self):
         try:
             syslog.syslog(syslog.LOG_INFO, "InsecaStartupJob started")
-            bp=Live.BootProcess(self._live_env)
+            bp=Live.BootProcessWKS(self._live_env)
             res=bp.start(self._passwd) # result will be (blob0, int_password, data_password)
             syslog.syslog(syslog.LOG_INFO, "InsecaStartupJob done")
             self.result=res
@@ -61,7 +61,7 @@ class InsecaPostStartupJob(Job.Job):
     def run(self):
         try:
             syslog.syslog(syslog.LOG_INFO, "InsecaPostStartupJob started")
-            bp=Live.BootProcess(self._live_env)
+            bp=Live.BootProcessWKS(self._live_env)
             bp.post_start(self._passwd)
             syslog.syslog(syslog.LOG_INFO, "InsecaPostStartupJob done")
             # add events
@@ -82,8 +82,7 @@ class InsecaConfigureComponentsJob(Job.Job):
     def run(self):
         try:
             syslog.syslog(syslog.LOG_INFO, "InsecaConfigureComponentsJob started")
-            bp=Live.BootProcess(self._live_env)
-            bp.configure_components(self._stage)
+            self._live_env.configure_components(self._stage)
             syslog.syslog(syslog.LOG_INFO, "InsecaConfigureComponentsJob done")
         except Exception as e:
             self.exception=e

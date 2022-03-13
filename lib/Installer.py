@@ -176,19 +176,21 @@ class ParamsSet:
 class Installer:
     """Object to actually create an INSECA installation or format a device, depending on the actual @conf object
     passed"""
-    def __init__(self, conf, params, targetfile, live_iso_file=None, user_data_file=None):
+    def __init__(self, conf, params, targetfile, live_iso_file, user_data_file, build_infos=None):
         """
         - @conf: an InstallConfig or FormatConfig object
-        - @live_iso_file and @user_data_file: ISO image file and associated params file
         - @params: the parameter's values (for all the required parameters)
-        """
-        if not isinstance(conf, confs.InstallConfig) and not isinstance(conf, confs.FormatConfig):
-            raise Exception("Code bug: @config must be an InstallConfig or a FormatConfig object")
+        - @targetfile: where the installation will occur
+        - @live_iso_file and @user_data_file: ISO image file and associated params file
+        - @build_infos: build infos (version, build type, etc)
 
-        if live_iso_file:
-            live_iso_file=os.path.realpath(live_iso_file)
-        if user_data_file:
-            user_data_file=os.path.realpath(user_data_file)
+        NB: if @conf is an InstallConfig object, then the build configuration which generated the live Linux
+            should be of type WKS.
+        """
+        assert isinstance(conf, confs.InstallConfig) or isinstance(conf, confs.FormatConfig)
+
+        live_iso_file=os.path.realpath(live_iso_file)
+        user_data_file=os.path.realpath(user_data_file)
         for fname in (live_iso_file, user_data_file):
             if fname:
                 if not os.path.exists(fname):
@@ -198,6 +200,10 @@ class Installer:
         self._conf=conf
         self._config_data=conf.export_complete_configuration()
         if isinstance(conf, confs.InstallConfig):
+            assert isinstance(build_infos, dict)
+            assert "build-type" in build_infos
+            build_type=confs.BuildType(build_infos["build-type"])
+            assert build_type==confs.BuildType.WKS
             self._config_data["install"]=valh.replace_variables(self._config_data["install"], params)
 
         self._live_iso_file=live_iso_file
@@ -579,14 +585,14 @@ class Installer:
 
 class DeviceInstaller(Installer):
     """Creates an installation on a physical device"""
-    def __init__(self, iconf, live_iso_file, user_data_file, params, devfile):
+    def __init__(self, iconf, live_iso_file, user_data_file, params, devfile, build_infos):
         if not isinstance(devfile, str) or not devfile.startswith("/dev/"):
             raise Exception("Invalid disk file name '%s'"%devfile)
-        Installer.__init__(self, iconf, params, devfile, live_iso_file, user_data_file)
+        Installer.__init__(self, iconf, params, devfile, live_iso_file, user_data_file, build_infos)
 
 class ImageInstaller(Installer):
     """Creates an installation as a new VM image file"""
-    def __init__(self, iconf, live_iso_file, user_data_file, params, imagefile, size_g):
+    def __init__(self, iconf, live_iso_file, user_data_file, params, imagefile, size_g, build_infos):
         if not isinstance(size_g, int) or size_g<=0:
             raise Exception("Invalid disk image size '%s'"%size_g)
         if not isinstance(imagefile, str):
@@ -603,7 +609,7 @@ class ImageInstaller(Installer):
             raise Exception("Could not create disk image '%s': %s"%(imagefile, err))
 
         # parent init
-        Installer.__init__(self, iconf, params, imagefile, live_iso_file, user_data_file)
+        Installer.__init__(self, iconf, params, imagefile, live_iso_file, user_data_file, build_infos)
 
 class DeviceFormatter(Installer):
     """Formats a physical device"""

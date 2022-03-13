@@ -39,14 +39,16 @@ def _change_current_user_password(username, passwd):
 
 class Context:
     def __init__(self):
-        self._live_devpart=util.get_root_live_partition() # boot partition device file
-        self._live_devfile=util.get_device_of_partition(self._live_devpart) # boot device file
-
         # key validity
         self._valid_to=None
         keydata=json.loads(util.load_file_contents("/opt/share/keyinfos.json"))
         if "valid-to" in keydata and keydata["valid-to"]!=None:
             self._valid_to=keydata["valid-to"]
+
+        # UI environment variables
+        self._live_env=Live.Environ()
+        self._live_devfile=self._live_env.live_devfile
+        self._live_env.define_UI_environment()
 
         # device status
         self._dummy_partfile=None # dummy partition device file
@@ -54,10 +56,6 @@ class Context:
         self._compute_extra_partitions()
         self._embedded_fs_mountpoint_obj=None
         self._dummy_mountpoint_obj=None
-
-        # UI environment variables
-        self._live_env=Live.Environ()
-        self._live_env.define_UI_environment()
 
         # load the UI settings
         dconf_file="/opt/dconf.txt"
@@ -336,6 +334,15 @@ class Context:
             # alter the user's password and display name
             _change_current_user_password("insecauser", password)
             util.change_user_comment(self._live_env.logged, cn)
+
+            # deactivate GDM autologin
+            Live.deactivate_gdm_autologin()
+
+            # initialize the components
+            self._live_env.extract_privdata()
+            self._live_env.extract_live_config_scripts()
+            self._live_env.configure_components(0)
+            self._live_env.configure_components(1)
 
     def logout(self):
         if self._internal_partfile is not None:
