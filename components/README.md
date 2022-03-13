@@ -17,7 +17,8 @@ Each component's files are:
     and decrypted once the user has authenticated on the system (to protect data in the live Linux image).
     BE CAREFULL of the actual privileges of files and directories
   - `LIBS_DIR`: directory containing the Python libraries
-  - `CONF_DATA_FILE`: the name of the file containing the component's configuration, in a JSON format
+  - `CONF_DATA_FILE`: the name of the file containing the component's configuration from the build configuration, in a JSON format (may bo None
+    if the component has no parameter in the build configuration)
 - **packages.deb/**: directory containing DEB packages
   - use `dpkg-name` to rename the DEB file (usage: `dpkg-name <file.deb>`, will rename the file)
   -  _must_ end in `_amd64.deb` for binary packages
@@ -28,7 +29,8 @@ Each component's files are:
     - `PRIVDATA_DIR`: directory containing the PRIVDATA resources specific to the component (defined in the `prepare.*` scripts)
     - `USERDATA_DIR`: directory containing the USERDATA resources specific to the component (defined when an install is created)
     the **configure0.py** script is executed _before_ the user's default (hard coded) profile and config backups (bookmarks, UI settings, etc.), while the **configure1.py** is executed _after_ that.
-  - via the **infos.py** script, to give informations about the status of the component (the end of validity of a certificate for example), the `USERDATA_DIR` is
+  - via the **infos.py** script, to give informations about the status of the component (the end of validity of a certificate for example),
+    the `USERDATA_DIR` is
     defined when executed. This script needs to print:
     - 1st line: the component "user friendly" name
     - other lines: the component's status
@@ -42,6 +44,15 @@ Each component's files are:
 - directories starting with a `_`: livebuild's configuration files, copied **AS IS** to the top of the build environment
 - other directories: included **AS IS** in the live Linux's filesystem
 - other files: ignored
+
+## Provides & requires
+
+- hard coded "provides":
+  - **base**: base Debian system, one and only one per build configuration
+  - **components-init**: one and only one per build configuration, component which:
+    - make the PRIVDATA accessible
+    - disables GDM autologin
+    - initializes the components (executes the live-config/* scripts)
 
 # References
 

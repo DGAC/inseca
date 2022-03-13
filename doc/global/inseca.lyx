@@ -355,7 +355,7 @@ une
 \series bold
 installation INSECA
 \series default
- utilise un 
+ est réalisée sur un 
 \begin_inset Quotes cld
 \end_inset
 
@@ -369,7 +369,7 @@ device
 
  (terme générique qui désigne indifféremment un périphérique de stockage
  interne ou externe, ou une image disque de machine virtuelle) pour créer
- un système bootable de type station de travail;
+ un système bootable;
 \end_layout
 
 \begin_layout Itemize
@@ -443,12 +443,7 @@ l'environnement de gestion utilisé par les administrateurs locaux est un
 
 \begin_layout Itemize
 INSECA repose sur une configuration composée de multiples fichiers de configurat
-ion au format JSON regroupés dans structure de répertoires imposée;
-\end_layout
-
-\begin_layout Itemize
-processus de démarrage et enchaînement des secrets et de l'authenticité
- de l'installation pour déterminer les secrets de chiffrement;
+ion au format JSON regroupés dans structure de répertoires imposée.
 \end_layout
 
 \begin_layout Section
@@ -630,15 +625,16 @@ Données qui sont déjà présentes en source ouvertes sur Internet, ce qui
 \series bold
 PUBDATA
 \series default
- par la suite);
+ par la suite), qui excluent en particulier les scripts de configuration
+ des composants inclus dans un live Linux;
 \end_layout
 
 \begin_layout Itemize
-des données (non publiques, dénommées 
+des données non publiques, dénommées 
 \series bold
 PRIVDATA
 \series default
- par la suite) de configuration des composants logiciels inclus dans l'image
+ par la suite, de configuration des composants logiciels inclus dans l'image
  live Linux (par exemple le 
 \family typewriter
 proxy.pac
@@ -648,11 +644,11 @@ proxy.pac
 \end_layout
 
 \begin_layout Itemize
-des données (non publiques, dénommées 
+des données non publiques, dénommées 
 \series bold
 USERDATA
 \series default
- par la suite) de configuration associées à l'utilisateur lui même (configuratio
+ par la suite, de configuration associées à l'utilisateur lui même (configuratio
 n VPN nominative par exemple); ces données sont déposées au moment de la
  création d'une instance INSECA.
 \end_layout
@@ -816,7 +812,7 @@ La même mécanique est mise en œuvre pour le déploiement des mises à jour
 \end_layout
 
 \begin_layout Subsection
-Données PRIVDATA et USERDATA
+Protection des données non publiques
 \end_layout
 
 \begin_layout Standard
@@ -837,7 +833,21 @@ chiffrées via la clé publique spécifiée dans l'attribut
 \family typewriter
 privdata-ekey-pub-file
 \family default
- de la configuration de build;
+ de la configuration de build
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Techniquement réalisé par l'objet 
+\family typewriter
+LiveBuilder.Builder
+\family default
+.
+\end_layout
+
+\end_inset
+
+;
 \end_layout
 
 \begin_layout Itemize
@@ -846,6 +856,17 @@ déchiffrées et extraites via la clé spécifiée dans l'attribut
 privdata-ekey-priv-file
 \family default
  de la configuration d'installation.
+\end_layout
+
+\begin_layout Standard
+Les scripts de configuration des composants inclus dans un live Linux sont
+ considérés comme n'étant pas publics et sont dont protégés de la même manière
+ que les données PRIVDATA (les mêmes clés sont utilisées), mais dans le
+ fichier 
+\family typewriter
+/live-config.tar.enc
+\family default
+;
 \end_layout
 
 \begin_layout Standard
@@ -866,12 +887,15 @@ components/<component name>
 \end_layout
 
 \begin_layout Standard
-Le schéma suivant illustre la localisation de ces données dans une instance
- d'installation INSECA (cf.
+Le schéma suivant illustre la localisation de ces données:
+\end_layout
+
+\begin_layout Itemize
+dans une instance d'installation INSECA (cf.
  §
 \begin_inset CommandInset ref
 LatexCommand ref
-reference "partitions-list"
+reference "partitions-list-ws"
 plural "false"
 caps "false"
 noprefix "false"
@@ -881,9 +905,10 @@ noprefix "false"
  pour la structure complète des partitions):
 \end_layout
 
+\begin_deeper
 \begin_layout Standard
 \begin_inset Graphics
-	filename data-C.png
+	filename data-C-ws.png
 	width 70col%
 
 \end_inset
@@ -891,6 +916,179 @@ noprefix "false"
 
 \end_layout
 
+\begin_layout Standard
+dans ce contexte, la clé privée de déchiffrement des données PRIVDATA et
+ des scripts de configuration des composants est dans le fichier 
+\family typewriter
+\size small
+credentials/privdata-ekey.priv 
+\family default
+\size default
+de la partition 
+\begin_inset Quotes cld
+\end_inset
+
+internal
+\begin_inset Quotes crd
+\end_inset
+
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Cette clé est déposée à la création de l'installation INSECA par l'objet
+ 
+\begin_inset Quotes cld
+\end_inset
+
+Installer
+\begin_inset Quotes crd
+\end_inset
+
+ du module 
+\family typewriter
+Installer.py
+\family default
+.
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+dans un environnement d'administration (cf.
+ §
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "partitions-list-admin"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ pour la structure complète des partitions):
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\begin_inset Graphics
+	filename data-C-admin.png
+	width 70col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+dans ce contexte, la clé privée de déchiffrement des données PRIVDATA et
+ des scripts de configuration des composants est dans le fichier 
+\family typewriter
+\size small
+privdata-ekey.priv 
+\family default
+\size default
+de la partition 
+\begin_inset Quotes cld
+\end_inset
+
+dummy
+\begin_inset Quotes crd
+\end_inset
+
+
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Cette clé est déposée par la commande 
+\begin_inset Quotes cld
+\end_inset
+
+gen-admin-iso
+\begin_inset Quotes crd
+\end_inset
+
+ de l'outil en ligne de commande 
+\begin_inset Quotes cld
+\end_inset
+
+inseca
+\begin_inset Quotes crd
+\end_inset
+
+, puis, une fois l'initialisation faite, dans le fichier 
+\family typewriter
+\size small
+credentials/privdata-ekey.priv 
+\family default
+\size default
+de la partition 
+\begin_inset Quotes cld
+\end_inset
+
+internal
+\begin_inset Quotes crd
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+.
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+dans un live Linux de base:
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\begin_inset Graphics
+	filename data-C-basic.png
+	width 70col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+dans ce contexte, la clé privée de déchiffrement des données PRIVDATA et
+ des scripts de configuration des composants est dans le fichier 
+\family typewriter
+\size small
+/credentials/privdata-ekey.priv
+\family default
+\size default
+
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Cette clé est déposée lors de la construction du live Linux.
+\end_layout
+
+\end_inset
+
+, 
+\series bold
+\size small
+il n'y a donc aucune protection effective de ces données
+\series default
+\size default
+ (le chiffrement permet uniquement d'avoir un processus commun de préparation
+ à tous les types de systèmes).
+\end_layout
+
+\end_deeper
 \begin_layout Section
 Configuration INSECA
 \begin_inset CommandInset label
@@ -2147,6 +2345,13 @@ la clé privée est utilisée au moment de la signature;
 
 \begin_layout Section
 Maintien en condition de sécurité (MCS)
+\begin_inset CommandInset label
+LatexCommand label
+name "MCS"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -2156,39 +2361,51 @@ Au delà de la notion de système éphémère live Linux, le MCS est assuré via
 \end_layout
 
 \begin_layout Enumerate
-par un administrateur central:
+depuis un environnement d'administrateur central:
 \end_layout
 
 \begin_deeper
 \begin_layout Enumerate
-génération d'un live Linux;
+génération d'une nouvelle version d'un live Linux à partir d'une configuration
+ de build;
 \end_layout
 
 \begin_layout Enumerate
-publication de le nouvelle version de build;
+publication dans le dépôt associé;
 \end_layout
 
 \begin_layout Enumerate
-mise à disposition (via Internet par ex.) de cette nouvelle version;
+mise à disposition du dépôt via un espace dédié (cloud / espace de stockage);
 \end_layout
 
 \end_deeper
 \begin_layout Enumerate
-par chaque installation INSECA:
+depuis une installation INSECA:
 \end_layout
 
 \begin_deeper
 \begin_layout Enumerate
-vérification chaque heure et téléchargement de cette nouvelle version, puis
- mise en attente d'installation;
+téléchargement du dépôt à jour (vérification chaque heure);
 \end_layout
 
 \begin_layout Enumerate
-au démarrage suivant: application de la nouvelle version;
+extraction des fichiers (image ISO, signature, etc.) dans le répertoire 
+\family typewriter
+/internal/update-stating/
+\family default
+;
 \end_layout
 
 \begin_layout Enumerate
-au démarrage suivant: utilisation effective de la nouvelle version
+redémarrage;
+\end_layout
+
+\begin_layout Enumerate
+installation de la nouvelle version du live Linux;
+\end_layout
+
+\begin_layout Enumerate
+redémarrage
 \end_layout
 
 \end_deeper
@@ -2238,7 +2455,7 @@ zones
 Liste des partitions
 \begin_inset CommandInset label
 LatexCommand label
-name "partitions-list"
+name "partitions-list-ws"
 
 \end_inset
 
@@ -3465,6 +3682,13 @@ zones
 \end_inset
 
 
+\begin_inset CommandInset label
+LatexCommand label
+name "partitions-list-admin"
+
+\end_inset
+
+
 \end_layout
 
 \begin_layout Standard
@@ -3579,8 +3803,8 @@ NB
 \end_layout
 
 \begin_layout Itemize
-la partition EFI est incluse dans l'image ISO (il y a donc un chevauchement
- des 2 premières partitions);
+la partition EFI est incluse dans l'image ISO (il y a effectivement un chevauche
+ment des 2 premières partitions);
 \end_layout
 
 \begin_layout Itemize
@@ -3596,7 +3820,17 @@ zone
 \family typewriter
 config.txz.enc
 \family default
- est un système de fichiers hors partition;
+ est un système de fichiers hors partition (cette 
+\begin_inset Quotes cld
+\end_inset
+
+zone
+\begin_inset Quotes crd
+\end_inset
+
+ n'est présente que lors de la création du périphérique, et n'est plus présente
+ suite aux diverses mises à jour qui sont réalisées via la ré-écriture de
+ l'image ISO);
 \end_layout
 
 \begin_layout Itemize
@@ -3649,15 +3883,7 @@ re-déclarer
 \end_inset
 
  si la table des partitions a été écrasée suite à une mise à jour (ré-écriture
- de l'
-\begin_inset Quotes cld
-\end_inset
-
-ISO
-\begin_inset Quotes crd
-\end_inset
-
-);
+ de l'image ISO);
 \end_layout
 
 \begin_layout Subsection
@@ -7841,7 +8067,7 @@ device
 .
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Scénarios d'utilisation
 \end_layout
 
@@ -7938,7 +8164,7 @@ Les workflows d'utilisation sont schématisés dans la figure suivante:
 
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Metadonnées et données de sécurité
 \end_layout
 
@@ -7982,7 +8208,7 @@ le mot de passe peut aussi être protégé par d'autres objets de sécurité
  permettant d'accorder ou de révoquer des droits d'accès.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Types de secrets
 \begin_inset CommandInset label
 LatexCommand label
@@ -8022,7 +8248,7 @@ pour les autres secrets: chaîne de caractères ne commençant pas par un
 
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Objets de sécurité pour l'accès aux secrets
 \begin_inset CommandInset label
 LatexCommand label
@@ -8055,7 +8281,7 @@ pour les mots de passe, l'ID est une description du mot de passe (par ex.
  un nom de personne)
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 API
 \end_layout
 
@@ -8139,7 +8365,7 @@ get_secret(device, secret_id, access_object): récupère la version en clair
  d'un secret.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Spécifications de formats
 \begin_inset Note Note
 status open
@@ -8153,7 +8379,7 @@ A REVOIR
 
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Spécifications pour la création des partitions
 \begin_inset CommandInset label
 LatexCommand label
@@ -8241,7 +8467,7 @@ reference "partspec:non-iso-file"
  métadonnées.
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Paragraph
 Spécifications des partitions via fichier ISO
 \begin_inset CommandInset label
 LatexCommand label
@@ -8274,7 +8500,7 @@ partition
  (et son contenu sera considéré comme immuable en terme de vérification).
 \end_layout
 
-\begin_layout Subsubsection
+\begin_layout Paragraph
 Spécification des partitions hors fichier ISO
 \begin_inset CommandInset label
 LatexCommand label
@@ -8397,7 +8623,7 @@ NB: la taille réelle sera ajustée en fonction des contraintes du périphériqu
  créée.
 \end_layout
 
-\begin_layout Subsection
+\begin_layout Subsubsection
 Format des métadonnées
 \end_layout
 
@@ -8569,7 +8795,7 @@ t) pour référencement dans l'ACL
 \end_layout
 
 \end_deeper
-\begin_layout Subsection
+\begin_layout Subsubsection
 Format des ACL
 \end_layout
 
@@ -8591,7 +8817,7 @@ cf.
  chiffrés avec l'objet de sécurité.
 \end_layout
 
-\begin_layout Section
+\begin_layout Subsection
 Structure des périphériques
 \end_layout
 
@@ -8609,6 +8835,272 @@ La structure mise en place sur les périphériques est la suivante:
 
 \end_layout
 
+\begin_layout Section
+Tricks & tips
+\end_layout
+
+\begin_layout Subsection
+Fichiers résultant d'un build
+\end_layout
+
+\begin_layout Standard
+Durant la génération d'un live Linux, les fichiers suivants sont générés.
+ Ces fichiers sont tous inclus dans le dépôt associé (si la configuration
+ de build en définit un):
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+live-linux.iso
+\family default
+: image ISO elle même;
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+live-linux.userdata-specs
+\family default
+: spécifications des paramètres USERDATA attendus pour créer une installation,
+ par ex.:
+\begin_inset listings
+lstparams "basicstyle={\ttfamily}"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+  "Windows-VM" : {
+\end_layout
+
+\begin_layout Plain Layout
+
+    "win-image" : {
+\end_layout
+
+\begin_layout Plain Layout
+
+  	"descr" : "Windows disk image file",
+\end_layout
+
+\begin_layout Plain Layout
+
+      "type" : "str"
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+  }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+keyinfos.json
+\family default
+: informations sur le build lui même, par ex: 
+\begin_inset listings
+lstparams "basicstyle={\ttfamily}"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    "build-id": "build-31901f32-36fa-11ec-b668-f3e2a644f4cb",
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\begin_inset Quotes cld
+\end_inset
+
+build-type
+\begin_inset Quotes crd
+\end_inset
+
+: 
+\begin_inset Quotes cld
+\end_inset
+
+ADMIN
+\begin_inset Quotes crd
+\end_inset
+
+,
+\end_layout
+
+\begin_layout Plain Layout
+
+    "valid-from": 1646639176,
+\end_layout
+
+\begin_layout Plain Layout
+
+    "valid-to": 1662501600,
+\end_layout
+
+\begin_layout Plain Layout
+
+    "version": "1.0.3 goofy_keller"
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+
+\family typewriter
+.last-build
+\family default
+: traces de l'étape de construction, utile notamment pour corriger les bugs
+ de construction.
+\end_layout
+
+\begin_layout Standard
+En complément, suivant les composants utilisés, des informations de construction
+ sont ajoutées au fichier 
+\family typewriter
+build-data
+\family default
+ du répertoire contenant la configuration de build.
+ Par exemple:
+\begin_inset listings
+lstparams "basicstyle={\ttfamily}"
+inline false
+status open
+
+\begin_layout Plain Layout
+
+=== building 'build-31904c32-36fa-11ec-b468-f3e2a654f4cb' ===
+\end_layout
+
+\begin_layout Plain Layout
+
+Version: 1.0.3
+\end_layout
+
+\begin_layout Plain Layout
+
+Name: eloquent_meninsky
+\end_layout
+
+\begin_layout Plain Layout
+
+Admin username: admin
+\end_layout
+
+\begin_layout Plain Layout
+
+Admin password: [...]
+\end_layout
+
+\begin_layout Plain Layout
+
+Admin SSH pubkey: ssh-ed25519 AAAAC3[...]
+\end_layout
+
+\begin_layout Plain Layout
+
+Started: 2022-02-28 22:52:03 UTC
+\end_layout
+
+\begin_layout Plain Layout
+
+Finished: 2022-02-28 23:11:42 UTC
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Mise à jour d'un live Linux sur une installation de type workstation
+\end_layout
+
+\begin_layout Standard
+Dans le contexte du MCS décrit §
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "MCS"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, la mise à jour d'un live Linux peut être forcée:
+\end_layout
+
+\begin_layout Itemize
+via la commande 
+\begin_inset Quotes cld
+\end_inset
+
+dev-update-linux
+\begin_inset Quotes crd
+\end_inset
+
+ de l'outil en ligne de commande 
+\family typewriter
+inseca
+\family default
+; ou
+\end_layout
+
+\begin_layout Itemize
+manuellement, en:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+copiant le contenu de l'archive générée à l'issue de la construction du
+ live Linux dans le répertoire 
+\family typewriter
+/internal/update-stating/
+\family default
+;
+\end_layout
+
+\begin_layout Itemize
+redémarrant deux fois.
+\end_layout
+
+\end_deeper
 \begin_layout Section
 Références
 \end_layout
