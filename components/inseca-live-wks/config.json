@@ -1,6 +1,8 @@
 {
     "descr": "Component to manage a running INSECA system",
-    "provides": [],
+    "provides": [
+        "components-init"
+    ],
     "requires": [
         "veracrypt"
     ],

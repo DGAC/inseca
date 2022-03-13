@@ -1,6 +1,8 @@
 {
     "descr": "Component required to execute the INSECA admin UI in a live environment",
-    "provides": [],
+    "provides": [
+        "components-init"
+    ],
     "requires": [],
     "builddata": {},
     "userdata": {}

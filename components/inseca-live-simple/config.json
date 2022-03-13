@@ -1,6 +1,8 @@
 {
     "descr": "Component to manage the startup of a simple live Linux, like component's initialization",
-    "provides": [],
+    "provides": [
+        "components-init"
+    ],
     "requires": [],
     "builddata": {},
     "userdata": {}
