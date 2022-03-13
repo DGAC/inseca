@@ -342,6 +342,14 @@ class BuildConfig:
         if not cinit:
             raise Exception("Missing a 'components-init' component")
 
+        # if build type is not WKS, then the components list should not include any component
+        # which needs a USERDATA
+        if self.build_type!=BuildType.WKS:
+            for cid in self._components:
+                cdata=cdefs[cid]
+                if len (cdata["userdata"])>0:
+                    raise Exception(_("Build configuration is not 'workstation' but included component '%s' requires some USERDATA")%cid)
+
     def get_component_src_path(self, component):
         path="%s/../components/%s"%(self._scriptdir, component)
         if os.path.exists(path):
@@ -521,6 +529,13 @@ class InstallConfig:
         self._dev_format=dev_fmt
         #print("SPEC: %s"%json.dumps(data, indent=4))
         self._data=data
+
+    def validate(self):
+        """Check that the configuration is coherent"""
+        if self.build_id:
+            bconf=self._gconf.get_build_conf(self.build_id)
+            if bconf.build_type!=BuildType.WKS:
+                raise Exception(_("Build configuration is not of type 'workstation'"))
 
     def export_complete_configuration(self):
         """Export the merged (complete) configuration as a struture, ready to be used"""

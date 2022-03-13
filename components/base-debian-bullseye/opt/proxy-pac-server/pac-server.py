@@ -26,7 +26,6 @@ import os
 import json
 import time
 import errno
-import socket
 import requests
 import http.server
 import socketserver
@@ -35,15 +34,17 @@ import syslog
 
 
 # determine URL of the remote proxy PAC server to use
-try:
-    userdata_file="/opt/share/proxy-pac-url"
-    userdata=json.load(open(userdata_file, "r"))
-    remote_url=userdata["pac-url"].strip()
-    if remote_url=="":
+remote_url=None
+userdata_file="/opt/share/proxy-pac-url"
+if os.path.exists(userdata_file):
+    try:
+        userdata=json.load(open(userdata_file, "r"))
+        remote_url=userdata["pac-url"].strip()
+        if remote_url=="":
+            remote_url=None
+    except Exception as e:
+        syslog.syslog(syslog.LOG_ERR, "Error loading USERDATA file '%s': %s"%(userdata_file, str(e)))
         remote_url=None
-except Exception as e:
-    syslog.syslog(syslog.LOG_ERR, "Error loading USERDATA file '%s': %s"%(userdata_file, str(e)))
-    remote_url=None
 syslog.syslog(syslog.LOG_INFO, "Proxy.pac remote_url: %s"%remote_url)
 
 def _fetch_remote():

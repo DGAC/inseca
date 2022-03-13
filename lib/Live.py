@@ -752,7 +752,7 @@ class Environ:
                 # use the configure.py script, if any
                 if os.path.exists(script):
                     syslog.syslog(syslog.LOG_INFO, "Initializing component '%s', stage %d"%(component, stage))
-                    exec_env["PRIVDATA_DIR"]="/%s/%s"%(self.privdata_dir, component)
+                    exec_env["PRIVDATA_DIR"]="%s/%s"%(self.privdata_dir, component)
                     if self._live_type==confs.BuildType.WKS:
                         exec_env["USERDATA_DIR"]="/internal/components/%s"%component
                     (status, out, err)=util.exec_sync([script], exec_env=exec_env)

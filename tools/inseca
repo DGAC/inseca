@@ -158,6 +158,7 @@ sparser.add_argument("outfile", help=_("File to copy data to"))
 sparser=subparsers.add_parser("dev-run-in-vm", help=_("Starts an INSECA device in a VM"))
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
 sparser.add_argument("--bios", help=_("Boot in Legacy BIOS mode instead of UEFI"), action="store_true")
+sparser.add_argument("--mem", help=_("Quantity of RAM to allocate to the VM in Mib (2048 by default)"))
 
 sparser=subparsers.add_parser("dev-mount", help=_("Mount a partition of an INSECA device"))
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
@@ -819,6 +820,10 @@ def config_infos(args):
         status=_get_config_status(gconf, conf, args.verbose)
         if status:
             print("Status: %s"%status)
+        try:
+            conf.validate()
+        except Exception as e:
+            print("ERROR: %s"%str(e))
         if conf.repo_id:
             print("Live Linux archives:")
             rconf=gconf.get_repo_conf(conf.repo_id)
@@ -842,6 +847,10 @@ def config_infos(args):
         status=_get_config_status(gconf, conf, args.verbose)
         if status:
             print("Status: %s"%status)
+        try:
+            conf.validate()
+        except Exception as e:
+            print("ERROR: %s"%str(e))
         print("Install archives:")
         rconf=gconf.get_repo_conf(conf.repo_id)
         _print_repo_archives(rconf, indent="    ")
@@ -2057,8 +2066,12 @@ def dev_run_in_vm(args):
     # umount all partitions of @target
     Device.umount_all_partitions(args.devfile)
 
-    runargs=["virt-install", "--virt-type", "kvm", "--name", vm_name, "--memory", "4096", "--import",
-          "--disk", "%s,bus=virtio"%args.devfile, "--os-variant", "debian9", "--graphics", "spice", "--video", "qxl",
+    mem=2048
+    if args.mem:
+        mem=int(args.mem)
+
+    runargs=["virt-install", "--virt-type", "kvm", "--name", vm_name, "--memory", str(mem), "--import",
+          "--disk", "%s,bus=virtio"%args.devfile, "--os-variant", "debian10", "--graphics", "spice", "--video", "qxl",
           "--channel", "spicevmc", "--network", "default"]
     if not args.bios:
         runargs+=["--boot", "uefi"]

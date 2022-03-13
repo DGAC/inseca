@@ -40,7 +40,7 @@ def get_actual_mp(path):
     return path
 
 class Builder:
-    def __init__(self, build_conf):
+    def __init__(self, build_conf, dry_mode=False):
         gconf=confs.GlobalConfiguration()
         bconf=gconf.get_build_conf(build_conf)
 
@@ -61,6 +61,7 @@ class Builder:
         self._livedir="%s/%s.building"%(self._builddir, bconf.id)
         self._build_data_file="%s/build-data"%(bconf.config_dir)
         self._components=bconf.components
+        self._dry_mode=dry_mode # don't actually build if True
 
     @property
     def image_file(self):
@@ -139,7 +140,7 @@ class Builder:
         obj=x509.CryptoKey(None, self._privdata_pubkey)
         tmp=obj.encrypt(data, return_tmpobj=True)
         tmp.copy_to("%s.enc"%res_file)
-        if "INSECA_DONT_BUILD" not in os.environ:
+        if not self._dry_mode:
             os.remove(res_file)
             shutil.rmtree(res_dir)
 
@@ -166,7 +167,7 @@ class Builder:
         obj=x509.CryptoKey(None, self._privdata_pubkey)
         tmp=obj.encrypt(data, return_tmpobj=True)
         tmp.copy_to("%s.enc"%res_file)
-        if "INSECA_DONT_BUILD" not in os.environ:
+        if not self._dry_mode:
             os.remove(res_file)
             shutil.rmtree(res_dir)
 
@@ -274,6 +275,9 @@ Name: %s
         child.kill()
 
     def build(self):
+        """Actual build of the live Linux based on the specified configuration"""
+        self._bconf.validate()
+
         # check that the build directory does not have the noexec or nodev options (like /tmp)
         (status, out, err)=util.exec_sync(["findmnt", "-J", get_actual_mp(self._builddir)])
         if status!=0:

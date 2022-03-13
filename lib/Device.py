@@ -726,7 +726,7 @@ class Device:
         else:
             part_name=part_info["part-file"]
             counter=0
-            while counter<10:
+            while counter<20: # wait up to 10'
                 (status, out, err)=util.exec_sync(["/bin/lsblk", "-n", "-l", "-p", "-o", "MOUNTPOINT", part_name])
                 if status!=0:
                     if "not a block device" in err:
