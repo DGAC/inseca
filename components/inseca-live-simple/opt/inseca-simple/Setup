@@ -1,0 +1,41 @@
+#!/usr/bin/python3
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+#
+# This file starts the system, monitors it and offers a DBus service to change the password or trigger an update
+#
+# This script is run as root.
+#
+
+import syslog
+import Utils as util
+import Live
+
+# sanity checks
+if not util.is_run_as_root():
+    raise Exception("This script needs to be run as root")
+
+syslog.syslog(syslog.LOG_INFO, "Program started")
+live_env=Live.Environ()
+live_env.define_UI_environment()
+
+live_env.extract_privdata()
+live_env.extract_live_config_scripts()
+live_env.configure_components(0)
+live_env.configure_components(1)

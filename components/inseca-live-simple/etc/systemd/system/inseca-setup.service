@@ -1,0 +1,12 @@
+[Unit]
+Description=INSECA Setup service for basic live Linux builds
+
+[Service]
+Type=simple
+Environment="PYTHONPATH=/opt/inseca-simple"
+ExecStart=/opt/inseca-simple/Setup
+TimeoutSec=5
+Restart=never
+
+[Install]
+WantedBy=default.target
