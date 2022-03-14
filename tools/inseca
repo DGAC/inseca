@@ -1702,7 +1702,6 @@ def dev_update_linux(args):
     try:
         # get the actual live Linux to use
         (linuximage, linuxuserdata, infos)=gconf.get_install_elements(iconf, args.archive)
-        print("I: %s"%infos)
 
         # create updater object and update
         dkey=iconf.password_rescue
@@ -1719,10 +1718,10 @@ def dev_update_linux(args):
         data_password=pdata["@data/password"]
         if target.startswith("/dev"):
             updater=Installer.DeviceUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
-                                            int_password, data_password, linuximage, target, infos)
+                                            int_password, data_password, linuximage, target)
         else:
             updater=Installer.ImageUpdater(blob0, iconf.signing_pubkey, mp_dummy, mp_live, mp_internal, 
-                                           int_password, data_password, linuximage, target, infos)
+                                           int_password, data_password, linuximage, target)
         updater.update()
 
         # remove any staged update

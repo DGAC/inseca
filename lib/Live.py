@@ -689,8 +689,14 @@ class Environ:
         """Decrypt and extract /privdata.tar.enc file (which contains the PRIVDATA of all the components)"""
         privtmp=self.privdata_dir
         os.makedirs(privtmp, mode=0o700)
-        if os.path.exists("/privdata.tar.enc"):
-            eobj=x509.CryptoKey(util.load_file_contents("/internal/credentials/privdata-ekey.priv"), None)
+
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+            privkey_file="/internal/credentials/privdata-ekey.priv"
+        else:
+            privkey_file="/credentials/privdata-ekey.priv"
+
+        if os.path.exists("/privdata.tar.enc") and os.path.exists(privkey_file):
+            eobj=x509.CryptoKey(util.load_file_contents(privkey_file), None)
             edata=util.load_file_contents("/privdata.tar.enc")
             resfile=eobj.decrypt(edata, return_tmpobj=True)
             (status, out, err)=util.exec_sync(["tar", "xf", resfile.name, "-C", privtmp])
@@ -721,20 +727,21 @@ class Environ:
     #
     def extract_live_config_scripts(self):
         """Decrypt and extract the source code of all the component's configure scripts"""
+        if os.path.exists(self.components_live_config_dir):
+            syslog.syslog(syslog.LOG_WARNING, "CODEBUG: directory '%s' should not exist"%self.components_live_config_dir)
+            shutil.rmtree(self.components_live_config_dir)
+        os.makedirs(self.components_live_config_dir, mode=0o700)
+
         if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
             privkey_file="/internal/credentials/privdata-ekey.priv"
         else:
             privkey_file="/credentials/privdata-ekey.priv"
-        if os.path.exists("/live-config.tar.enc"):
+
+        if os.path.exists("/live-config.tar.enc") and os.path.exists(privkey_file):
             eobj=x509.CryptoKey(util.load_file_contents(privkey_file), None)
             edata=util.load_file_contents("/live-config.tar.enc")
             resfile=eobj.decrypt(edata, return_tmpobj=True)
 
-            if os.path.exists(self.components_live_config_dir):
-                syslog.syslog(syslog.LOG_WARNING, "CODEBUG: directory '%s' should not exist"%self.components_live_config_dir)
-                shutil.rmtree(self.components_live_config_dir)
-
-            os.makedirs(self.components_live_config_dir, mode=0o700)
             (status, out, err)=util.exec_sync(["tar", "xf", resfile.name, "-C", self.components_live_config_dir])
             if status!=0:
                 raise Exception("Error extracting live config. code")
