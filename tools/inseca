@@ -1571,9 +1571,9 @@ def dev_install(args):
             else:
                 creator=Installer.ImageInstaller(iconf, linuximage, linuxuserdata, params, target, args.vm_size, infos)
 
-                creator.validate()
-                creator.install()
-                creator=None
+            creator.validate()
+            creator.install()
+            creator=None
         finally:
             # cleanups
             gconf.release_install_elements(iconf, args.archive)
