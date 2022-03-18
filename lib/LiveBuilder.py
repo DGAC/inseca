@@ -299,6 +299,7 @@ Name: %s
         fname="%s/keyinfos.json"%path
         os.makedirs(path, exist_ok=True)
         util.write_data_to_file(json.dumps(data, indent=4, sort_keys=True), fname)
+        os.makedirs(os.path.dirname(self.image_infos_file), exist_ok=True)
         util.write_data_to_file(json.dumps(data, indent=4, sort_keys=True), self.image_infos_file)
 
         built_iso="%s/live-image-amd64.hybrid.iso"%self._livedir
@@ -311,28 +312,35 @@ Name: %s
             pass
 
         # proxy settings
-        proxy=""
+        http_proxy=None
+        https_proxy=None
+        Sync.proxy_pac_file=self._gconf.proxy_pac_file
+        proxy_data=Sync.find_suitable_proxy()
+        if proxy_data is not None:
+            http_proxy=proxy_data.get("http")
+            https_proxy=proxy_data.get("https")
+
         if "http_proxy" in os.environ:
-            proxy=os.environ["http_proxy"]
-        else:
-            Sync.proxy_pac_file=self._gconf.proxy_pac_file
-            proxy_data=Sync.find_suitable_proxy()
-            if proxy_data is not None:
-                proxy=proxy_data["http"]
-        if proxy:
-            util.print_event("Using HTTP proxy '%s'"%proxy)
-        else:
-            util.print_event("Not using any HTTP proxy")
+            http_proxy=os.environ["http_proxy"]
+        if "https_proxy" in os.environ:
+            https_proxy=os.environ["https_proxy"]
+
+        proxy_args=[]
+        if http_proxy:
+            proxy_args+=["-e", "http_proxy=%s"%http_proxy]
+            util.print_event("Using HTTP proxy '%s'"%http_proxy)
+        if https_proxy:
+            proxy_args+=["-e", "https_proxy=%s"%https_proxy]
+            util.print_event("Using HTTPS proxy '%s'"%https_proxy)
 
         # build live image
         print("Build information is appended to '%s'"%self._build_data_file)
         now=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         util.write_data_to_file("Started: %s UTC\n"%now, self._build_data_file, append=True)
         print("Building Live image...")
-        #args=["docker", "run", "-m", "3192m", "--cpus=1", "--privileged", "--rm", "-v", "%s:/live"%self._livedir,
-        #      "-e", "http_proxy=%s"%proxy, "--name", self._bconf.id, "live-build"]
-        args=["docker", "run", "-m", "3192m", "--privileged", "--rm", "-v", "%s:/live"%self._livedir,
-              "-e", "http_proxy=%s"%proxy, "--name", self._bconf.id, "live-build"]
+        args=["docker", "run", "-m", "3192m", "--privileged", "--rm", "-v", "%s:/live"%self._livedir]+\
+              proxy_args+\
+              ["--name", self._bconf.id, "live-build"]
 
         self._build_interrupted=False
         (status, out, err)=util.exec_sync(args, interrupt_callback=self._interrut_callback)

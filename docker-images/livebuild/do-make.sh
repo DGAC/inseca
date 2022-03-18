@@ -22,6 +22,10 @@ set -e
 case "$1" in
     "build")
 	lb clean --purge
+	# configure HTTP/HTTPS proxies for the programs executed in the chroot environment
+	# See /usr/share/live/build/functions/chroot.sh
+	[ -n "$http_proxy" ] && echo "http_proxy=$http_proxy" >> /live/config/environment.chroot
+	[ -n "$https_proxy" ] && echo "https_proxy=$https_proxy" >> /live/config/environment.chroot
 	lb config
 	lb build
 	;;

@@ -366,19 +366,26 @@ def find_suitable_proxy(url="http://www.debian.fr"):
             pacparser.parse_pac_file(proxy_pac_file)
             pacparser.setmyip(get_ip())
             proxies=pacparser.find_proxy(url)
-        except Exception:
-            pass
 
-        if proxies.startswith("DIRECT"):
+            if proxies.startswith("DIRECT"):
+                return None
+            parts=proxies.split(";")
+            util.print_event("Found proxies: %s"%proxies)
+            proxyline=parts[0] # take the 1st proposed proxy
+            (dummy, proxy)=proxyline.split() # proxyline ex: PROXY proxy1.manugarg.com:3128
+            return {
+                "http": "http://"+proxy,
+                "https": "http://"+proxy,
+            }
+        except Exception:
+            res={}
+            if "http_proxy" in os.environ:
+                res["http"]=os.environ["http_proxy"]
+            if "https_proxy" in os.environ:
+                res["https"]=os.environ["https_proxy"]
+            if len(res)>0:
+                return res
             return None
-        parts=proxies.split(";")
-        util.print_event("Found proxies: %s"%proxies)
-        proxyline=parts[0] # take the 1st proposed proxy
-        (dummy, proxy)=proxyline.split() # proxyline ex: PROXY proxy1.manugarg.com:3128
-        return {
-            "http": "http://"+proxy,
-            "https": "http://"+proxy,
-        }
     except Exception as e:
         syslog.syslog(syslog.LOG_ERR, "Could not find a proxy to use: %s"%str(e))
         raise e
