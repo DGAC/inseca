@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2022 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -30,17 +30,14 @@ sudo dnf clean packages
 echo -e "\n### Installation of rclone ###"
 sudo dnf install -y rclone
 
-echo -e "\n### Installation of python3 with pacparser ###"
-sudo dnf install -y python3 python3-pycparser
+echo -e "\n### Installation of python3 ###"
+sudo dnf install -y python3
 
 echo -e "\n### Installation of GTK libraries ###"
 sudo dnf install -y gtk3
 
 echo -e "\n### Installation of borgbackup ###"
 sudo dnf install -y borgbackup
-
-echo -e "\n### Installation of git ###"
-sudo dnf install -y git
 
 echo -e "\n### Installation of dbus ###"
 sudo dnf install -y dbus
@@ -54,16 +51,14 @@ sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/dock
 sudo dnf install -y docker-ce docker-ce-cli containerd.io
 
 echo -e "\n### Installation of INSECA ###"
-sudo dnf install -y wget openssl
-git clone https://github.com/DGAC/inseca
+sudo dnf install -y wget curl openssl
 sudo systemctl unmask docker
 sudo systemctl start docker
-pushd inseca/docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null
-pushd inseca/docker-images/livebuild > /dev/null && sudo make && popd > /dev/null
+pushd docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null
+pushd docker-images/livebuild > /dev/null && sudo make && popd > /dev/null
 
 echo -e "\n### Downloading Veracrypt ###"
-sudo dnf install -y dpkg-dev
-pushd inseca/components/veracrypt/packages.deb > /dev/null
+pushd components/veracrypt/packages.deb > /dev/null
 github_latest_release() {
     basename $(curl -fs -o/dev/null -w %{redirect_url} $1/releases/latest)
 }
@@ -76,9 +71,8 @@ wget "$url.sig"
 gpg --import ../VeraCrypt_PGP_public_key.asc
 gpg --verify vera*.sig
 rm -f vera*.sig
-dpkg-name vera*.deb > /dev/null
 popd > /dev/null
 
 echo -e "\n### Installation succeed ###"
-instdir=$(realpath "$(pwd)/inseca")
+instdir=$(realpath "$(pwd)")
 echo -e "\nSet the local environment variables (only if you are using bash): cd $instdir/tools && source ./set-env.sh"

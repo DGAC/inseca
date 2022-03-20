@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2022 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -39,9 +39,6 @@ sudo apt install -y libgtk-3-dev
 echo -e "\n### Installation of borgbackup ###"
 sudo apt install -y borgbackup
 
-echo -e "\n### Installation of git ###"
-sudo apt install -y git
-
 echo -e "\n### Installation of dbus ###"
 sudo apt install -y dbus
 
@@ -52,13 +49,12 @@ echo -e "\n### Installation of Docker ###"
 sudo apt install -y docker.io
 
 echo -e "\n### Installation of INSECA ###"
-sudo apt install -y wget
-git clone https://github.com/DGAC/inseca
-pushd inseca/docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null
-pushd inseca/docker-images/livebuild > /dev/null && sudo make && popd > /dev/null
+sudo apt install -y wget curl
+pushd docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null
+pushd docker-images/livebuild > /dev/null && sudo make && popd > /dev/null
 
 echo -e "\n### Downloading Veracrypt ###"
-pushd inseca/components/veracrypt/packages.deb > /dev/null
+pushd components/veracrypt/packages.deb > /dev/null
 github_latest_release() {
     basename $(curl -fs -o/dev/null -w %{redirect_url} $1/releases/latest)
 }
@@ -71,9 +67,8 @@ wget "$url.sig"
 gpg --import ../VeraCrypt_PGP_public_key.asc
 gpg --verify vera*.sig
 rm -f vera*.sig
-dpkg-name vera*.deb > /dev/null
 popd > /dev/null
 
 echo -e "\n### Installation succeed ###"
-instdir=$(realpath "$(pwd)/inseca")
+instdir=$(realpath "$(pwd)")
 echo -e "\nSet the local environment variables (only if you are using bash): cd $instdir/tools && source ./set-env.sh"

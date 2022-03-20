@@ -34,9 +34,10 @@ This program is useable but still _rough_, at least regarding areas such as:
 
 
 ## Quick start
-What follows should work out of the box on any Linux distribution but has only been tested using Debian. YMMV.
+What follows should work out of the box on any Linux distribution but has only been tested using Debian and Fedora. YMMV.
 
-### Preparation steps
+### Installation
+#### Manual installation
 - install the dependencies :
   - rclone: https://rclone.org/downloads/
   - borgbackup: https://www.borgbackup.org/
@@ -51,16 +52,20 @@ What follows should work out of the box on any Linux distribution but has only b
 
 - download INSECA in dedicated directory (refered to as `$SRCDIR` afterwards)
 - create the required Docker images: run `make` from the `$SRCDIR/docker-images/grub-bios/` and the `$SRCDIR/docker-images/livebuild/` directories
-- set the local environment variables: `cd $SRCDIR/tools && source ./set-env.sh` if you are using bash
 - download VeraCrypt as a DEB file from https://www.veracrypt.fr/en/Downloads.html in the `$SRCDIR/components/veracrypt/packages.deb/` directory
 
-For Debian / Ubuntu distributions, you can use the script `setup-debian.sh` (requires root privileges at some point).
-If you have Fedora, you can use the script `setup-fedora.sh` (requires root privileges at some point).
+One the installation is finished, check that the `$SRCDIR/inseca` program can be run: `inseca -h` should display the help.
 
-One the installation is finished, check that the `inseca` program can be run: `inseca -h` should display the help.
+#### Scripted installation
+
+- download INSECA in dedicated directory (refered to as `$SRCDIR` afterwards)
+- run the `setup-debian.sh` or `setup-fedora.sh` from the `$SRCDIR` directory
+
 
 ### First configuration
 To create a global configuration:
+- set the local environment variables: `cd $SRCDIR/tools && source ./set-env.sh`
+  (where SRCDIR points to the directory where inseca has been installed) if you are using bash
 - create a dedicated directory and define the `$INSECA_ROOT` environment variable to point to it
 - initialize the configuration's structure, run: `inseca init`
 - create a default build configuration: `inseca config-create build "My first INSECA build"`
