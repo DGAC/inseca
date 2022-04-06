@@ -513,11 +513,20 @@ try:
     ui=UI(live_env)
     syslog.syslog(syslog.LOG_INFO, "Created UI")
 
-    if False and not live_env.startup_done:
-        # test if executed in any kind of virtual environment
+    if not live_env.startup_done:
+        # get allowed virtual environments
+        venvs=[]
+        if os.path.exists("/etc/inseca-live-wks.json"):
+            venvs=json.load(open("/etc/inseca-live-wks.json", "r"))
+            if "allowed-virtualized" in venvs:
+                data=venvs["allowed-virtualized"]
+                if data is not None:
+                    venvs=data.split(",")
+
+        # test if executed in an allowed virtual environment
         (status, out, err)=util.exec_sync(["systemd-detect-virt"])
-        if status==0:
-            ui.show_error("L'utilisation de cette clé n'est pas permise en environement virtuel")
+        if status==0 and out not in venvs:
+            ui.show_error("This system must not be used in a virtual environment")
             Gtk.main()
             exit(1)
 

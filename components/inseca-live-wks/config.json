@@ -10,6 +10,10 @@
         "userdata-skey-pub-file": {
             "descr": "Public key used to verify the signature of USERDATA resources",
             "type": "file"
+        },
+        "allowed-virtualized": {
+            "descr": "CSV list of allowed virtualization execution environment",
+            "type": "str"
         }
     },
     "userdata": {}

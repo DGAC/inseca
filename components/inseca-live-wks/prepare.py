@@ -23,7 +23,7 @@ import shutil
 import Utils as util
 
 conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
-for key in ["userdata-skey-pub-file", "network-connections-allowed"]:
+for key in ["userdata-skey-pub-file", "allowed-virtualized"]:
     if key not in conf:
         raise Exception("No '%s' attribute in the build configuration"%key)
 
@@ -34,3 +34,9 @@ file="%s/%s"%(os.environ["CONF_DIR"], conf["userdata-skey-pub-file"])
 shutil.copyfile(file, "%s/userdata-skey.pub"%destdir)
 pubkey=util.load_file_contents(file)
 util.write_data_to_file("USERDATA signing public key: %s"%pubkey, os.environ["BUILD_DATA_FILE"], append=True)
+
+unprotected_conf={
+    "allowed-virtualized": conf["allowed-virtualized"]
+}
+util.write_data_to_file(json.dumps(unprotected_conf), "%s/etc/inseca-live-wks.json"%os.environ["LIVE_DIR"])
+util.write_data_to_file("Allowed virtual environments: %s\n"%conf["allowed-virtualized"], os.environ["BUILD_DATA_FILE"], append=True)
