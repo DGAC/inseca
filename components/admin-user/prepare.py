@@ -45,7 +45,8 @@ os.makedirs(destdir, exist_ok=True)
 data="""#!/bin/sh
 passwd_hash='%s'
 /sbin/useradd -r -m -s /bin/bash -p "$passwd_hash" "%s"
-"""%(hash, username)
+chmod 700 /home/%s
+"""%(hash, username, username)
 util.write_data_to_file(data, "%s/9995-admin-user-decl"%destdir, perms=0o755)
 
 # keep track of the password

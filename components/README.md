@@ -17,8 +17,8 @@ Each component's files are:
     and decrypted once the user has authenticated on the system (to protect data in the live Linux image).
     BE CAREFULL of the actual privileges of files and directories
   - `LIBS_DIR`: directory containing the Python libraries
-  - `CONF_DATA_FILE`: the name of the file containing the component's configuration from the build configuration, in a JSON format (may bo None
-    if the component has no parameter in the build configuration)
+  - `CONF_DATA_FILE`: the name of the file containing the component's configuration from the build configuration, in a JSON format 
+    (may bo None if the component has no parameter in the build configuration)
 - **packages.deb/**: directory containing DEB packages
   - use `dpkg-name` to rename the DEB file (usage: `dpkg-name <file.deb>`, will rename the file)
   -  _must_ end in `_amd64.deb` for binary packages

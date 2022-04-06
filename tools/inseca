@@ -1183,6 +1183,9 @@ def _publish_build(bconf):
     os.remove("%s.sign"%bconf.image_iso_file)
     os.remove(bconf.image_userdata_specs_file)
     os.remove("%s.sign"%bconf.image_userdata_specs_file)
+    os.remove(bconf.image_infos_file)
+    os.remove("%s.sign"%bconf.image_infos_file)
+
 
 def _publish_install(iconf):
     # copy the install's directory's contents

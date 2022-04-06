@@ -621,12 +621,13 @@ class Environ:
     def logged(self):
         """Logged user name"""
         if self._logged is None:
-            (status, out, err)=util.exec_sync(["who"]) # output will be like "insecauser tty2 [...]"
+            (status, out, err)=util.exec_sync(["who"])
+            # output will be like "insecauser tty2 [...]" for Wayland or "insecauser :0 [...]" for X11
             if status!=0:
                 raise Exception("Can't get the name of the connected user")
             for line in out.splitlines():
                 parts=line.split()
-                if len(parts)>0 and parts[1].startswith("tty"):
+                if len(parts)>0 and (parts[1].startswith("tty") or parts[1]==":0"):
                     self._logged=parts[0]                 # logged user name
                     entry=pwd.getpwnam(self._logged)
                     self._uid=entry.pw_uid                # logged user UID
