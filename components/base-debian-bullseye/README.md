@@ -2,7 +2,7 @@ Base installation.
 
 # Build configuration attributes
 
-none
+- **display-type**: define the session which will be used: 'x11' or 'wayland'
 
 # USERDATA attributes
 

@@ -4,6 +4,11 @@
         "base"
     ],
     "requires": [],
-    "builddata": {},
+    "builddata": {
+        "display-type": {
+            "descr": "Defines the display server type: 'wayland' or 'x11'",
+            "type": "str"
+        }
+    },
     "userdata": {}
 }
