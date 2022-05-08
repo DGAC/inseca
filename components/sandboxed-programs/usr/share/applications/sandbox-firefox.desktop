@@ -1,0 +1,10 @@
+[Desktop Entry]
+Name=Private Firefox
+GenericName=Private Firefox instance
+Comment=Private Firefox instance
+Exec=firejail --private firefox -no-remote --class SandbFire
+Icon=/usr/share/sandbox-browser/sandbox-firefox.png
+Terminal=false
+Type=Application
+StartupWMClass=SandbFire
+

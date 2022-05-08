@@ -1527,6 +1527,49 @@ r:
 
 \end_layout
 
+\begin_layout Standard
+Il est aussi possible d'utiliser un navigateur 
+\begin_inset Quotes cld
+\end_inset
+
+éphémère
+\begin_inset Quotes crd
+\end_inset
+
+ exécuté dans un contexte isolé tel que toute trace d'utilisation (historique,
+ marque pages, fichiers télé-chargés, etc) disparaît lorsque le navigateur
+ est fermé, ce qui assure une meilleure sécurité que le mode 
+\begin_inset Quotes cld
+\end_inset
+
+navigation privée
+\begin_inset Quotes crd
+\end_inset
+
+.
+ De la même manière, aucun fichier du répertoire 
+\begin_inset Quotes cld
+\end_inset
+
+Documents
+\begin_inset Quotes crd
+\end_inset
+
+ n'est accessible non plus, ce qui permet une meilleure isolation des utilisatio
+ns.
+\end_layout
+
+\begin_layout Standard
+Pour le démarrer, il suffit de cliquer sur l'icône 
+\begin_inset Graphics
+	filename images/sandbox-firefox.png
+	width 1.2cm
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Subsection
 KeePass
 \end_layout
