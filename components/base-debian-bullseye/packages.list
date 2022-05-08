@@ -13,6 +13,7 @@ gnome-shell-extension-dashtodock
 gnome-shell-extension-no-annoyance
 opensc-pkcs11
 firejail
+webext-ublock-origin-chromium webext-ublock-origin-firefox
 
 # for ZedFree, if present
 libqt5core5a libqt5gui5 libqt5xml5
