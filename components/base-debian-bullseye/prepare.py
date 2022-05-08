@@ -23,7 +23,7 @@ import Utils as util
 
 conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
 dtype="wayland"
-if "display-type" in conf:
+if conf and "display-type" in conf:
     dtype=conf["display-type"]
 
 if dtype not in ("wayland", "x11"):

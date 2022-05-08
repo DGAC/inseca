@@ -2092,7 +2092,7 @@ def _get_and_validate_password(args):
             raise Exception("Environment variable '%s' does not exist"%args.passenv)
     if args.password:
         password=args.password
-    if not password:
+    if password=="-":
         import getpass
         pw1=getpass.getpass(_("New password: "))
         pw2=getpass.getpass(_("Confirmation: "))
