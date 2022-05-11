@@ -19,15 +19,27 @@
 
 import os
 import json
+import shutil
 import Utils as util
 
 conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
-dtype="wayland"
-if conf and "display-type" in conf:
-    dtype=conf["display-type"]
+if conf:
+    # Display type
+    dtype="wayland"
+    if "display-type" in conf:
+        dtype=conf["display-type"]
 
-if dtype not in ("wayland", "x11"):
-    raise Exception("Invalid '%s' attribute in the build configuration"%"display-type")
+    if dtype not in ("wayland", "x11"):
+        raise Exception("Invalid '%s' attribute in the build configuration"%"display-type")
 
-util.write_data_to_file(dtype, "%s/etc/inseca-display-type"%os.environ["LIVE_DIR"])
-util.write_data_to_file("Display type: %s\n"%dtype, os.environ["BUILD_DATA_FILE"], append=True)
+    util.write_data_to_file(dtype, "%s/etc/inseca-display-type"%os.environ["LIVE_DIR"])
+    util.write_data_to_file("Display type: %s\n"%dtype, os.environ["BUILD_DATA_FILE"], append=True)
+
+    # DConf spec.
+    if "dconf-file" in conf:
+        destdir="%s/opt"%os.environ["PRIVDATA_DIR"]
+        os.makedirs(destdir, exist_ok=True)
+
+        dconf_file=conf["dconf-file"]
+        file="%s/%s"%(os.environ["CONF_DIR"], dconf_file)
+        shutil.copyfile(file, "%s/dconf.txt"%destdir)

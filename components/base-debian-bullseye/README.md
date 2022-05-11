@@ -3,6 +3,7 @@ Base installation.
 # Build configuration attributes
 
 - **display-type**: define the session which will be used: 'x11' or 'wayland'
+- **dconf-file**: file which defines the initial UI settings (can be obtained from a running system using `dconf dump /`)
 
 # USERDATA attributes
 
