@@ -1,6 +1,0 @@
-[Unit]
-Description=Send INSECA events back home
-
-[Service]
-Type=oneshot
-ExecStart=/opt/inseca-manager/send-events.py

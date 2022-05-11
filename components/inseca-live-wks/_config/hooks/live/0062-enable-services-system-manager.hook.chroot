@@ -19,7 +19,7 @@
 
 set -e
 
-for svce in inseca-manager inseca-session-end inseca-send-events.timer
+for svce in inseca-manager inseca-session-end
 do
 	systemctl start "$svce"
 	systemctl enable "$svce"
