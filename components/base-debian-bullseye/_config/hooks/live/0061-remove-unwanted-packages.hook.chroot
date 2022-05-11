@@ -20,7 +20,7 @@
 #
 # Remove programs useless in the INSECA context
 #
-for name in malcontent seahorse transmission-common xterm unattended-upgrades termit xpra shotwell
+for name in malcontent seahorse transmission-common xterm unattended-upgrades termit xpra shotwell imagemagick imagemagick-6.q16 libimage-magick-perl libimage-magick-q16-perl
 do
     apt -y remove  --purge "$name"
 done

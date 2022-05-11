@@ -54,9 +54,11 @@ util.write_data_to_file("Admin username: %s\nAdmin password: %s\n"%(username, pa
 
 # copy the SSH public key to the "resources" directory
 if "ssh-public-key" in conf:
-    destdir="%s/opt/share"%os.environ["PRIVDATA_DIR"]
-    os.makedirs(destdir, exist_ok=True)
-
     pubkey=conf["ssh-public-key"]
-    util.write_data_to_file(pubkey, "%s/ssh-secpc-admin.pub"%destdir)
-    util.write_data_to_file("Admin SSH pubkey: %s\n"%pubkey, os.environ["BUILD_DATA_FILE"], append=True)
+    if pubkey:
+        destdir="%s/opt/share"%os.environ["PRIVDATA_DIR"]
+        os.makedirs(destdir, exist_ok=True)
+
+        pubkey=conf["ssh-public-key"]
+        util.write_data_to_file(pubkey, "%s/ssh-secpc-admin.pub"%destdir)
+        util.write_data_to_file("Admin SSH pubkey: %s\n"%pubkey, os.environ["BUILD_DATA_FILE"], append=True)

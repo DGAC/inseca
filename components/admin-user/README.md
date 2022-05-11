@@ -5,7 +5,7 @@ the **build-data** file generated during the build.
 
 - **username**: name of the admin user 
 - **password**: user's password, or null to be generated automatically
-- **ssh-public-key**: SSH public key to connect to the user via SSH
+- **ssh-public-key**: SSH public key to connect to the user via SSH (optional)
 
 # USERDATA attributes
 

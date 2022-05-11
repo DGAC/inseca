@@ -22,8 +22,10 @@ import shutil
 
 res_dir=os.environ["PRIVDATA_DIR"]
 
-# add SSH public key, if any. FIXME: this needs to be migrated to the "admin-user" component
-os.makedirs("/home/admin/.ssh", mode=0o700, exist_ok=True)
-shutil.copyfile("%s/opt/share/ssh-secpc-admin.pub"%res_dir, "/home/admin/.ssh/authorized_keys")
-shutil.chown("/home/admin/.ssh", "admin", "admin")
-shutil.chown("/home/admin/.ssh/authorized_keys", "admin", "admin")
+# add SSH public key, if any.
+pubkey="%s/opt/share/ssh-secpc-admin.pub"%res_dir
+if os.path.exists(pubkey):
+    os.makedirs("/home/admin/.ssh", mode=0o700, exist_ok=True)
+    shutil.chown("/home/admin/.ssh", "admin", "admin")
+    shutil.copyfile(pubkey, "/home/admin/.ssh/authorized_keys")
+    shutil.chown("/home/admin/.ssh/authorized_keys", "admin", "admin")
