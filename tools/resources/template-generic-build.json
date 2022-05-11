@@ -8,7 +8,9 @@
   "validity-months": 3,
   "version": "0.1",
   "components": {
-    "base-debian-bullseye": null,
+    "base-debian-bullseye": {
+      "display-type": "wayland"
+    },
     "veracrypt": null,
     "signature": {
       "build-skey-pub-file": "build-sign-key.pub",
@@ -21,7 +23,8 @@
     "sandboxed-programs": null,
     "inseca-live-wks": {
       "userdata-skey-pub-file": "userdata-sign-key.pub",
-      "network-connections-allowed": true
+      "network-connections-allowed": true,
+      "allowed-virtualized": ""
     }
   }
 }
