@@ -313,11 +313,11 @@ class BuildConfig:
         # global check
         cdefs={} # key=component ID, value=component's configuration
         for cid in self._components:
-            cpath=self.get_component_src_path(cid)
-            if not os.path.exists(cpath):
+            cfile=self.get_component_src_path(cid)+"/config.json"
+            if not os.path.exists(cfile):
                 raise Exception("Component '%s' does not have any config.json configuration file"%cid)
             try:
-                cdata=json.load(open(cpath+"/config.json", "r"))
+                cdata=json.load(open(cfile, "r"))
             except Exception as e:
                 raise Exception("Invalid or unreadable config.json configuration file for component '%s'"%cid)
             cdefs[cid]=cdata
