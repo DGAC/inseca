@@ -23,20 +23,24 @@ import shutil
 import Utils as util
 
 conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
-for key in ["userdata-skey-pub-file", "allowed-virtualized"]:
+for key in ["userdata-skey-pub-file"]:
     if key not in conf:
         raise Exception("No '%s' attribute in the build configuration"%key)
 
 destdir="%s/opt/share"%os.environ["PRIVDATA_DIR"]
 os.makedirs(destdir, exist_ok=True)
 
+# userdata-skey-pub-file
 file="%s/%s"%(os.environ["CONF_DIR"], conf["userdata-skey-pub-file"])
 shutil.copyfile(file, "%s/userdata-skey.pub"%destdir)
 pubkey=util.load_file_contents(file)
 util.write_data_to_file("USERDATA signing public key: %s"%pubkey, os.environ["BUILD_DATA_FILE"], append=True)
 
-unprotected_conf={
-    "allowed-virtualized": conf["allowed-virtualized"]
+# other config. elements
+protected_conf={
+    "allowed-virtualized": conf.get("allowed-virtualized", ""),
+    "disabled-net-services": conf.get("disabled-net-services", "")
 }
-util.write_data_to_file(json.dumps(unprotected_conf), "%s/etc/inseca-live-wks.json"%os.environ["LIVE_DIR"])
-util.write_data_to_file("Allowed virtual environments: %s\n"%conf["allowed-virtualized"], os.environ["BUILD_DATA_FILE"], append=True)
+util.write_data_to_file(json.dumps(protected_conf), "%s/etc/inseca-live-wks.json"%os.environ["LIVE_DIR"])
+util.write_data_to_file("Allowed virtual environments: %s\n"%protected_conf["allowed-virtualized"], os.environ["BUILD_DATA_FILE"], append=True)
+util.write_data_to_file("Disabled net services: %s\n"%protected_conf["disabled-net-services"], os.environ["BUILD_DATA_FILE"], append=True)

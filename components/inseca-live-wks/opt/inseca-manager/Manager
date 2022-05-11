@@ -59,6 +59,9 @@ import dbus
 import dbus.service
 import dbus.mainloop.glib
 
+# Misc.
+updates_enabled=True
+
 #
 # UI
 #
@@ -204,7 +207,8 @@ class UI:
             # request to apply staged updates and get updates
             if self.remote:
                 self.remote.apply_staged(blob0, int_password, data_password)
-                GLib.timeout_add(1000, get_updates_startup, self.remote)
+                if updates_enabled:
+                    GLib.timeout_add(1000, get_updates_startup, self.remote)
 
             # final notice
             self.show_page("final", can_close=True)
@@ -514,21 +518,37 @@ try:
     syslog.syslog(syslog.LOG_INFO, "Created UI")
 
     if not live_env.startup_done:
-        # get allowed virtual environments
-        venvs=[]
+        # load build-time configuration
+        conf=None
         if os.path.exists("/etc/inseca-live-wks.json"):
-            venvs=json.load(open("/etc/inseca-live-wks.json", "r"))
-            if "allowed-virtualized" in venvs:
-                data=venvs["allowed-virtualized"]
-                if data is not None:
-                    venvs=data.split(",")
+            conf=json.load(open("/etc/inseca-live-wks.json", "r"))
 
-        # test if executed in an allowed virtual environment
+        # get allowed virtual environments and test if executed in an allowed virtual environment
+        venvs=[]
+        if conf and "allowed-virtualized" in conf:
+            data=conf["allowed-virtualized"]
+            if data is not None:
+                venvs=data.split(",")
+
         (status, out, err)=util.exec_sync(["systemd-detect-virt"])
         if status==0 and out not in venvs:
             ui.show_error("This system must not be used in a virtual environment")
             Gtk.main()
             exit(1)
+
+        # disable some services if specificed
+        dservs=[]
+        servs=["update"] # services which can be disabled
+        if conf and "disabled-net-services" in conf:
+            data=conf["disabled-net-services"]
+            if data is not None:
+                dservs=data.split(",")
+        if "all" in dservs:
+            dservs=servs
+        for serv in dservs:
+            syslog.syslog(syslog.LOG_INFO, "Disabling INSECA '%s' service as specified in the build config"%serv)
+            if serv=="update":
+                updates_enabled=False
 
     # remote command using DBus
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
@@ -544,7 +564,7 @@ try:
         live_env.user_setting_set("org.gnome.desktop.background", "primary-color", "#ff5050") # red background
         live_env.user_setting_set("org.gnome.settings-daemon.plugins.power", "sleep-inactive-ac-type", "nothing")
         live_env.user_setting_set("org.gnome.settings-daemon.plugins.power", "sleep-inactive-battery-type", "nothing")
-    else:
+    elif updates_enabled:
         GLib.timeout_add(1000, get_updates_startup, remote) # try to get updates
 
     # Decide which UI page to show
