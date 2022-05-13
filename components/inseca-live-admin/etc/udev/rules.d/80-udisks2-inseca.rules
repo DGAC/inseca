@@ -1,0 +1,5 @@
+#
+# Don't display the "dummy" partition to the user
+#
+
+SUBSYSTEM=="block", ENV{ID_FS_LABEL}=="dummy", ENV{UDISKS_IGNORE}="1"
