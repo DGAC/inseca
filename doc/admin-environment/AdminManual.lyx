@@ -321,7 +321,7 @@ transmet à l'administrateur local (par des canaux de communication différents)
 
 \begin_deeper
 \begin_layout Enumerate
-le fichier correspondant à la nouvelle image ISO (environ 1.3 Go);
+le fichier correspondant à la nouvelle image ISO (environ 1.4 Go);
 \end_layout
 
 \begin_layout Enumerate
@@ -349,7 +349,8 @@ inseca
 
 \end_inset
 
- (64Gb minimum si une VM est présente), l'administrateur local:
+ (64Gb minimum si les systèmes créés contiendront une machine virtuelle),
+ l'administrateur local:
 \end_layout
 
 \begin_deeper
@@ -460,7 +461,7 @@ brut
 
 \begin_layout Standard
 Les ressources qui ont été précédemment télé-chargées restent disponibles
- suite à cette opération.
+ suite à cette opération (il n'est pas nécessaire de les re-télécharger).
 \end_layout
 
 \begin_layout Subsection
@@ -812,7 +813,7 @@ name "format-device"
 \end_layout
 
 \begin_layout Standard
-TODO
+À rédiger.
 \end_layout
 
 \begin_layout Section
@@ -824,6 +825,15 @@ name "wipe-device"
 \end_inset
 
 
+\end_layout
+
+\begin_layout Standard
+Cette fonction permet d'effacer l'intégralité d'un périphérique en écrivant
+ des zéros sur l'intégralité du périphérique.
+\end_layout
+
+\begin_layout Standard
+ATTN: la suppression des données est irréversible.
 \end_layout
 
 \begin_layout Standard
@@ -849,6 +859,53 @@ name "support"
 \end_layout
 
 \begin_layout Standard
+Cette fonction permet d'assurer du support aux installations qui ont été
+ faites:
+\end_layout
+
+\begin_layout Itemize
+afficher la date de création;
+\end_layout
+
+\begin_layout Itemize
+montrer les attributs d'une installation (les mêmes éléments qui ont été
+ saisis via le formulaire de création) et identifier par la personne responsable
+ ou le projet responsable;
+\end_layout
+
+\begin_layout Itemize
+identifier la configuration déployée;
+\end_layout
+
+\begin_layout Itemize
+effectuer une mise à jour du live Linux, y compris si le live Linux installé
+ a déjà expiré, ce qui évite de devoir procéder à une réinstallation (cette
+ fonction est accessible via le bouton 
+\begin_inset Quotes cld
+\end_inset
+
+Update Live Linux
+\begin_inset Quotes crd
+\end_inset
+
+);
+\end_layout
+
+\begin_layout Itemize
+accéder aux données utilisateur présentes (sans devoir connaître le mot
+ de passe de l'utilisateur) afin de permettre soit d'y copier des données,
+ soit de les récupérer (cette fonction est accessible via le bouton 
+\begin_inset Quotes cld
+\end_inset
+
+mount
+\begin_inset Quotes crd
+\end_inset
+
+).
+\end_layout
+
+\begin_layout Standard
 \align center
 \begin_inset Graphics
 	filename support.png
@@ -857,180 +914,6 @@ name "support"
 \end_inset
 
 
-\end_layout
-
-\begin_layout Standard
-\begin_inset Note Note
-status open
-
-\begin_layout Plain Layout
-à détailler:
-\end_layout
-
-\begin_layout Itemize
-accès aux données
-\end_layout
-
-\begin_layout Itemize
-update
-\end_layout
-
-\begin_layout Itemize
-notion de verified
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Section
-Troubleshooting
-\end_layout
-
-\begin_layout Subsection
-Problème d'horloge
-\end_layout
-
-\begin_layout Standard
-Le problème rapporté ici est purement pour référence, il est traité au démarrage
- du live Linux.
-\end_layout
-
-\begin_layout Standard
-Si le PC utilisé par cette clé de gestion est généralement utilisé avec
- Windows, l'heure matérielle correspond à l'heure locale (une aberration
- technique, mais bon...).
- Contrairement à un Linux 
-\begin_inset Quotes cld
-\end_inset
-
-normal
-\begin_inset Quotes crd
-\end_inset
-
-, la clé de gestion est donc paramétrée pour aussi utiliser cette référence,
- comme on le constate:
-\end_layout
-
-\begin_layout Standard
-\begin_inset listings
-lstparams "basicstyle={\small}"
-inline false
-status open
-
-\begin_layout Plain Layout
-
-$ timedatectl
-\end_layout
-
-\begin_layout Plain Layout
-
-                Local time: mer.
- 2020-06-03 16:10:15 CEST
-\end_layout
-
-\begin_layout Plain Layout
-
-            Universal time: mer.
- 2020-06-03 14:10:15 UTC
-\end_layout
-
-\begin_layout Plain Layout
-
-                  RTC time: mer.
- 2020-06-03 15:10:15
-\end_layout
-
-\begin_layout Plain Layout
-
-                 Time zone: Europe/Paris (CEST, +0200)
-\end_layout
-
-\begin_layout Plain Layout
-
- System clock synchronized: no
-\end_layout
-
-\begin_layout Plain Layout
-
-               NTP service: active
-\end_layout
-
-\begin_layout Plain Layout
-
-           RTC in local TZ: yes
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\begin_layout Plain Layout
-
-Warning: The system is configured to read the RTC time in the local time
- zone.
-\end_layout
-
-\begin_layout Plain Layout
-
-         This mode can not be fully supported.
- It will create various problems
-\end_layout
-
-\begin_layout Plain Layout
-
-         with time zone changes and daylight saving time adjustments.
- The RTC
-\end_layout
-
-\begin_layout Plain Layout
-
-         time is never updated, it relies on external facilities to maintain
- it.
-\end_layout
-
-\begin_layout Plain Layout
-
-         If at all possible, use RTC in UTC by calling
-\end_layout
-
-\begin_layout Plain Layout
-
-         'timedatectl set-local-rtc 0'.
-\end_layout
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Il est possible que la synchronisation des ressources donne lieu à une erreur
- du type:
-\end_layout
-
-\begin_layout Standard
-\align center
-\begin_inset Graphics
-	filename time-skew.jpg
-	scale 60
-
-\end_inset
-
-
-\end_layout
-
-\begin_layout Standard
-Dans ce cas, il est possible d'utiliser la commande 
-\begin_inset Quotes cld
-\end_inset
-
-timedatectl
-\begin_inset Quotes crd
-\end_inset
-
- via sudo pour ajuster l'heure correctement.
 \end_layout
 
 \end_body
