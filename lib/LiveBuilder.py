@@ -97,9 +97,9 @@ class Builder:
         """Compute all the user data parameters (required by some components during
         the install phase).
         Ex:
-        { "Windows-VM" : {
-            "win-image" : { 
-              "descr" : "Windows disk image file",
+        { "guest-os" : {
+            "os-image" : { 
+              "descr" : "OS disk image file",
               "type" : "str"
             }
         } }

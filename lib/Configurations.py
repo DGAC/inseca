@@ -246,9 +246,9 @@ class BuildConfig:
                     "type": "file"
                 }
             },
-            "Windows-VM": {
-                "win-image": {
-                    "descr": "Windows disk image file",
+            "guest-os": {
+                "os-image": {
+                    "descr": "OS disk image file",
                     "type": "file"
                 }
             }
@@ -450,8 +450,8 @@ class InstallConfig:
     @property
     def userdata(self):
         """Get the USERDATA for the installation, will be like:
-            "Windows-VM": {
-                "win-image": "repo-f418dbc5-39bc-4065-919d-5814dd7c57e3"
+            "guest-os": {
+                "os-image": "repo-f418dbc5-39bc-4065-919d-5814dd7c57e3"
             },
             "VPN-OpenVPN": {
                 "ovpn-file": "repo-83f9d052-ba7f-42ad-9910-18805ab145e3"

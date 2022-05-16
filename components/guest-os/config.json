@@ -1,0 +1,16 @@
+{
+    "provides": [],
+    "requires": [],
+    "builddata": {
+        "fairshell-virt-system.json": {
+            "descr": "Configuration of the VM to start",
+            "type": "str"
+        }
+    },
+    "userdata": {
+        "os-image": {
+            "descr": "OS disk image file",
+            "type": "file"
+        }
+    }
+}
