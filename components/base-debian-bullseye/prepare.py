@@ -43,3 +43,13 @@ if conf:
         dconf_file=conf["dconf-file"]
         file="%s/%s"%(os.environ["CONF_DIR"], dconf_file)
         shutil.copyfile(file, "%s/dconf.txt"%destdir)
+
+    # desktop applications
+    if "desktop-apps" in conf:
+        destdir="%s/usr/share/applications"%os.environ["PRIVDATA_DIR"]
+        os.makedirs(destdir, exist_ok=True)
+
+        dname="%s/%s"%(os.environ["CONF_DIR"], conf["desktop-apps"])
+        for fname in os.listdir(dname):
+            path="%s/%s"%(dname, fname)
+            shutil.copyfile(path, "%s/%s"%(destdir, fname))

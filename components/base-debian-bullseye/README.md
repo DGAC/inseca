@@ -4,6 +4,8 @@ Base installation.
 
 - **display-type**: define the session which will be used: 'x11' or 'wayland'
 - **dconf-file**: file which defines the initial UI settings (can be obtained from a running system using `dconf dump /`)
+- **desktop-apps**: directory which can contain one or more .desktop files for end user applications (those files will be
+  copied to /usr/share/applications, potentially overwriting existing files)
 
 # USERDATA attributes
 
