@@ -325,6 +325,11 @@ Name: %s
         if "https_proxy" in os.environ:
             https_proxy=os.environ["https_proxy"]
 
+        if http_proxy:
+            print("Using HTTP proxy: %s"%http_proxy)
+        if https_proxy:
+            print("Using HTTPS proxy: %s"%https_proxy)
+
         proxy_args=[]
         if http_proxy:
             proxy_args+=["-e", "http_proxy=%s"%http_proxy]
