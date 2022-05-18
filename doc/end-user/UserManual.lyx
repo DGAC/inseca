@@ -1791,6 +1791,239 @@ ion Teams, il est possible de couper la caméra et/ou le micro).
 \end_layout
 
 \begin_layout Section
+Utilisation de l'environnement Windows
+\begin_inset CommandInset label
+LatexCommand label
+name "Windows-usage"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+L'environnement Windows, s'il a été déployé au moment de sa création, permet
+ d'utiliser les applications et outils nécessitant Windows.
+ Cet environnement est fourni via une machine virtuelle Windows éphémère:
+ toute modification effectuée à l'environnement Windows lui même (comme
+ déposer des documents sur le bureau) est perdue lorsque celle-ci est fermée.
+\end_layout
+
+\begin_layout Standard
+L'environnement Windows est démarré via l'icône 
+\begin_inset Graphics
+	filename /home/vmalerba/local/Tools/_ATTIC/INSECA2/doc/end-user/images/win10.png
+	width 1cm
+
+\end_inset
+
+, ce qui se traduit par le message suivant:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images/windows-start.png
+	width 30page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+L'environnement Windows démarre en mode plein écran: le bureau virtuel courant
+ sera alors occupé intégralement par une nouvelle fenêtre qui contient un
+ bureau Windows complet.
+\end_layout
+
+\begin_layout Standard
+La question de la gestion des raccourcis clavier globaux (type 
+\begin_inset Quotes cld
+\end_inset
+
+Alt + Tab
+\begin_inset Quotes crd
+\end_inset
+
+ qui permet de changer la fenêtre active, ou la touche 
+\begin_inset Quotes cld
+\end_inset
+
+Windows
+\begin_inset Quotes crd
+\end_inset
+
+) est posée au moment du démarrage de la machine virtuelle: deux possibilités
+ en fonction des préférences de chacun:
+\end_layout
+
+\begin_layout Itemize
+soit l'environnement Windows 
+\begin_inset Quotes cld
+\end_inset
+
+intercepte
+\begin_inset Quotes crd
+\end_inset
+
+ les raccourcis clavier globaux qui deviennent indisponibles lorsque l'environne
+ment Windows a le focus du clavier.
+ Les avantages sont une meilleure immersion dans l'environnement Windows
+ au détriment de pouvoir facilement revenir à l'environnement Linux.
+\end_layout
+
+\begin_layout Itemize
+soit l'environnement Windows n'
+\begin_inset Quotes cld
+\end_inset
+
+intercepte pas
+\begin_inset Quotes crd
+\end_inset
+
+ les raccourcis clavier globaux et ceux-ci restent interprétés par l'environneme
+nt Linux, les avantages et inconvénients étant l'inverse du cas précédent.
+\end_layout
+
+\begin_layout Standard
+Ainsi, si votre activité consiste essentiellement à utiliser les outils
+ Office et que vous n'avez que peu besoin d'utiliser des applications de
+ l'environnement Linux, il est recommandé de laisser l'environnement Windows
+ 
+\begin_inset Quotes cld
+\end_inset
+
+intercepter
+\begin_inset Quotes crd
+\end_inset
+
+ les raccourcis clavier globaux en répondant 
+\begin_inset Quotes cld
+\end_inset
+
+Autoriser
+\begin_inset Quotes crd
+\end_inset
+
+ à la question qui est posée comme le montre la capture d'écran suivante.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images/windows-keyb-inhibit.png
+	width 40page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+En tout état de cause si l'environnement Windows 
+\begin_inset Quotes cld
+\end_inset
+
+intercepte
+\begin_inset Quotes crd
+\end_inset
+
+ les raccourcis clavier globaux, il est possible de restaurer les raccourcis
+ clavier globaux de l'environnement Linux, pour cela:
+\end_layout
+
+\begin_layout Itemize
+appuyer sur la combinaison de touches 
+\begin_inset Quotes cld
+\end_inset
+
+Ctrl + Alt
+\begin_inset Quotes crd
+\end_inset
+
+; ou
+\end_layout
+
+\begin_layout Itemize
+mettre la souris sur le haut au milieu de l'écran, ce qui fait apparaître
+ un panneau d'actions possibles sur l'environnement Windows:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images/windows-fullscreen.png
+	width 80page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Le panneau qui apparaît en haut au milieu de l'écran permet aussi de:
+\end_layout
+
+\begin_layout Itemize
+transférer la gestion de certains périphériques de stockage USB à Windows;
+\end_layout
+
+\begin_layout Itemize
+quitter le mode plein écran afin d'avoir l'environnement Windows sous forme
+ d'application, comme montré sur la capture d'écran ci-dessous (où on y
+ voit aussi le gestionnaire de fichiers listant les documents du répertoire
+ 
+\begin_inset Quotes cld
+\end_inset
+
+Documents
+\begin_inset Quotes crd
+\end_inset
+
+):
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images/windows-non-fullsceen.png
+	width 80page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+NB
+\bar default
+:
+\end_layout
+
+\begin_layout Itemize
+il n'y a pas de verrouillage d'écran de l'environnement Windows, le verrouillage
+ de l'écran est porté par l'environnement Linux;
+\end_layout
+
+\begin_layout Itemize
+il n'est pas nécessaire d'
+\begin_inset Quotes cld
+\end_inset
+
+éteindre
+\begin_inset Quotes crd
+\end_inset
+
+ la machine virtuelle comme on le ferait pour un véritable PC, la fenêtre
+ peut être fermée comme toute application, sans perte de donnés (étant entendu
+ qu'il faut au préalable avoir enregistré les données manipulées par les
+ applications Windows);
+\end_layout
+
+\begin_layout Section
 Gestion des données
 \end_layout
 

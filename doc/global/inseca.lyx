@@ -2065,12 +2065,12 @@ status open
 
 \begin_layout Plain Layout
 
-    "Windows-VM": {
+    "guest-os": {
 \end_layout
 
 \begin_layout Plain Layout
 
-        "win-image": "repo-f418dbc5-39bc-4065-919d-5814dd7c57e3"
+        "os-image": "repo-f418dbc5-39bc-4065-919d-5814dd7c57e3"
 \end_layout
 
 \begin_layout Plain Layout
@@ -3422,7 +3422,7 @@ Windows/
 \begin_inset Quotes cld
 \end_inset
 
-Windows-VM
+guest-os
 \begin_inset Quotes crd
 \end_inset
 
@@ -8876,12 +8876,12 @@ status open
 
 \begin_layout Plain Layout
 
-  "Windows-VM" : {
+  "guest-os" : {
 \end_layout
 
 \begin_layout Plain Layout
 
-    "win-image" : {
+    "os-image" : {
 \end_layout
 
 \begin_layout Plain Layout
