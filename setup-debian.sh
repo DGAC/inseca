@@ -30,8 +30,8 @@ sudo apt clean
 echo -e "\n### Installation of rclone ###"
 sudo apt install -y rclone 
 
-echo -e "\n### Installation of python3 with pacparser ###"
-sudo apt install -y python3 python3-pacparser
+echo -e "\n### Installation of python3 and related ###"
+sudo apt install -y python3 python3-pacparser python3-pyinotify
 
 echo -e "\n### Installation of GTK libraries ###"
 sudo apt install -y libgtk-3-dev

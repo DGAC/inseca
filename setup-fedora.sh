@@ -30,8 +30,8 @@ sudo dnf clean packages
 echo -e "\n### Installation of rclone ###"
 sudo dnf install -y rclone
 
-echo -e "\n### Installation of python3 ###"
-sudo dnf install -y python3
+echo -e "\n### Installation of python3 and related ###"
+sudo dnf install -y python3 python3-inotify
 
 echo -e "\n### Installation of GTK libraries ###"
 sudo dnf install -y gtk3
