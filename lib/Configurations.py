@@ -102,6 +102,8 @@ def get_last_file_modification_ts(basename, exclude=None):
     rts=int(os.stat(basename).st_mtime)
     if os.path.isdir(basename):
         for fname in os.listdir(basename):
+            if fname==".git":
+                continue
             path="%s/%s"%(basename, fname)
             if path==exclude:
                 continue

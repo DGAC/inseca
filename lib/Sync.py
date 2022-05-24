@@ -370,7 +370,7 @@ def find_suitable_proxy(url="http://www.debian.fr"):
             if proxies.startswith("DIRECT"):
                 return None
             parts=proxies.split(";")
-            util.print_event("Found proxies: %s"%proxies)
+            util.print_event("Using HTTP proxy: %s"%proxies)
             proxyline=parts[0] # take the 1st proposed proxy
             (dummy, proxy)=proxyline.split() # proxyline ex: PROXY proxy1.manugarg.com:3128
             return {
