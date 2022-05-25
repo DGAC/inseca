@@ -1812,7 +1812,7 @@ L'environnement Windows, s'il a été déployé au moment de sa création, perme
 \begin_layout Standard
 L'environnement Windows est démarré via l'icône 
 \begin_inset Graphics
-	filename /home/vmalerba/local/Tools/_ATTIC/INSECA2/doc/end-user/images/win10.png
+	filename /home/vmalerba/local/Tools/inseca/doc/end-user/images/win10.png
 	width 1cm
 
 \end_inset
@@ -1972,22 +1972,13 @@ transférer la gestion de certains périphériques de stockage USB à Windows;
 \begin_layout Itemize
 quitter le mode plein écran afin d'avoir l'environnement Windows sous forme
  d'application, comme montré sur la capture d'écran ci-dessous (où on y
- voit aussi le gestionnaire de fichiers listant les documents du répertoire
- 
-\begin_inset Quotes cld
-\end_inset
-
-Documents
-\begin_inset Quotes crd
-\end_inset
-
-):
+ voit aussi le navigateur Firefox ouvert dans une fenêtre en arrière plan):
 \end_layout
 
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/windows-non-fullsceen.png
+	filename images/windows-non-fullscreen.png
 	width 80page%
 
 \end_inset
