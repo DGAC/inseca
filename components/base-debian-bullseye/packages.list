@@ -17,3 +17,5 @@ webext-ublock-origin-chromium webext-ublock-origin-firefox
 
 # for ZedFree, if present
 libqt5core5a libqt5gui5 libqt5xml5
+
+tpm2-tools

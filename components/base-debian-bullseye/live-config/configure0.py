@@ -22,6 +22,15 @@ import os
 import Live
 import Utils as util
 
+# dump PCR registers from TPM2 if any
+ts=util.get_timestamp(as_str=True)
+os.makedirs("/internal/tpm-tests", exist_ok=True)
+(status, out, err)=util.exec_sync(["tpm2_pcrread"])
+if status==0:
+    util.write_data_to_file(out, "/internal/tpm-tests/TPM2-%s-PCRs"%ts)
+else:
+    util.write_data_to_file(err, "/internal/tpm-tests/PCR2-%s-ERR"%ts)
+
 # load pre-defined UI settings from any dconf.xxx files (in the alphabetical order)
 live_env=Live.Environ()
 live_env.define_UI_environment()
