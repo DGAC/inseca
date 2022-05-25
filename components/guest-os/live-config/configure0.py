@@ -27,18 +27,28 @@ if not os.path.exists(vmfile):
                 except Exception as e:
                     syslog.syslog(syslog.LOG_ERR, "Could not link '%s' to '%s': %s"%(evmfile, vmfile, str(e)))
 
-# remove Windows icon if VM's HDD image is not present
+# remove any desktop application file if VM's HDD image is not present
 if not os.path.exists(vmfile):
     system_desktop_files_path="/usr/share/applications/"
     user_desktop_files_path="/home/insecauser/.local/share/applications/"
-    desktop_file="windows.desktop"
     for dir in (system_desktop_files_path, user_desktop_files_path):
-        path="%s/windows.desktop"%dir
-        if os.path.exists(path):
-            try:
-                os.remove(path)
-            except Exception as e:
-                syslog.syslog(syslog.LOG_ERR, "Error removing desktop file '%s': %s"%(path, str(e)))
+        for fname in os.listdir(dir):
+            if fname.endswith(".desktop"):
+                todel=False
+                path="%s/%s"%(dir, fname)
+                data=util.load_file_contents(path)
+                for line in data.splitlines():
+                    if line.startswith("Exec="):
+                        parts=line.split("=")
+                        if "fairshell-VM.py" in parts[1]:
+                            todel=True
+                            break
+                if todel:
+                    try:
+                        os.remove(path)
+                        syslog.syslog(syslog.LOG_ERR, "Removed desktop file '%s'"%path)
+                    except Exception as e:
+                        syslog.syslog(syslog.LOG_ERR, "Error removing desktop file '%s': %s"%(path, str(e)))
 
 # re-start or stop the fairshell-virt-system service
 # (re-start at least because the config file was specified as build data
