@@ -411,12 +411,14 @@ def get_partition_infos(partfile, enforce_known_filesystem=True):
         raise e
         return (None, None)
 
+lsblk_wait_time=10 # wait up to 10' for a device to be there
 def get_encrypted_partition_mapped_elements(part_name):
     """Get the current map name for the partition (for ex. like "/dev/mapper/luks-82993631-f0c9-4fd6-b97e-53d2f12f714e")
     and the mount point, or (None, None) if not opened"""
     counter=0
-    while counter<5:
-        (status, out, err)=exec_sync(["/bin/lsblk", "-n", "-l", "-p", "-o", "NAME,MOUNTPOINT", part_name])
+    while counter<lsblk_wait_time:
+        (status, out, err)=exec_sync(["/bin/lsblk", "-n", "-l", "-p", "-o", "NAME,MOUNTPOINT", part_name],
+                                     C_locale=True)
         if status!=0:
             if "not a block device" in err:
                 # kernel might not yet be ready
@@ -426,8 +428,7 @@ def get_encrypted_partition_mapped_elements(part_name):
                 raise Exception("Could not get mount status of '%s': %s"%(part_name, err))
         else:
             break
-    if status!=0:
-        raise Exception("Could not get mount status of '%s': %s"%(part_name, err))
+
     if out!="":
         for line in out.splitlines():
             if line!="":

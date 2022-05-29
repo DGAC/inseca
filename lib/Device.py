@@ -1265,9 +1265,20 @@ def _umount(what):
             
 def umount_all_partitions(devfile):
     """Unmount all the partitions of the @devfile device, and close any encrypted volume"""
-    (status, out, err)=util.exec_sync(["/bin/lsblk", "-n", "-p", "-o", "NAME,MOUNTPOINT", devfile])
-    if status!=0:
-        raise Exception("Could not get mount status of '%s': %s"%(devfile, err))
+    counter=0
+    while counter<util.lsblk_wait_time:
+        (status, out, err)=util.exec_sync(["/bin/lsblk", "-n", "-p", "-o", "NAME,MOUNTPOINT", devfile],
+                                        C_locale=True)
+        if status!=0:
+            if "not a block device" in err:
+                # kernel might not yet be ready
+                counter+=1
+                time.sleep(1)
+            else:
+                raise Exception("Could not get mount status of '%s': %s"%(devfile, err))
+        else:
+            break
+
     if out!="":
         last_part_name=None
         for line in out.splitlines():
