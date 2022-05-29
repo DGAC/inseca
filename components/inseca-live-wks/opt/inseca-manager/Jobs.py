@@ -47,7 +47,7 @@ class InsecaStartupJob(Job.Job):
             self.result=res
         except Exception as e:
             self.exception=Exception("Wrong password or device compromised")
-            syslog.syslog(syslog.LOG_ERR, "InsecaStartupJob failed: %s"%str(self.exception))
+            syslog.syslog(syslog.LOG_ERR, "InsecaStartupJob failed: %s"%str(e))
 
 class InsecaPostStartupJob(Job.Job):
     """Post startup job"""
@@ -69,7 +69,7 @@ class InsecaPostStartupJob(Job.Job):
             self._live_env.events.add_booted_event()
         except Exception as e:
             self.exception=e
-            syslog.syslog(syslog.LOG_ERR, "Job InsecaPostStartupJob failed: %s"%str(self.exception))
+            syslog.syslog(syslog.LOG_ERR, "Job InsecaPostStartupJob failed: %s"%str(e))
 
 class InsecaConfigureComponentsJob(Job.Job):
     """Configure all the components which have a configure<stage>.py script"""
