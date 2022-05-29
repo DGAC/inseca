@@ -208,7 +208,11 @@ Name: %s
 
                 elif fname=="packages.deb":
                     for dfile in os.listdir(path):
-                        shutil.copy("%s/%s"%(path, dfile), self._packages_extra_dir)
+                        if dfile.endswith(".deb"):
+                            # make sur file names end in "_amd64.deb" as this is a requirement
+                            # for livebuild
+                            target="%s/%s_amd64.deb"%(self._packages_extra_dir, dfile[:-4])
+                            shutil.copyfile("%s/%s"%(path, dfile), target)
 
                 elif fname in ["_ATTIC"]:
                     pass # ignore that file/directory
