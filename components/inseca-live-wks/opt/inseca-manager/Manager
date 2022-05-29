@@ -546,9 +546,10 @@ try:
         if "all" in dservs:
             dservs=servs
         for serv in dservs:
-            syslog.syslog(syslog.LOG_INFO, "Disabling INSECA '%s' service as specified in the build config"%serv)
-            if serv=="update":
-                updates_enabled=False
+            if serv:
+                syslog.syslog(syslog.LOG_INFO, "Disabling INSECA '%s' service as specified in the build config"%serv)
+                if serv=="update":
+                    updates_enabled=False
 
     # remote command using DBus
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)

@@ -1812,7 +1812,7 @@ L'environnement Windows, s'il a été déployé au moment de sa création, perme
 \begin_layout Standard
 L'environnement Windows est démarré via l'icône 
 \begin_inset Graphics
-	filename /home/vmalerba/local/Tools/inseca/doc/end-user/images/win10.png
+	filename images/win10.png
 	width 1cm
 
 \end_inset
