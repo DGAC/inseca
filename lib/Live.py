@@ -534,10 +534,14 @@ _user_config_definition={
         "backup-func": _backup_home_dir_as_archive,
         "restore-func": _restore_archive_in_home_dir
     },
-
     "desktop-conf": {
         "backup-func": _backup_dconf,
         "restore-func": _restore_dconf
+    },
+    "monitors": {
+        "rel-source-dir": ".config/monitors.xml",
+        "backup-func": _backup_home_dir_as_archive,
+        "restore-func": _restore_archive_in_home_dir
     },
     "firefox-bookmarks.tgz": {
         "backup-func": _backup_firefox,
