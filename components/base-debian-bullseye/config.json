@@ -1,5 +1,5 @@
 {
-    "descr": "Base Debian 11",
+    "descr": "Base Debian 11 with GNOME desktop",
     "provides": [
         "base"
     ],

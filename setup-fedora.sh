@@ -50,6 +50,9 @@ sudo dnf -y install dnf-plugins-core
 sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/docker-ce.repo
 sudo dnf install -y docker-ce docker-ce-cli containerd.io
 
+echo -e "\n### Installation of misc. tools ###"
+sudo dnf -y install hdparm dosfstools btrfs-progs exfatprogs
+
 echo -e "\n### Installation of INSECA ###"
 sudo dnf install -y wget curl openssl
 sudo systemctl unmask docker

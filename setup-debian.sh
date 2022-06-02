@@ -48,6 +48,9 @@ sudo apt install -y make
 echo -e "\n### Installation of Docker ###"
 sudo apt install -y docker.io
 
+echo -e "\n### Installation of misc. tools ###"
+sudo apt install -y hdparm dosfstools btrfs-progs exfat-utils
+
 echo -e "\n### Installation of INSECA ###"
 sudo apt install -y wget curl
 pushd docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null

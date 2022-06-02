@@ -2,7 +2,7 @@ Guest OS in a "short lived" virtual machine.
 
 # Build configuration attributes
 
-- **fairshell-virt-system.json**: 
+- **config**: 
 Configuration file for the VM (refer to the documentation), for example:
 {
     "win10": {
