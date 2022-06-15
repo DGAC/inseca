@@ -264,6 +264,7 @@ class Installer:
             return
 
         # install the GRUB Liveloader
+        # FIXME: use the binaries from the live build ISO (located in /EFI/boot)
         util.print_event("Installing Grub")
         boot_binaries_archive="%s/resources/boot-binaries.txz"%(os.path.dirname(os.path.realpath(sys.argv[0])))
         self._dev.install_grub_efi(boot_binaries_archive)

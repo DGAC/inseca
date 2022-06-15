@@ -12,7 +12,7 @@ apt_proxy=""
 lb config noauto \
 	--distribution bullseye \
 	--apt-options "--yes -oAPT::Immediate-Configure=0" \
-	--security false --updates true --backports false \
+	--security true --updates true --backports false \
 	$apt_proxy \
 	--bootappend-live "boot=live components lang=fr_FR.UTF-8 locales=fr_FR.UTF-8 keyboard-layouts=fr keyboard-model=pc105 timezone=Europe/Paris username=insecauser hostname=inseca-system noprompt noeject net.ifnames=0 biosdevname=0 nottyautologin noroot quiet splash" \
 	--bootloaders "syslinux,grub-efi" \

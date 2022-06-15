@@ -1827,9 +1827,8 @@ def _prepare_config_data(domain_confs, bconf):
     tar.close()
     return tmpfile
 
-def _generate_new_iso_file(iso_file, new_iso_file, extra_conf_file):
-    """Prepare a copy of the specified ISO file, including the
-    extra config file."""
+def _generate_admin_iso_file(iso_file, new_iso_file, extra_conf_file):
+    """Customize the specified ISO file, and include the extra config file."""
     if not os.path.exists(iso_file):
         raise Exception("ISO file '%s' does not exist"%iso_file)
 
@@ -1841,7 +1840,7 @@ def _generate_new_iso_file(iso_file, new_iso_file, extra_conf_file):
         # compute the EFI's partition offset in the ISO
         (status, out, err)=util.exec_sync(["/sbin/fdisk", "-l", new_iso_file])
         if status!=0:
-            raise Exception("Could not identify the contents of the ISO image")
+            raise Exception("Could not determine the structure of the ISO image")
         offset=0
         for line in out.splitlines():
             if "EFI" in line:
@@ -1873,7 +1872,7 @@ def _generate_new_iso_file(iso_file, new_iso_file, extra_conf_file):
             if extra_mounted:
                 (status, out, err)=util.exec_sync(["sudo", "umount", extra_mp.name])
 
-        # mount the new ISO image and the EFI partition within the ISO image and indicate offset to the extra file
+        # mount the EFI partition within the ISO image and indicate offset to the extra file
         efi_mp=tempfile.TemporaryDirectory()
         efi_mounted=False
         try:
@@ -1928,7 +1927,7 @@ def gen_admin_iso(args):
     else:
         # determine random password
         password=cgen.generate_password(12)
-        print("Password for new file is: %s"%password)
+        print("Password for generated file is: %s"%password)
 
         # encrypt config data
         encobj=CryptoPass.CryptoPassword(password)
@@ -1936,7 +1935,7 @@ def gen_admin_iso(args):
 
         # generate new ISO
         new_iso_file="%s.new"%iso_img_file
-        _generate_new_iso_file(iso_img_file, new_iso_file, econf_tar.name)
+        _generate_admin_iso_file(iso_img_file, new_iso_file, econf_tar.name)
         print("Generated new file: %s"%new_iso_file)
 
 def _get_protected_data(dev, dkey):

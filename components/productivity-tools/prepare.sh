@@ -20,4 +20,4 @@
 set -e
 
 # remove base installation's removal of Libreoffice
-rm $BUILD_DIR/config/hooks/live/*remove-productivity-tools*
+rm -f $BUILD_DIR/config/hooks/live/*remove-productivity-tools*
