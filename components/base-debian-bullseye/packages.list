@@ -1,21 +1,12 @@
-sudo gnome openssh-client net-tools procps htop man-db cryptsetup-bin vim less iw
-exfat-utils
+sudo openssh-client net-tools procps htop man-db cryptsetup-bin vim less iw
+exfat-utils xfsprogs
 ntfs-3g dosfstools
 python3-psutil
 dnsutils
 borgbackup rclone
-libgtk2.0-bin
 python3-pacparser
 btrfs-progs
 firmware-iwlwifi
 sshfs
-gnome-shell-extension-dashtodock
-gnome-shell-extension-no-annoyance
 opensc-pkcs11
-firejail
-webext-ublock-origin-chromium webext-ublock-origin-firefox
-
-# for ZedFree, if present
-libqt5core5a libqt5gui5 libqt5xml5
-
 tpm2-tools

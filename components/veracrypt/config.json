@@ -3,7 +3,9 @@
     "provides": [
         "veracrypt"
     ],
-    "requires": [],
+    "requires": [
+        "base-os"
+    ],
     "builddata": {},
     "userdata": {}
 }

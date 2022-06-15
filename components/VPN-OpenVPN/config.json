@@ -1,7 +1,9 @@
 {
     "descr": "OpenVPN client configuration",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builldata": {},
     "userdata": {
         "ovpn-file": {

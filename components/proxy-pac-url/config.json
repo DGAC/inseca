@@ -1,7 +1,9 @@
 {
     "descr": "Specify a 'proxy.pac' URL",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {
         "pac-url": {

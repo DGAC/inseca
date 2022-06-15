@@ -1,7 +1,9 @@
 {
     "descr": "INSECA admin UI",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

@@ -1,7 +1,9 @@
 {
     "descr": "Conference tools like Teams and Zoom",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

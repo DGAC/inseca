@@ -3,7 +3,9 @@
     "provides": [
         "cgroups"
     ],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

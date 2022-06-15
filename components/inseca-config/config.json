@@ -1,7 +1,9 @@
 {
     "descr": "INSECA's end user configuration UI",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

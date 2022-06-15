@@ -1,7 +1,9 @@
 {
     "descr": "Specify a 'proxy.pac' file",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {
         "pac-file": {
             "descr": "Proxy PAC file",

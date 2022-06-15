@@ -331,7 +331,7 @@ class BuildConfig:
         cinit=None
         for cid in self._components:
             cdata=cdefs[cid]
-            if "base" in cdata["provides"]:
+            if "base-os" in cdata["provides"]:
                 if base:
                     raise Exception("The 'base' feature is present in more than one component")
                 base=True
@@ -340,7 +340,7 @@ class BuildConfig:
                     raise Exception("The 'components-init' feature is present in more than one component")
                 cinit=True
         if not base:
-            raise Exception("Missing a 'base' component")
+            raise Exception("Missing a 'base-os' component")
         if not cinit:
             raise Exception("Missing a 'components-init' component")
 

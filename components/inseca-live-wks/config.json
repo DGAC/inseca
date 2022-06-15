@@ -4,6 +4,7 @@
         "components-init"
     ],
     "requires": [
+        "desktop",
         "veracrypt"
     ],
     "builddata": {

@@ -3,7 +3,9 @@
     "provides": [
         "components-init"
     ],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

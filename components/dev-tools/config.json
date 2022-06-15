@@ -1,7 +1,9 @@
 {
     "descr": "Development tools",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

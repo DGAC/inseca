@@ -1,7 +1,9 @@
 {
     "descr": "Disable the NetworkManager",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "base-os"
+    ],
     "builddata": {},
     "userdata": {}
 }

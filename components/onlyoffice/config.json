@@ -1,7 +1,9 @@
 {
     "descr": "OnlyOffice desktop program",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

@@ -2,6 +2,7 @@
     "descr": "Run some processes in firejail and with some resources limits",
     "provides": [],
     "requires": [
+        "desktop",
         "cgroups"
     ],
     "builddata": {},

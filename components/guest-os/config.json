@@ -1,6 +1,8 @@
 {
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {
         "fairshell-virt-system.json": {
             "descr": "Configuration of the VM to start",

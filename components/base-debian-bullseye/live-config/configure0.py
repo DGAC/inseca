@@ -17,9 +17,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
 
-import syslog
 import os
-import Live
 import Utils as util
 
 # dump PCR registers from TPM2 if any
@@ -31,21 +29,3 @@ if status==0:
 else:
     util.write_data_to_file(err, "/internal/tpm-tests/PCR2-%s-ERR"%ts)
 
-# load pre-defined UI settings from any dconf.xxx files (in the alphabetical order)
-live_env=Live.Environ()
-live_env.define_UI_environment()
-
-optfiles=os.listdir("/opt")
-optfiles.sort()
-for fname in optfiles:
-    if fname.startswith("dconf."):
-        dconf_file="/opt/%s"%fname
-        if os.path.exists(dconf_file):
-            data=util.load_file_contents(dconf_file)
-            os.seteuid(live_env.uid) # switch to user
-            (status, out, err)=util.exec_sync(["dconf", "load", "/"], stdin_data=data)
-            if status!=0:
-                syslog.syslog(syslog.LOG_ERR, "Could not load DConf settings file '%s': %s"%(dconf_file, err))
-            else:
-                syslog.syslog(syslog.LOG_INFO, "Loaded DConf settings from '%s'"%dconf_file)
-            os.seteuid(0) # back to root

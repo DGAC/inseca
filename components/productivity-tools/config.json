@@ -1,7 +1,9 @@
 {
     "descr": "'Productivity' tools, not including LibreOffice or OnlyOffice",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }

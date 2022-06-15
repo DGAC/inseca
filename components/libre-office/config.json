@@ -1,7 +1,9 @@
 {
     "descr": "LibreOffice desktop programs",
     "provides": [],
-    "requires": [],
+    "requires": [
+        "desktop"
+    ],
     "builddata": {},
     "userdata": {}
 }
