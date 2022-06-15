@@ -1,0 +1,23 @@
+--- lib/live/boot/9990-misc-helpers.sh.orig	2022-06-14 14:25:53.684921656 +0200
++++ lib/live/boot/9990-misc-helpers.sh	2022-06-14 14:26:28.757379338 +0200
+@@ -289,6 +289,20 @@
+ 		fi
+ 	fi
+ 
++	# look at the ROOT specified on the command line
++	if [ -n "$ROOT" ]
++	then
++		dev=$(resolve_device "$ROOT")
++		if [ -n "$dev" ]
++		then
++			if check_dev "${dev}"
++			then
++				return 0
++			fi
++		fi
++		panic "Can't find root device '$ROOT'"
++	fi
++
+ 	# first look at the one specified in the command line
+ 	case "${LIVE_MEDIA}" in
+ 		removable-usb)

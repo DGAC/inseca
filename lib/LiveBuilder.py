@@ -372,22 +372,94 @@ Name: %s
                 util.write_data_to_file("Failed: %s UTC\n\n"%now, self._build_data_file, append=True)
                 raise Exception("Could not build Live image, see the '%s' file"%buildlog)
 
-        # keep built ISO
-        print("Copying generated ISO file...")
-        iso_dir=os.path.dirname(self.image_file)
-        os.makedirs(iso_dir, exist_ok=True)
-        shutil.move(built_iso, self.image_file)
+        # customize and generate the final ISO file
+        print("Customizing generated ISO file...")
+        self._iso_image_customize(built_iso)
 
         # if run as sudo, set the permissions to the original user
         if "SUDO_UID" in os.environ and "SUDO_GID" in os.environ:
             uid=int(os.environ["SUDO_UID"])
             gid=int(os.environ["SUDO_GID"])
+            iso_dir=os.path.dirname(self.image_file)
             os.chown(iso_dir, uid, gid)
             os.chown(self.image_file, uid, gid)
 
         # log info
         now=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         util.write_data_to_file("Finished: %s UTC\n\n"%now, self._build_data_file, append=True)
+
+    def _iso_image_customize(self, built_iso):
+        """Customize the build ISO (initrd, etc)"""
+        try:
+            iso_dir=os.path.dirname(self.image_file)
+            os.makedirs(iso_dir, exist_ok=True)
+
+            iso_contents_dir=None
+            initrd_contents_dir=None
+
+            cenv=os.environ.copy()
+            cenv["TMPDIR"]=self._builddir
+
+            # extract ISO file's contents            
+            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "iso-extract", built_iso], exec_env=cenv)
+            os.remove(built_iso)
+            if status!=0:
+                raise Exception("Could not extract ISO's contents: %s"%err)
+            iso_contents_dir=out
+            
+            # extract the initrd's contents
+            initrd_file="%s/live/initrd.img"%iso_contents_dir
+            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "initramfs-extract", initrd_file], exec_env=cenv)
+            if status!=0:
+                raise Exception("Could not extract initrd's contents: %s"%err)
+            initrd_contents_dir=out
+
+            # patch initrd's code
+            patch_file=self._scriptdir+"/resources/initrd.patch"
+            (status, out, err)=util.exec_sync(["patch", "-p", "0"], stdin_data=util.load_file_contents(patch_file), cwd=initrd_contents_dir+"/main", exec_env=cenv)
+            if status!=0:
+                raise Exception("Could not patch initrd's contents: %s"%err)
+
+            # rebuild the initrd file
+            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "initramfs-create", initrd_contents_dir, initrd_file], exec_env=cenv)
+            if status!=0:
+                raise Exception("Could not create new initrd file: %s"%err)
+
+            # clean up the ISOLINUX config (remove everything after the #INSECA marker)
+            conf_file="%s/isolinux/live.cfg"%iso_contents_dir
+            lines=[]
+            for line in util.load_file_contents(conf_file).splitlines():
+                if line.startswith("#INSECA"):
+                    break
+                lines+=[line]
+            util.write_data_to_file("\n".join(lines), conf_file)
+
+            # remove useless files
+            livedir="%s/live"%iso_contents_dir
+            for fname in os.listdir(livedir):
+                if fname not in ("filesystem.squashfs", "initrd.img", "vmlinuz"):
+                    os.remove("%s/%s"%(livedir, fname))
+
+            # 6) create the final ISO file
+            conf_type=self._bconf.build_type
+            map={
+                confs.BuildType.ADMIN: "INSECA-ADMIN",
+                confs.BuildType.WKS: "INSECA",
+                confs.BuildType.SIMPLE: "INSECA-LIVE",
+            }
+            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "iso-create", iso_contents_dir, map[conf_type], self.image_file], exec_env=cenv)
+            if status!=0:
+                raise Exception("Could not create new ISO file: %s"%err)
+
+        finally:
+            # cleanups
+            for dir in (iso_contents_dir, initrd_contents_dir):
+                try:
+                    if dir:
+                        shutil.rmtree(dir)
+                except Exception as e:
+                    util.write_data_to_file("Failed to clear directory '%s' where ISO was extracted: %s"%(dir, err), self._build_data_file, append=True)
+
 
     def clean_build_dir(self):
         """Clean up the build dir, while keeping the ISO images"""
