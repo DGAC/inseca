@@ -460,7 +460,7 @@ def get_disks():
         raise Exception("Could not list system's disks: %s"%err)
     for line in out.splitlines():
         parts=line.split()
-        if len(parts)>=5 and parts[3]=="disk":
+        if len(parts)>=5 and parts[3] in ("disk", "loop"):
             devfile="/dev/%s"%parts[0]
             rota=True if parts[1]=="1" else False
             internal=False if parts[2]=="1" else True
@@ -468,6 +468,9 @@ def get_disks():
                 model=" ".join(parts[5:])
             elif parts[0].startswith("nbd"):
                 model="VM image disk"
+            elif parts[0].startswith("loop"):
+                model="Loop disk"
+                internal=False
             else:
                 model=""
             (status, out2, err)=exec_sync(["/bin/lsblk", "-n", "-o", "MOUNTPOINT", devfile])

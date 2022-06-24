@@ -108,6 +108,8 @@ class Device:
                 valid=True
             elif devfile.startswith("/dev/nbd") or devfile.startswith("/dev/nvme"):
                 valid=True
+            elif devfile.startswith("/dev/loop"):
+                valid=True
         if not valid:
             raise Exception("Invalid device '%s'"%devfile)
             
