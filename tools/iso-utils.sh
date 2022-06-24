@@ -72,7 +72,7 @@ initramfs_extract ()
 initramfs_create ()
 {
     initrd_dir="$1" # where the contents of the ISO is
-    out_file="$2" # created initramfs file
+    outfile="$2" # created initramfs file
 
     [ "$outfile" == "" ] && outfile=$(mktemp)
 
@@ -85,11 +85,14 @@ initramfs_create ()
     (cd "$initrd_dir/early" && find . | cpio --quiet -R 0:0 -o -H newc > "$cpio_early")
     cpio_main=$(mktemp)
     (cd "$initrd_dir/main" && find . | cpio --quiet -R 0:0 -o -H newc > "$cpio_main")
-    xz --check=crc32 "$cpio_main"
+    #xz --check=crc32 "$cpio_main" # procudes a long to decompress initrd for "little" relative storage space improvement
+    gzip "$cpio_main"
+    cfile="$cpio_main.gz"
 
-    mv "$cpio_early" "$out_file"
-    cat "$cpio_main.xz" >> "$out_file"
-    rm -f "$cpio_main" "$cpio_main.xz"
+    mv "$cpio_early" "$outfile"
+    cat "$cfile" >> "$outfile"
+
+    rm -f "$cpio_main" "$cfile"
 
     echo "$outfile"
 }
