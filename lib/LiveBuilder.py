@@ -434,6 +434,9 @@ Name: %s
                 lines+=[line]
             util.write_data_to_file("\n".join(lines), conf_file)
 
+            # Grub. customization
+            shutil.copyfile("%s/isolinux/splash.png"%iso_contents_dir, "%s/boot/grub/splash.png"%iso_contents_dir)
+
             # remove useless files
             livedir="%s/live"%iso_contents_dir
             for fname in os.listdir(livedir):
