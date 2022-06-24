@@ -404,11 +404,13 @@ class Device:
                 if devsize is not None:
                     percent=written*100/devsize
                     util.print_event("%s%% erased"%round(percent, 1))
-                nb=fd.write(chunk)
-                if nb!=chunk_size:
-                    break
-                time.sleep(0.1)
-                written+=nb
+                try:
+                    nb=fd.write(chunk)
+                    written+=nb
+                except OSError as e:
+                    if e.errno==28: # No space left on device
+                        break
+                    raise e
 
     def _load_meta_data(self):
         """Loads the meta data, without verifying it"""
