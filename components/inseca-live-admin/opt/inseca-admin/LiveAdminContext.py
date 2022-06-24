@@ -33,7 +33,11 @@ import Live
 
 def _change_current_user_password(username, passwd):
     # change user password
-    (status, out, err)=util.exec_sync(["chpasswd"], stdin_data="%s:%s"%(username, passwd))
+    if passwd=="" or passwd is None:
+        (status, out, err)=util.exec_sync(["passwd", "-d", username])
+    else:
+        (status, out, err)=util.exec_sync(["chpasswd"], stdin_data="%s:%s"%(username, passwd))
+
     if status!=0:
         raise Exception("Could not change logged user's password: %s"%err)
 
@@ -348,7 +352,7 @@ class Context:
         if self._internal_partfile is not None:
             encobj=enc.Enc("luks", self._internal_partfile)
             encobj.umount()
-            _change_current_user_password("insecauser", "insecauser")
+            _change_current_user_password("insecauser", None)
 
     def password_change(self, name, current_password, new_password):
         if not self.is_valid:
