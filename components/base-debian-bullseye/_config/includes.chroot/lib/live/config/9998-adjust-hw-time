@@ -35,13 +35,26 @@ do
     }
 done
 
-# adjust /etc/adjtime if necessary
+# adjust if necessary
 if [ "$windows_detected" == "1" ]
 then
     logger "Windows OS detected, using LOCAL hardware clock reference"
+
+    # adjust /etc/adjtime
     sed -i -e 's/^UTC$/LOCAL/' /etc/adjtime
     # we can't use the timedatectl as the corresponding services are not yet in place
     # /usr/bin/timedatectl set-local-rtc 1
+
+    # adjust current time: remove the current TZ
+    tzo=$(date +%z) # get the TZ offset, will be like "+0330"
+    hoffset=${tzo:1:2} # eg. "02"
+    moffset=${tzo:3:2} # eg. "30"
+    cts=$(date +%s) # get current ts (in UTC)
+    nts=$((cts-$hoffset*3600-$moffset*60))
+    cdate=$(date)
+    date --utc -s @$nts
+    ndate=$(date)
+    logger "Shifted local time from $cdate to $ndate (TZ: $tzo)"
 else
     logger "Windows OS NOT detected, keeping UTC hardware clock reference"
 fi
