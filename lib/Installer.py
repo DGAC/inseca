@@ -546,6 +546,7 @@ class Installer:
         params=self._pset.params
         for component in params["_components"]:
             specs={}
+            specs_trace={}
             component_dir="components/%s"%component
             resources[Live.partid_internal][component_dir]=[None, 0o755] # this component's dir
             for param in params["_components"][component]:
@@ -554,13 +555,16 @@ class Installer:
                 specs[param]=value
                 if pspec["type"]=="file":
                     if value is not None:
-                        value=get_userdata_file_real_path(self._conf, component, param, value)
+                        vpath=get_userdata_file_real_path(self._conf, component, param, value)
                         fname=str(uuid.uuid4())
-                        resources[Live.partid_internal]["%s/%s"%(component_dir, fname)]=[value, 0o644]
+                        resources[Live.partid_internal]["%s/%s"%(component_dir, fname)]=[vpath, 0o644]
                         specs[param]=fname
+                        specs_trace[param]=value
 
             tmp=util.Temp(data=json.dumps(specs, indent=4))
             resources[Live.partid_internal]["%s/userdata.json"%component_dir]=[tmp, 0o644]
+            tmp=util.Temp(data=json.dumps(specs_trace, indent=4))
+            resources[Live.partid_internal]["%s/userdata-trace.json"%component_dir]=[tmp, 0o644]
 
         # write all to device
         self._write_resources_from_map(resources)
