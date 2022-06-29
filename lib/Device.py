@@ -371,7 +371,12 @@ class Device:
         self._meta=None
         self._cached_layout=None # invalidate any cached layout
 
+        # erase parameters
+        chunk_size=4*1024*1024 # 4MB at a time
+        chunk=b'\0'*chunk_size
+
         # determine device's size
+        util.print_event("Analysing device")
         try:
             specs=analyse_layout(self._devfile)
             #print("SPECS: %s"%json.dumps(specs, indent=4))
@@ -380,30 +385,40 @@ class Device:
             specs=None
             devsize=None
 
+        # wipe MBR / GPT
+        util.print_event("Wiping partitions table")
+        _wipe_mbr_gpt(self._devfile)
+
+        # clean reserved space
+        util.print_event("Wiping any meta data")
+        with open(self._devfile, "wb", buffering=0) as fd:
+            fd.seek(-end_reserved_space*1000000, 2)
+            while True:
+                try:
+                    fd.write(chunk)
+                except OSError as e:
+                    if e.errno==28: # No space left on device
+                        break
+                    raise e
+
         # TODO: try to optimize data wiping with encrypted partitions
         if False and specs is not None:
             try:
                 for partdata in specs["partitions"]:
                     if partdata["filesystem"]=='ISO9660':
                         pass
-
                     # TODO: optimise wiping of encrypted partitions
-        
-                # MBR & GPT structures
-                _wipe_mbr_gpt(self._devfile)
                 return
             except:
                 pass
 
         # raw wiping
-        chunk_size=4*1024*1024 # 4MB at a time
-        chunk=b'\0'*chunk_size
         written=0
         with open(self._devfile, "wb", buffering=0) as fd:
             while True:
                 if devsize is not None:
                     percent=written*100/devsize
-                    util.print_event("%s%% erased"%round(percent, 1))
+                    util.print_event("%s%%"%round(percent, 1))
                 try:
                     nb=fd.write(chunk)
                     written+=nb
