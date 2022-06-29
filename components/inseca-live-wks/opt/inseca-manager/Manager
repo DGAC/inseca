@@ -29,6 +29,7 @@ import gi
 import json
 import syslog
 import datetime
+import time
 import Utils as util
 import Jobs as jobs
 import Device
@@ -43,7 +44,9 @@ if not util.is_run_as_root():
 
 syslog.syslog(syslog.LOG_INFO, "Program started")
 live_env=Live.Environ()
-live_env.define_UI_environment()
+while not live_env.define_UI_environment():
+    syslog.syslog(syslog.LOG_INFO, "User not yet created...")
+    time.sleep(2)
 
 # proxy setup
 proxy_pac_file="/opt/share/proxy.pac"

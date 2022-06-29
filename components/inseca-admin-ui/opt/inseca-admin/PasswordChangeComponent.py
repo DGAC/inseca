@@ -63,9 +63,9 @@ class Component:
     def _password_change(self, dummy):
         """Actually change the password"""
         npw=self._password1.get_text() # user's password
-        cgen.validate_password(npw)
-        self._ui.show_message("Changing password...")
         try:
+            cgen.validate_password(npw)
+            self._ui.show_message("Changing password...")
             cpw=self._current_password.get_text()
             job=jobs.PasswordChangeJob(self._context, cpw, npw, self._ui.feedback_component)
             job.start()

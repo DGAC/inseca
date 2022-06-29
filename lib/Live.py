@@ -681,11 +681,14 @@ class Environ:
         return self._default_profile_dir
 
     def define_UI_environment(self):
+        if self.uid is None:
+            return False
         os.environ["XDG_RUNTIME_DIR"]="/run/user/%d"%self.uid
         os.environ["DBUS_SESSION_BUS_ADDRESS"]="unix:path=/run/user/%d/bus"%self.uid
         os.environ["WAYLAND_DISPLAY"]="wayland-0"
         os.environ["DISPLAY"]=":0"
         os.environ["XAUTHORITY"]="/run/user/%d/gdm/Xauthority"%self.uid
+        return True
 
     #
     # PRIVDATA
@@ -693,7 +696,7 @@ class Environ:
     def extract_privdata(self):
         """Decrypt and extract /privdata.tar.enc file (which contains the PRIVDATA of all the components)"""
         privtmp=self.privdata_dir
-        os.makedirs(privtmp, mode=0o700)
+        os.makedirs(privtmp, mode=0o700, exist_ok=True)
 
         if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
             privkey_file="/internal/credentials/privdata-ekey.priv"
