@@ -18,10 +18,81 @@ import subprocess
 import time
 import os
 import syslog
+import requests
 import Utils as util
 
 # define a proxy.pac file here
 proxy_pac_file=None
+internet_ref_site="http://www.google.com"
+
+import threading
+from gi.repository import GLib
+import dbus
+import dbus.mainloop.glib
+class NetworkMonitor(threading.Thread):
+    """Monitors network configuration using NetworkManager's API in a sub thread.
+    Use the @changed property to check if the network settings have changed since last check.
+    Call stop_monitoring() when finished using the object"""
+    def __init__(self):
+        threading.Thread.__init__(self)
+        self._changed=False
+        self._loop=None
+        self._timer_id=None
+        self._start_monitoring()
+
+    @property
+    def changed(self):
+        chg=self._changed
+        self._changed=False
+        return chg
+
+    def _start_monitoring(self):
+        """Start the sub thread and wait for it to be started and 'operational'"""
+        self.start() # start the sub thread
+        while True:
+            if self._loop and self._loop.is_running():
+                break
+            time.sleep(0.2)
+
+    def stop(self):
+        """Stop the monitoring"""
+        self._changed=False
+        if self._timer_id is not None:
+            GLib.source_remove(self._timer_id)
+            self._timer_id=None
+        if self._loop:
+            self._loop.quit()
+            while self._loop.is_running():
+                time.sleep(0.2)
+            self._loop=None
+        self.join()
+
+    def _changed_cb(self):
+        self._timer_id=None
+        self._changed=True
+        return False # don't keep timer
+
+    def _net_state_changed_cb(self, dummy):
+        """Function called when the NM's properties change, it can be called several times in a short amount of
+        time => use a timer to run the self._changed_cb() function"""
+        if self._timer_id is None:
+            self._timer_id=GLib.timeout_add(500, self._changed_cb) # to "aggregate" several property notifications in one call
+
+    def run(self):
+        # monitor NetworkManager through its DBus interfaces
+        NM_DBUS_NAME = "org.freedesktop.NetworkManager"
+        NM_DBUS_PATH = "/org/freedesktop/NetworkManager"
+        NM_DBUS_INTERFACE = "org.freedesktop.NetworkManager"
+
+        # set up NetworkManager monitoring
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        sessionBus = dbus.SystemBus()
+        nm_proxy=sessionBus.get_object(NM_DBUS_NAME, NM_DBUS_PATH)
+        nm_proxy.connect_to_signal("PropertiesChanged", self._net_state_changed_cb, dbus_interface=NM_DBUS_INTERFACE)
+
+        self._loop=GLib.MainLoop()
+        self._loop.run()
+
 
 class SyncConfig:
     """Synchronization 'endpoint' (or method), to map to the 'deploy' section of the global inseca.json configuration file"""
@@ -190,6 +261,54 @@ def _extract_rclone_err_message_for_user(err):
     lines=lines[-2:]
     return "\n".join(lines)
 
+def _adjust_time(exec_env=None):
+    """Adjust the time to remove any skew. It requires an Internet access.
+    The @exec_env allows one to specify a proxy fore example.
+    """
+    try:
+        res=requests.get(internet_ref_site)
+        if res.ok:
+            # get current date (UTC)
+            (status, outh, errh)=util.exec_sync(["date", "-d", "now", "+%s"]) # '%s' is always in UTC
+            if status==0:
+                host_ts=int(outh)
+            else:
+                syslog.syslog(syslog.LOG_ERR, "Could not get current host time: %s"%errh)
+                return
+
+            remote_ts_str=res.headers["Date"]
+            syslog.syslog(syslog.LOG_INFO, "Got time from remote '%s': %s"%(internet_ref_site, remote_ts_str))
+            (status, out, err)=util.exec_sync(["date", "-d", remote_ts_str, "+%s"]) # NB: we use the date command line tool as Python seems unable to
+                                                                                    # parse timezones, see https://stackoverflow.com/questions/3305413/how-to-preserve-timezone-when-parsing-date-time-strings-with-strptime
+            if status==0:
+                remote_ts=int(out)
+            else:
+                syslog.syslog(syslog.LOG_ERR, "Could not convert remote time: %s"%err)
+                return
+
+            if abs(remote_ts-host_ts)>10:
+                # adjust current time
+                syslog.syslog(syslog.LOG_INFO, "Adjusting host time to remote")
+                (status, out, err)=util.exec_sync(["date", "-s", remote_ts_str, "--utc"])
+                if status==0:
+                    pass
+                else:
+                    syslog.syslog(syslog.LOG_ERR, "Could not adjust date to '%s': %s"%(remote_ts_str, err))
+            else:
+                syslog.syslog(syslog.LOG_INFO, "No local time adjustment necessary (%ss shift)"%(remote_ts-host_ts))
+        else:
+            raise Exception(res.text)
+    except Exception as e:
+        syslog.syslog(syslog.LOG_ERR, "Could not get time from Internet server '%s': %s"%(internet_ref_site, str(e)))
+
+def _read_stderr(process):
+    """Read and return stderr as a str"""
+    try:
+        err=os.read(process.stderr.fileno(), 1024)
+        return err.decode()
+    except:
+        return ""
+
 class RcloneSync:
     def __init__(self, src, dest, exec_env=None):
         if not isinstance(src, SyncLocation):
@@ -213,15 +332,26 @@ class RcloneSync:
             args=["rclone"]
         args+=["--progress", "--stats=1s","sync", self._src.path, self._dest.path]
 
+        # network monitoring
+        nm=NetworkMonitor()
+
+        # rclone process
         from fcntl import fcntl, F_GETFL, F_SETFL
         from os import O_NONBLOCK
         restart=True
-        err=""
+        err=None
         status=None
         index=0
         while restart: # loop to (re)start the rclone process
+            if not self._dest.is_available:
+                nm.stop()
+                raise Exception("Resource's destination is not available")
+            if not self._src.is_available:
+                nm.stop()
+                raise Exception("Resource's origin is not available")
+
             # prepare proxy, if any
-            proxies=find_suitable_proxy(url="http://www.google.com")
+            proxies=find_suitable_proxy(url=internet_ref_site)
             if proxies:
                 env={}
                 if self._exec_env:
@@ -236,9 +366,14 @@ class RcloneSync:
                         if varname in env:
                             del env[varname]
 
-            # run rclone
+            # ensure local time is correct to avoid RClone failure like
+            # Failed to sync: RequestTimeTooSkewed: The difference between the request time and the current time is too large.
+            _adjust_time(env)
+
+            # run an rclone process
             index+=1
             syslog.syslog(syslog.LOG_INFO, "Starting RClone (%s): %s"%(index, " ".join(args)))
+            syslog.syslog(syslog.LOG_INFO, "Started RClone with env: %s"%env)
             process=subprocess.Popen(args, env=env, bufsize=0, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             flags=fcntl(process.stdout, F_GETFL) # get current p.stdout flags
             fcntl(process.stdout, F_SETFL, flags | O_NONBLOCK)
@@ -246,46 +381,30 @@ class RcloneSync:
             fcntl(process.stderr, F_SETFL, flags | O_NONBLOCK)
             time.sleep(1) # wait for RCLone to actually start
             status=None
-            low_rate_start_ts=None
 
-            # wait for process to finish and parse the output
+            # handle this process
             while True:
+                # if network has changed, we restart the rclone process
+                if nm.changed:
+                    syslog.syslog(syslog.LOG_WARNING, "Network config changed => restart RClone")
+                    restart=True
+                    break
+
                 # check if process has finished
                 status=process.poll()
                 if status!=None:
                     syslog.syslog(syslog.LOG_INFO, "RClone has finished, status: %s"%status)
-                    if status!=0:
-                        if "RequestTimeTooSkewed" in err:
-                            raise Exception("Data synchronisation error: system time is very wrong")
-                        raise Exception("Data synchronisation error: %s"%_extract_rclone_err_message_for_user(err))
-                    restart=False # rclone finished without any error
-                    break # => don't restart 
+                    restart=False # rclone has finished
+                    break
 
                 # read and process the rclone output
                 try:
-                    time.sleep(0.3)
+                    time.sleep(0.5)
                     out=os.read(process.stdout.fileno(), 1024)
                     if out:
                         try:
                             stats=_parse_rclone_stats(out.decode())
                             if stats:
-                                if stats["rate_bps"]<100:
-                                    now=util.get_timestamp()
-                                    if low_rate_start_ts is None:
-                                        # transfer rate is too slow
-                                        syslog.syslog(syslog.LOG_WARNING, "Low RClone transfer rate: %s bps"%stats["rate_bps"])
-                                        low_rate_start_ts=now
-                                    elif now-low_rate_start_ts>30:
-                                        # transfer rate is too slow for too long, restart the rclone process
-                                        syslog.syslog(syslog.LOG_WARNING, "RClone transfer rate low for tool long, restarting it")
-                                        process.kill()
-                                        process.wait()
-                                        self.sync(add_event_func)
-                                        return
-                                elif low_rate_start_ts is not None:
-                                    syslog.syslog(syslog.LOG_WARNING, "RClone transfer rate back to acceptable: %s bps"%stats["rate_bps"])
-                                    low_rate_start_ts=None # reset
-                                        
                                 msg=_rclone_stats_to_string(stats)
                                 if msg is not None:
                                     if add_event_func:
@@ -296,41 +415,42 @@ class RcloneSync:
                         except:
                             # could not parse rclone stats
                             pass
-                    err=os.read(process.stderr.fileno(), 1024)
+                    err=_read_stderr(process)
                     if err:
-                        syslog.syslog(syslog.LOG_WARNING, "RCLone output error: %s"%str(err))
-                        util.print_event("RClone output error: %s"%str(err), log=False)
+                        syslog.syslog(syslog.LOG_WARNING, "RCLone output error: %s"%err)
+                        util.print_event("RClone output error: %s"%err, log=False)
                 except OSError as e:
                     # we may get a lot of Resource temporarily unavailable errors
                     if e.errno!=11:
                         syslog.syslog(syslog.LOG_WARNING, "RCLone OSError: %s"%str(e))
                         util.print_event("RClone OSError: %s"%str(e), log=False)
                         restart=False
-                        break # => don't restart
+                        break
                 except Exception as e:
                     err=str(e)
                     if "retry later" in err:
                         # we sometimes get the "Incomplete synchronisation, retry later" error => wait a bit and retry
                         time.sleep(5)
-                        break # => restart
+                        restart=True
+                        break
                     else:
-                        syslog.syslog(syslog.LOG_WARNING, "RCLone error: %s"%str(e))
-                        util.print_event("RClone Error: %s"%str(e), log=False)
+                        syslog.syslog(syslog.LOG_WARNING, "RCLone error: %s"%err)
+                        util.print_event("RClone Error: %s"%err, log=False)
                         restart=False
-                        break # => don't restart
+                        break
 
-            # read stderr
-            try:
-                err=os.read(process.stderr.fileno(), 1024)
-            except:
-                pass
+        # read stderr
+        err=_read_stderr(process)
 
-            # properly get rid of the rclone process
-            try:
-                process.kill()
-            except:
-                pass
-            process.wait()
+        # properly get rid of the rclone process
+        try:
+            process.kill()
+        except:
+            pass
+        process.wait()
+
+        # stop network monitoring
+        nm.stop()
 
         # final statement
         if status!=None and status!=0:
@@ -356,23 +476,30 @@ def get_ip():
 
 def find_suitable_proxy(url="http://www.debian.fr"):
     if proxy_pac_file is None:
+        syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => None: no PAC file")
         return None
     try:
-        proxies="DIRECT"
+        ip=get_ip()
+        if ip=="127.0.0.1":
+            return None
+
         try:
+            proxies="DIRECT"
             # may fail if the proxy PAC file can't be read
             import pacparser
             pacparser.init()
             pacparser.parse_pac_file(proxy_pac_file)
-            pacparser.setmyip(get_ip())
+            pacparser.setmyip(ip)
             proxies=pacparser.find_proxy(url)
 
             if proxies.startswith("DIRECT"):
+                syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => None: DIRECT route for IP %s"%ip)
                 return None
             parts=proxies.split(";")
             util.print_event("Using HTTP proxy: %s"%proxies)
             proxyline=parts[0] # take the 1st proposed proxy
             (dummy, proxy)=proxyline.split() # proxyline ex: PROXY proxy1.manugarg.com:3128
+            syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => %s for IP %s"%(proxy, ip))
             return {
                 "http": "http://"+proxy,
                 "https": "http://"+proxy,
@@ -384,7 +511,9 @@ def find_suitable_proxy(url="http://www.debian.fr"):
             if "https_proxy" in os.environ:
                 res["https"]=os.environ["https_proxy"]
             if len(res)>0:
+                syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => %s from httpX_proxy env. variable"%res)
                 return res
+            syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => None from no httpX_proxy env. variable")
             return None
     except Exception as e:
         syslog.syslog(syslog.LOG_ERR, "Could not find a proxy to use: %s"%str(e))
@@ -393,7 +522,7 @@ def find_suitable_proxy(url="http://www.debian.fr"):
 def internet_accessible(exception_if_false=False):
     try :
         import requests
-        url="https://www.google.com"
+        url=internet_ref_site
         proxies=find_suitable_proxy(url)
         if proxies is None: # force  no proxy (make sure any http_proxy env. variable is ignored)
             proxies = {
