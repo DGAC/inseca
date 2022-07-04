@@ -207,6 +207,9 @@ class UI:
                 if job.exception:
                     raise job.exception
 
+                # remove any NO-BACKUP mark
+                self._live_env.user_config_clean_nobackup()
+
             # request to apply staged updates and get updates
             if self.remote:
                 self.remote.apply_staged(blob0, int_password, data_password)
