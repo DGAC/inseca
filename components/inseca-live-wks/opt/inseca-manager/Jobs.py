@@ -163,7 +163,7 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                         # wait for an Internet connection 
                         while not Sync.internet_accessible():
                             syslog.syslog(syslog.LOG_INFO, "No Internet access")
-                            time.sleep(60)
+                            raise Exception("No Internet access")
 
                         # update the build repo's data
                         so=Sync.SyncConfig(target, section[target], sync_conf_file)
@@ -194,6 +194,7 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                                 return
                     except Exception as e:
                         syslog.syslog(syslog.LOG_ERR, "Error analysing fetched data from target '%s': %s"%(target, str(e)))
+                        raise e
                 else:
                     # FIXME: future evolution to allow update via a USB stick
                     pass

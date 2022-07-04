@@ -16,6 +16,7 @@
 #    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
 
 import os
+import syslog
 import Utils as util
 import Sync
 import Job
@@ -39,6 +40,13 @@ class Component:
         self._repos_store_path=None
         self._internal_page_change=False
         self._update_counter=0
+        self._nm=Sync.NetworkMonitor()
+        GLib.timeout_add(1000, self._monitor_network_changes)
+        self._ui.plugged_devices_obj.connect("changed", self._device_changed_cb)
+        self._page_widget.connect("destroy", self._destroy_cb)
+
+    def _destroy_cb(self, dummy):
+        self._nm.stop()
 
     def _get_gconf(self, force_reload=False):
         try:
@@ -68,9 +76,16 @@ class Component:
                 self._ui.show_page("resources")
                 self._internal_page_change=False
 
-    def device_changed_cb(self, devices_data):
-        """Callback function called when the user insert or remove a device
+    def _monitor_network_changes(self):
+        if self._nm.changed:
+            syslog.syslog(syslog.LOG_INFO, "Network settings changed")
+            self._update_sync_capabilities()
+        return True # keep GLib's timer
+
+    def _device_changed_cb(self, dummy):
+        """Callback function called when the user inserted or removed a device
         """
+        syslog.syslog(syslog.LOG_INFO, "Device plugged or unplugged")
         self._update_counter=10
         GLib.timeout_add(1000, self._update_sync_capabilities) # give time to the OS to mount the device's partitions
 
@@ -111,17 +126,6 @@ class Component:
         label=self._builder.get_object("resources-stats")
         label.set_text("")
         # TODO
-
-    def _single_repo_download(self, repo, sync_obj):
-        self._ui.feedback_component.add_event("Downloading repository '%s'..."%repo.descr)
-        src=Sync.SyncLocation(repo.id, sync_obj)
-        dest=Sync.SyncLocation("%s/%s"%(self._repos_store_path, repo.id), None)
-        job=Job.RCloneDownloadJob(src, dest, self._ui.feedback_component)
-        job.start()
-        job.wait_with_ui()
-        if job.exception is not None:
-            util.print_event("Failed: %s"%str(job.exception))
-            raise job.exception
 
     def _update_configuration(self, sync_obj):
         """Uses the DOMAIN repositories to create a new global configuration, replacing the previous one if no error occurred"""

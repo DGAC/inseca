@@ -78,19 +78,3 @@ class Job(threading.Thread):
                 self.exception=JobCancelled()
             return True
         return False
-
-class RCloneDownloadJob(Job):
-    """Job to transfer data using RClone"""
-    def __init__(self, src, dest, feedback_component=None):
-        Job.__init__(self)
-        self._feedback_component=feedback_component
-        self._rclone=Sync.RcloneSync(src, dest)
-
-    def run(self):
-        try:
-            if self._feedback_component:
-                self._rclone.sync(self._feedback_component.add_event)
-            else:
-                self._rclone.sync()
-        except Exception as e:
-            self.exception=e

@@ -380,7 +380,7 @@ class Remote(dbus.service.Object):
         return infos
 
     #
-    # Getting updates API
+    # Updates API
     #
     @dbus.service.signal("inseca.Manager.GetUpdates", signature="is")
     def finished_get_updates(self, status, message):
@@ -398,7 +398,7 @@ class Remote(dbus.service.Object):
         if job.finished():
             if job.exception:
                 syslog.syslog(syslog.LOG_ERR, "Get update job finished, error: %s"%str(job.exception))
-                self.finished_get_updates(-1, "Error getting updates: %s"%str(job.exception))
+                self.finished_get_updates(-1, "Error: %s"%str(job.exception))
             else:
                 if job.result==0:    
                     syslog.syslog(syslog.LOG_INFO, "Get update job finished: no update available")
@@ -420,6 +420,7 @@ class Remote(dbus.service.Object):
         """Search for any live Linux (build) repo, and returns True if a new
         update has been staged (to be installed at the next reboot)"""
         if self._get_updates_job:
+            # already getting updates
             return
         if self._apply_update_job:
             # must wait for the staged update being applied first

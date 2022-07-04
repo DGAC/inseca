@@ -65,7 +65,10 @@ class NetworkMonitor(threading.Thread):
             while self._loop.is_running():
                 time.sleep(0.2)
             self._loop=None
-        self.join()
+        try:
+            self.join()
+        except Exception:
+            pass
 
     def _changed_cb(self):
         self._timer_id=None
