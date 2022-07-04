@@ -152,8 +152,8 @@ sparser=subparsers.add_parser("dev-wipe", help=_("Remove everything on a device"
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
 sparser.add_argument("--confirm", help=_("Confirm the removal without any confirmation asked"), action="store_true")
 
-sparser=subparsers.add_parser("dev-dump", help=_("Makes a byte for byte copy of a device to a file (like dd)"))
-sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser=subparsers.add_parser("dev-copy", help=_("Makes a byte for byte copy of a device to a file (like dd) or vide-versa"))
+sparser.add_argument("infile", help=_("Input file (e.g. /dev/sda)"))
 sparser.add_argument("outfile", help=_("File to copy data to"))
 
 sparser=subparsers.add_parser("dev-run-in-vm", help=_("Starts an INSECA device in a VM"))
@@ -192,7 +192,7 @@ sparser.add_argument("--passenv", help=_("Name of the environment variable conta
 
 # list commands which require to be run as root
 root_required_commands=["build", "dev-install", "gen-admin-iso",
-                        "dev-update-linux", "dev-format", "dev-ident",
+                        "dev-update-linux", "dev-format", "dev-ident", "dev-copy",
                         "dev-wipe", "dev-run-in-vm", "dev-mount", "dev-umount",
                         "dev-users", "dev-user-add", "dev-user-del", "dev-user-password"]
 
@@ -1001,20 +1001,12 @@ def repo_ls(args):
 def _sync_push(rconf, sync_obj):
     src=Sync.SyncLocation(rconf.path, None)
     dest=Sync.SyncLocation(rconf.id, sync_obj)
-    if not dest.is_available:
-        raise Exception("Destination is not available")
-    if not src.is_available:
-        raise Exception("Source is not available")
     so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
     so.sync()
 
 def _sync_pull(rconf, sync_obj):
     src=Sync.SyncLocation(rconf.id, sync_obj)
     dest=Sync.SyncLocation(rconf.path, None)
-    if not dest.is_available:
-        raise Exception("Destination is not available")
-    if not src.is_available:
-        raise Exception("Source is not available")
     util.print_event("Downloading repository '%s'"%rconf.descr)
     so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
     so.sync()
@@ -1067,15 +1059,19 @@ def sync_pull(args):
     ngconf=confs.GlobalConfiguration(path=newconfdir)
 
     # update all repo's contents
-    updated_repos=[]
-    for ruid in ngconf.repo_configs:
-        rconf=ngconf.get_repo_conf(ruid)
-        _sync_pull(rconf, sync)
-        updated_repos+=[rconf.id]
-    ngconf=confs.GlobalConfiguration(path=newconfdir)
+    try:
+        updated_repos=[]
+        for ruid in ngconf.repo_configs:
+            rconf=ngconf.get_repo_conf(ruid)
+            _sync_pull(rconf, sync)
+            updated_repos+=[rconf.id]
+        ngconf=confs.GlobalConfiguration(path=newconfdir)
+    except Exception:
+        # we need to continue and extract the last archives + perform cleanups
+        pass
 
-    # for each repo: extract the corresponding data from the last archive
-    util.print_event("Extracting last INSTALL and FORMAT archives")
+    # for each INSTALL and FORMAT repo: extract the corresponding data from the last archive
+    util.print_event("Extracting last archives")
     for iuid in ngconf.install_configs + ngconf.format_configs:
         try:
             conf=ngconf.get_install_conf(iuid)
@@ -1633,26 +1629,36 @@ def dev_install(args):
 
     raise Exception("Invalid configuration '%s'"%args.config)
 
-def dev_dump(args):
+def dev_copy(args):
     """Make a dd like copy of a device to a file"""
-    devfile=args.devfile
+    infile=args.infile
     outfile=args.outfile
     if args.verbose:
         util.print_events=True
 
-    # check we'v got enough free space
-    size=os.stat(devfile).st_size
+    # check we've got enough free space
+    size=os.stat(infile).st_size
     outfile=os.path.realpath(outfile)
     stat=shutil.disk_usage(outfile)
     if stat.free<size:
         raise Exception("Can't dump device: not enough free space")
 
-    # dump
+    # umount all devices' partitions, if any
+    if infile.startswith("/dev"):
+        util.print_event("Unmounting any partition of %s"%infile)
+        dev=Device.Device(infile)
+        dev.umount_all()
+    if outfile.startswith("/dev"):
+        util.print_event("Unmounting any partition of %s"%outfile)
+        dev=Device.Device(outfile)
+        dev.umount_all()
+
+    # copy data
     chunk=4*1024*1024 # 4Mib
     ndone=0
     nts=0
     try:
-        with open(devfile, "rb") as fd_read:
+        with open(infile, "rb") as fd_read:
             with open(outfile, "wb") as fd_write:
                 while True:
                     data=fd_read.read(chunk)
@@ -2237,7 +2243,7 @@ try:
             "dev-mount": dev_mount,
             "dev-umount": dev_umount,
             "dev-wipe": dev_wipe,
-            "dev-dump": dev_dump,
+            "dev-copy": dev_copy,
             "dev-run-in-vm": dev_run_in_vm,
             "dev-users": dev_users,
             "dev-user-add": dev_user_add,
