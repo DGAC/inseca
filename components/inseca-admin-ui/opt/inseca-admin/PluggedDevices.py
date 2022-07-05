@@ -336,7 +336,7 @@ class DevInfo:
                 for partdata in ident_result["dev-format"]["partitions"]:
                     partid=partdata["id"]
                     if not is_data_part:
-                        if partid=="data":
+                        if partid in ("data", "internal"):
                             is_data_part=True
                     if is_data_part:
                         self._data_partitions+=[partdata]
