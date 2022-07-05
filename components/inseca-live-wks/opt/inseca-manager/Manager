@@ -297,6 +297,7 @@ class Remote(dbus.service.Object):
         self._stage_dir="/internal/update-staging"
         self._get_updates_job=None
         self._apply_update_job=None
+        self._progress=None
 
     #
     # User management API
@@ -385,38 +386,39 @@ class Remote(dbus.service.Object):
     #
     # Updates API
     #
-    @dbus.service.signal("inseca.Manager.GetUpdates", signature="is")
-    def finished_get_updates(self, status, message):
-        """Signal that the job of getting updates is finished
-        status:
-        -1: an error occurred
-         0 => no update available
-         1 => an update has been staged
-         2 => a stage update is being applied
-        """
-        syslog.syslog(syslog.LOG_INFO, "Get updates finished: %s, %s"%(status, message))
-
     def _check_get_updated_job_finished(self, job):
-        #print("Checking to see if get update job has finished")
         if job.finished():
             if job.exception:
                 syslog.syslog(syslog.LOG_ERR, "Get update job finished, error: %s"%str(job.exception))
-                self.finished_get_updates(-1, "Error: %s"%str(job.exception))
+                self.progress("Error: %s"%str(job.exception))
             else:
                 if job.result==0:    
                     syslog.syslog(syslog.LOG_INFO, "Get update job finished: no update available")
-                    self.finished_get_updates(0, "No update available")
+                    self.progress("No update available")
                 elif job.result==1:
                     syslog.syslog(syslog.LOG_INFO, "Get update job finished: an update will be installed next reboot")
-                    self.finished_get_updates(1, "An update will be installed next reboot")
+                    self.progress("An update will be installed next reboot")
                 else:
                     syslog.syslog(syslog.LOG_WARNING, "Invalid job status '%s' for getting update"%job.result)
-                    self.finished_get_updates(job.result, "Invalid job status '%s' for getting update"%job.result)
+                    self.progress("Invalid status '%s' after getting update"%job.result)
             self._get_updates_job=None
             self.status_changed()
             return False # don't keep the timer
         else:
+            progress=job.progress
+            if progress!=self._progress:
+                self.progress(progress)
             return True # keep timer
+
+    @dbus.service.signal("inseca.Manager.GetUpdates", signature="s")
+    def progress(self, message):
+        self._progress=message
+        syslog.syslog(syslog.LOG_INFO, "progress changed: %s"%message)
+
+    @dbus.service.method("inseca.Manager.GetUpdates", out_signature="s")
+    def get_updates_progress(self):
+        progress=self._progress
+        return str(progress) if progress else ""
 
     @dbus.service.method("inseca.Manager.GetUpdates")
     def get_updates(self):
@@ -427,40 +429,30 @@ class Remote(dbus.service.Object):
             return
         if self._apply_update_job:
             # must wait for the staged update being applied first
-            self.finished_get_updates(2, "A staged update is being applied")
+            self.progress("A staged update is being applied")
             return
 
         job=jobs.LiveLinuxUpdatesGetJob(self._device_config_file, self._stage_dir)
         self._get_updates_job=job
         self.status_changed()
         job.start()
-        GLib.timeout_add(1000, self._check_get_updated_job_finished, job)
+        GLib.timeout_add(2000, self._check_get_updated_job_finished, job)
 
     #
     # Applying staged update API
     #
-    @dbus.service.signal("inseca.Manager.ApplyStagedUpdate", signature="is")
-    def finished_apply_staged_update(self, status, message):
-        """Signal that the job of getting updates is finished
-        status:
-        -1: an error occurred
-         0 => no staged update exists
-         1 => a staged update has been applied
-        """
-        syslog.syslog(syslog.LOG_INFO, "Apply staged finished: %s, %s"%(status, message))
-
     def _check_apply_staged_job_finished(self, job):
         if job.finished():
             if job.exception:
                 syslog.syslog(syslog.LOG_ERR, "Apply staged job finished, error: %s"%str(job.exception))
-                self.finished_apply_staged_update(-1, "Apply staged job finished, error: %s"%str(job.exception))
+                self.progress("Apply staged job finished, error: %s"%str(job.exception))
             else:
                 if job.result==0:
                     syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: no staged update available")
-                    self.finished_apply_staged_update(0, "No staged update available")
+                    self.progress("No staged update available")
                 elif job.result==1:
                     syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: an update has been applied, a reboot is needed")
-                    self.finished_apply_staged_update(1, "An update has been applied, a reboot is needed")
+                    self.progress("An update has been applied, a reboot is needed")
                     # remove files in self._stage_dir
                     for fname in os.listdir(self._stage_dir):
                         path="%s/%s"%(self._stage_dir, fname)
@@ -470,7 +462,7 @@ class Remote(dbus.service.Object):
                             syslog.syslog(syslog.LOG_WARNING, "Could not remove '%s' file: %s"%(path, str(e)))        
                 else:
                     syslog.syslog(syslog.LOG_ERR, "Invalid job status '%s' for applying staged update"%job.result)
-                    self.finished_apply_staged_update(job.result, "Invalid job status '%s' for applying staged update"%job.result)
+                    self.progress("Invalid job status '%s' for applying staged update"%job.result)
             self._apply_update_job=None
             self.status_changed()
             return False # don't keep the timer

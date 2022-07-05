@@ -32,15 +32,34 @@ class Job(threading.Thread):
         self.exception=None
         self.result=None
         self._cancelled=False
+        self._progress=None
 
+    #
+    # Job can be cancelled
+    #
     @property
     def cancelled(self):
         return self._cancelled
 
     def cancel(self):
-        print("Cancel requested")
+        """Call this function from the "caller" thread to request the job to stop"""
         self._cancelled=True
 
+
+    #
+    # Job can inform of an internal progress (e.g. a string)
+    #
+    @property
+    def progress(self):
+        return self._progress
+
+    def set_progress(self, progress):
+        """Call this function from the sub thread to define a progress"""
+        self._progress=progress
+
+    #
+    # Job management functions
+    #
     def wait_with_ui(self):
         """To be called from GTK's main loop thread"""
         c=0

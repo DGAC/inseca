@@ -78,8 +78,8 @@ class MainUI:
         self._system_bus=dbus.SystemBus()
         self._manager=self._system_bus.get_object("inseca.Manager", "/remote")
         self._manager.connect_to_signal("status_changed", self._manager_status_changed, dbus_interface="inseca.Manager.Status")
-        self._manager.connect_to_signal("finished_get_updates", self._manager_has_message_cb, dbus_interface="inseca.Manager.GetUpdates")
-        self._manager.connect_to_signal("finished_apply_staged_update", self._manager_has_message_cb, dbus_interface="inseca.Manager.GetUpdates")
+        self._manager.connect_to_signal("progress", self._manager_progress_cb, dbus_interface="inseca.Manager.GetUpdates")
+        self._manager_progress_cb(self._manager.get_updates_progress(dbus_interface="inseca.Manager.GetUpdates"))
         self._manager_status_changed()
 
         # version and informations
@@ -201,8 +201,8 @@ class MainUI:
             self._builder.get_object("update-button").set_sensitive(False)
             self._builder.get_object("update-spinner").start()
 
-    def _manager_has_message_cb(self, status, message):
-        self._builder.get_object("update-status").set_text(message)
+    def _manager_progress_cb(self, message):
+        self._builder.get_object("update-status").set_text(message if message else "")
 
     #
     # Delete saved user setting

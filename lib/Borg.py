@@ -161,11 +161,11 @@ class Repo:
             res[ts]=parts[0]
         return res
 
-    def is_locked(self):
-        """Tell if the repository is locked by Borg (i.e. another process is using it or there is a stale lock)"""
+    def check(self):
+        """Checks if the repository is Ok (using the "borg check" command)"""
+        self._borg_run(["check"], _("Repository is being modified, try again later"))
         if os.path.exists("%s/lock.roster"%self._repo_dir):
-            return True
-        return False
+            raise Exception("Repository is already being used, try again later")
 
     def get_latest_archive(self):
         """Get the most recent archive in the specified repository

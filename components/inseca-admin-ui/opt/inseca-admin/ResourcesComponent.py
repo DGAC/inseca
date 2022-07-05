@@ -137,7 +137,7 @@ class Component:
             self._ui.show_message("Downloading and extracting resources")
             self._back_button.set_sensitive(False)
 
-            job=jobs.InsecaRunJob(["--verbose", "sync-pull", sync_obj.name], "Mise à jour de la configuration", self._ui.feedback_component)
+            job=jobs.InsecaRunJob(["--verbose", "sync-pull", sync_obj.name], "Mise à jour de la configuration", feedback_component=self._ui.feedback_component)
             job.start()
             job.wait_with_ui()
             if job.exception is not None:

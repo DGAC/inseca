@@ -828,6 +828,7 @@ class RepoConfig:
 
     @property
     def borg_repo(self):
+        """Get the associated Borg repository object"""
         if self._borg_repo is None:
             if self._gconf.is_master:
                 config_dir="%s/.borg/config"%self._gconf.path
@@ -872,10 +873,6 @@ class RepoConfig:
 
     def get_borg_exec_env(self):
         return self.borg_repo.get_exec_env()
-
-    def is_locked(self):
-        """Tell if the repository is locked by Borg (i.e. another process is using it or there is a stale lock)"""
-        return self.borg_repo.is_locked()
 
     def get_all_archives(self):
         """Get a list of all the archives as a dictionary indexed by the timestamp the archive was created

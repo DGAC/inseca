@@ -204,57 +204,73 @@ class SyncLocation:
         else:
             return True
 
-def _parse_rclone_stats(line):
+def _parse_rclone_stats(text):
     units={
         "Bytes": 1,
         "kBytes": 1000,
         "MBytes": 1000*1000,
         "GBytes": 1000*1000*1000
     }
-    if "Transferred:" in line:
-        try:
-            stats={}
-            # like: Transferred:   1.230 GBytes (5.068 MBytes/s)
-            # like \x1b....Transferred:    \t 0 / 0 Bytes
-            line=line.split("Transferred:")[1].strip()
-            parts=line.split()
-            if len(parts)>=9:
-                try:
-                    stats["percent"]=int(float(parts[4][:-2]))
-                except:
-                    stats["percent"]=0
+    stats=None
+    for line in text.splitlines():
+        if line.startswith("Transferred:"):
+            try:
+                # like: Transferred:   1.230 GBytes (5.068 MBytes/s)
+                # like \x1b....Transferred:    \t 0 / 0 Bytes
+                line=line.split("Transferred:")[1].strip()
+                parts=line.split()
+                if len(parts)>=9:
+                    if stats is None:
+                        stats={}
+                    try:
+                        stats["percent"]=int(float(parts[4][:-2]))
+                    except:
+                        stats["percent"]=0
 
-                rate=float(parts[5])
-                (unit, dummy)=parts[6].split("/", 1)
-                if unit not in units:
-                    raise Exception()
-                value=(float(rate))*units[unit]
-                stats["rate_bps"]=int(value)
-                stats["remain"]=parts[8]
-            return stats
-        except:
-            raise Exception("Could not parse line '%s'"%line)
-    return None
+                    rate=float(parts[5])
+                    (unit, dummy)=parts[6].split("/", 1)
+                    if unit not in units:
+                        raise Exception()
+                    value=(float(rate))*units[unit]
+                    stats["rate_bps"]=int(value)
+                    stats["remain"]=parts[8]
+            except:
+                pass
+        elif line.startswith("Checks:"):
+            try:
+                # like: Checks:               292 / 350, 83%
+                line=line.split("Checks:")[1].strip()
+                parts=line.split()
+                if stats is None:
+                    stats={}
+                stats["checks"]=int(parts[3][:-1])
+            except:
+                pass
+
+    return stats
 
 def _rclone_stats_to_string(stats):
     """Update the UI with a job running rclone"""
     if stats:
-        rate=stats["rate_bps"]
-        if rate>=10**6:
-            rs="%.2f Mb/s"%(rate/10**6)
-        elif rate>=10**3:
-            rs="%.2f Kb/s"%(rate/10**3)
-        else:
-            rs="%.2f b/s"%rate
-        if stats["remain"]!="-":
-            if stats["percent"]==100 or stats["percent"]<2:
-                # sometimes the RClone stats are wrong => only display reliable tx rate
-                details=rs
+        if "rate_bps" in stats:
+            rate=stats["rate_bps"]
+            if rate>=10**6:
+                rs="%.2f Mb/s"%(rate/10**6)
+            elif rate>=10**3:
+                rs="%.2f Kb/s"%(rate/10**3)
             else:
-                details="%s%% transferred (%s)"%(stats["percent"], rs)
-            return details
-        else:
-            return None
+                rs="%.2f b/s"%rate
+            if stats["remain"]!="-":
+                if stats["percent"]==100 or stats["percent"]<2:
+                    # sometimes the RClone stats are wrong => only display reliable tx rate
+                    details=rs
+                else:
+                    details="%s%% transferred (%s)"%(stats["percent"], rs)
+                return details
+            else:
+                return None
+        elif "checks" in stats:
+            return "%s%% done checking"%stats["checks"]
     else:
         return None
 
@@ -413,8 +429,7 @@ class RcloneSync:
                                     if add_event_func:
                                         add_event_func(msg)
                                     else:
-                                        pass
-                                        #util.print_event(msg)
+                                        util.print_event(msg)
                         except:
                             # could not parse rclone stats
                             pass

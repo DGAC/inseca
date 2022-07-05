@@ -160,7 +160,7 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                 sync_conf_file="/internal/credentials/storage/%s"%target
                 if os.path.exists(sync_conf_file):
                     try:
-                        # wait for an Internet connection 
+                        # check for Internet connection 
                         while not Sync.internet_accessible():
                             syslog.syslog(syslog.LOG_INFO, "No Internet access")
                             raise Exception("No Internet access")
@@ -170,19 +170,19 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                         remote=Sync.SyncLocation(repo_id, so)
                         local=Sync.SyncLocation(repo_dir)
 
+                        self.set_progress("Downloading update data")
                         rclone=Sync.RcloneSync(remote, local)
-                        rclone.sync()
-
+                        rclone.sync(add_event_func=self.set_progress)
+                        
+                        self.set_progress("Checking for an update")
                         borg_repo=Borg.Repo(repo_dir, repo_password)
-                        if borg_repo.is_locked():
-                            # repo is locked => it was being writen to when we synchronized => don't use it yet
-                            syslog.syslog(syslog.LOG_INFO, "Updated build repository is locked")
-                            continue
+                        borg_repo.check() # ensure repo is useable
                         (archive_ts, archive_name)=borg_repo.get_latest_archive()
                         if archive_ts>kernel_ts:
                             # compare with existing staged archive
                             if archive_name!=staged_archive_name:
                                 syslog.syslog(syslog.LOG_INFO, "Extracting live Linux for next boot")
+                                self.set_progress("Preparing update")
                                 # clear the staging dir of any previous file
                                 for fname in os.listdir(self._stage_dir):
                                     os.remove("%s/%s"%(self._stage_dir, fname))

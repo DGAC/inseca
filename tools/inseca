@@ -1005,15 +1005,18 @@ def _sync_push(rconf, sync_obj):
     so.sync()
 
 def _sync_pull(rconf, sync_obj):
+    assert isinstance(rconf, confs.RepoConfig)
     src=Sync.SyncLocation(rconf.id, sync_obj)
     dest=Sync.SyncLocation(rconf.path, None)
-    util.print_event("Downloading repository '%s'"%rconf.descr)
+    util.print_event("Downloading '%s'"%rconf.descr)
     so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
     so.sync()
+    rconf.borg_repo.check() # ensure repo is useable
 
 def sync_push(args):
     """Push a repository (or all repositories if not specified) to a target location"""
-    util.print_events=True
+    if args.verbose:
+        util.print_events=True
     gconf=confs.GlobalConfiguration()
 
     if not gconf.is_master:
@@ -1071,7 +1074,7 @@ def sync_pull(args):
         pass
 
     # for each INSTALL and FORMAT repo: extract the corresponding data from the last archive
-    util.print_event("Extracting last archives")
+    util.print_event("Extracting INSTALL and FORMAT archives")
     for iuid in ngconf.install_configs + ngconf.format_configs:
         try:
             conf=ngconf.get_install_conf(iuid)
@@ -1080,7 +1083,7 @@ def sync_pull(args):
         rconf=ngconf.get_repo_conf(conf.repo_id)
         (ts, lastarname)=rconf.get_latest_archive()
         if lastarname:
-            util.print_event("extracting last archive '%s'"%lastarname)
+            util.print_event("Extracting '%s'"%rconf.descr)
             #print("config dir: %s"%conf.config_dir)
             rconf.extract_archive(lastarname, conf.config_dir)
 
@@ -1093,6 +1096,7 @@ def sync_pull(args):
             if ruid not in updated_repos:
                 print("Removing repo %s"%ruid)
                 orconf=gconf.get_repo_conf(ruid)
+                util.print_event("Removing '%s'"%orconf.descr)
                 orconf.remove()
         except Exception as e:
             util.print_event("Could not remove repo. %s: %s"%(ruid, str(e)))
@@ -1105,7 +1109,7 @@ def sync_pull(args):
     for ruid in updated_repos:
         rconf=ngconf.get_repo_conf(ruid)
         if rconf.type in (confs.RepoType.BUILD, confs.RepoType.USERDATA):
-            util.print_event("extracting last archive '%s'"%lastarname)
+            util.print_event("Extracting '%s'"%rconf.descr)
             rconf.cache_last_archive()
 
 def repo_prune(args):
