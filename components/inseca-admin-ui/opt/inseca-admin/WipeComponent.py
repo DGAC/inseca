@@ -84,8 +84,7 @@ class Component:
         self._ui.show_message("Erasing device")
         
         try:
-            job=jobs.InsecaRunJob(["--verbose", "dev-wipe", "--confirm", devinfo1.devfile], "Erasing device",
-                                  feedback_component=self._ui.feedback_component)
+            job=jobs.InsecaRunJob(["--verbose", "dev-wipe", "--confirm", devinfo1.devfile], "Erasing device", feedback_component=self._ui.feedback_component)
             job.start()
 
             self._wipe_button.hide()

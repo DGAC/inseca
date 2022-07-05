@@ -72,7 +72,7 @@ class Component:
         devinfo=self._combo_device.get_selected_devinfo()
         self._ui.show_message("Updating device")
         try:
-            job=jobs.InsecaRunJob(["--verbose", "dev-update-linux", devinfo.devfile], "Updating device", self._ui.feedback_component)
+            job=jobs.InsecaRunJob(["--verbose", "dev-update-linux", devinfo.devfile], "Updating device", feedback_component=self._ui.feedback_component)
             job.start()
             self._live_linux_update_button.set_sensitive(False)
             self._back_button.set_sensitive(False)
