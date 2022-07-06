@@ -4,6 +4,11 @@
         "base-os"
     ],
     "requires": [],
-    "builddata": {},
+    "builddata": {
+        "docker-bip": {
+            "descr": "Docker bridge network CIDR (if not specified, defaults to Docker's choice)",
+            "type": "str"
+        }
+    },
     "userdata": {}
 }

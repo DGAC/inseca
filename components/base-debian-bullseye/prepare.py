@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2022 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,21 +18,16 @@
 #    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
 
 import os
-import shutil
+import json
 import Utils as util
 
-# restart the Docker daemon if it is installed as its configuration may have been
-# modified by some PRIVDATA build parameters
-docker_path=shutil.which("docker")
-if docker_path:
-    (status, out, err)=util.exec_sync(["systemctl", "restart", "docker"])
-
-# dump PCR registers from TPM2 if any
-ts=util.get_timestamp(as_str=True)
-os.makedirs("/internal/tpm-tests", exist_ok=True)
-(status, out, err)=util.exec_sync(["tpm2_pcrread"])
-if status==0:
-    util.write_data_to_file(out, "/internal/tpm-tests/TPM2-%s-PCRs"%ts)
-else:
-    util.write_data_to_file(err, "/internal/tpm-tests/PCR2-%s-ERR"%ts)
-
+# create the /etc/docker/daemon.json file in PRIVDATA_DIR
+conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
+key="docker-bip"
+if key in conf:
+    data={
+        "bip": conf[key]
+    }
+    destdir="%s/etc/docker"%os.environ["PRIVDATA_DIR"]
+    os.makedirs(destdir, exist_ok=True)
+    util.write_data_to_file(json.dumps(data), "%s/daemon.json"%destdir, perms=0o600)
