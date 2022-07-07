@@ -1,20 +1,32 @@
---- lib/live/boot/9990-misc-helpers.sh.orig	2022-06-14 14:25:53.684921656 +0200
-+++ lib/live/boot/9990-misc-helpers.sh	2022-06-14 14:26:28.757379338 +0200
-@@ -289,6 +289,20 @@
+--- lib/live/boot/9990-misc-helpers.sh.orig	2022-07-01 11:27:42.608793936 +0200
++++ lib/live/boot/9990-misc-helpers.sh	2022-07-01 11:24:31.054328332 +0200
+@@ -289,6 +289,32 @@
  		fi
  	fi
  
 +	# look at the ROOT specified on the command line
++	inseca_logfile="/run/initramfs/inseca.log"
 +	if [ -n "$ROOT" ]
 +	then
-+		dev=$(resolve_device "$ROOT")
-+		if [ -n "$dev" ]
-+		then
-+			if check_dev "${dev}"
++		counter=0
++		echo "Looking for device $ROOT" > $inseca_logfile
++		while [ "$counter" != "10" ]
++		do
++			counter=$((counter+1))
++			echo "Counter: $counter" >> $inseca_logfile
++			dev=$(resolve_device "$ROOT")
++			if [ -n "$dev" ]
 +			then
-+				return 0
++				echo "Found $dev, checking..." >> $inseca_logfile
++				if check_dev "${dev}"
++				then
++					return 0
++				fi
 +			fi
-+		fi
++			echo "Not yet, sleeping a bit" >> $inseca_logfile
++			sleep 2
++		done
++
 +		panic "Can't find root device '$ROOT'"
 +	fi
 +
