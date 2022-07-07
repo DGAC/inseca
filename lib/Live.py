@@ -789,7 +789,8 @@ class Environ:
         assert self._live_type==confs.BuildType.WKS
 
         syslog.syslog(syslog.LOG_INFO, "Starting backing up user config")
-        path="%s/NO-BACKUP"%self.config_dir
+        config_dir=self.config_dir
+        path="%s/NO-BACKUP"%config_dir
         if os.path.exists(path):
             # don't back up the setting this time
             syslog.syslog(syslog.LOG_INFO, "Found the %s file, don't backup user config this time"%path)
@@ -815,10 +816,11 @@ class Environ:
         """Restore any previously backed up user settings, if any"""
         assert self._live_type==confs.BuildType.WKS
 
+        config_dir=self.config_dir
         definition=_user_config_definition
         for key in definition:
             try:
-                backup_filename="%s/%s"%(self.config_dir, key)
+                backup_filename="%s/%s"%(config_dir, key)
                 if os.path.exists(backup_filename):
                     self.events.add_info_event("backup", "Restoring %s"%key)
                     syslog.syslog(syslog.LOG_INFO, "Restore: %s"%key)

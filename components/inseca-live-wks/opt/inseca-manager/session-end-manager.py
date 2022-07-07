@@ -159,7 +159,7 @@ signal.signal(signal.SIGTERM, term_handler)
 # DBUS stuff
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-os.seteuid(backup.uid) # to user, required to connect to the session bus
+os.seteuid(backup.uid) # switch to connected user, required to connect to the session bus
 sessionBus = dbus.SessionBus()
 mngr_proxy=sessionBus.get_object(SM_DBUS_NAME, SM_DBUS_PATH)
 smClientId=mngr_proxy.RegisterClient(APP_ID, "", dbus_interface=SM_DBUS_INTERFACE)

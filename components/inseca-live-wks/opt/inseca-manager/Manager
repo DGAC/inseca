@@ -30,6 +30,7 @@ import json
 import syslog
 import datetime
 import time
+import signal
 import Utils as util
 import Jobs as jobs
 import Device
@@ -443,6 +444,8 @@ class Remote(dbus.service.Object):
     #
     def _check_apply_staged_job_finished(self, job):
         if job.finished():
+            # restore the default signal handling
+            signal.signal(signal.SIGTERM, signal.SIG_DFL)
             if job.exception:
                 syslog.syslog(syslog.LOG_ERR, "Apply staged job finished, error: %s"%str(job.exception))
                 self.progress("Apply staged job finished, error: %s"%str(job.exception))
@@ -469,6 +472,10 @@ class Remote(dbus.service.Object):
         else:
             return True # keep timer
 
+    def handler(self, signum, frame):
+        # ignore the signal
+        syslog.syslog(syslog.LOG_INFO, "Ignoring TERM signal when applying a staged update")
+
     #@dbus.service.method("inseca.Manager.ApplyStagedUpdate")
     # don't make this method callable using DBus because not needed and because
     # the API would require the user password and not the blob0, etc credentials
@@ -477,8 +484,11 @@ class Remote(dbus.service.Object):
         """Apply a staged update if any"""
         if self._apply_update_job:
             return
-        iso_file="%s/live-linux.iso"%self._stage_dir
 
+        # catch any TERM signal which lay be sent by systemd when shutting down to avoid interrupting the process
+        signal.signal(signal.SIGTERM, self.handler)
+
+        iso_file="%s/live-linux.iso"%self._stage_dir
         job=jobs.LiveLinuxUpdateApplyJob(iso_file, blob0, int_password, data_password)
         self._apply_update_job=job
         self.status_changed()
