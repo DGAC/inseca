@@ -297,6 +297,7 @@ class Remote(dbus.service.Object):
         # update management
         self._stage_dir="/internal/update-staging"
         self._get_updates_job=None
+        self._get_update_notify=False
         self._apply_update_job=None
         self._progress=None
 
@@ -392,13 +393,19 @@ class Remote(dbus.service.Object):
             if job.exception:
                 syslog.syslog(syslog.LOG_ERR, "Get update job finished, error: %s"%str(job.exception))
                 self.progress("Error: %s"%str(job.exception))
+                if self._get_update_notify:
+                    self._ui.live_env.notify("Error looking for updates: %s"%str(job.exception))
             else:
                 if job.result==0:    
                     syslog.syslog(syslog.LOG_INFO, "Get update job finished: no update available")
                     self.progress("No update available")
+                    if self._get_update_notify:
+                        self._ui.live_env.notify("No update available")
                 elif job.result==1:
                     syslog.syslog(syslog.LOG_INFO, "Get update job finished: an update will be installed next reboot")
                     self.progress("An update will be installed next reboot")
+                    if self._get_update_notify:
+                        self._ui.live_env.notify("An update will be installed next reboot")
                 else:
                     syslog.syslog(syslog.LOG_WARNING, "Invalid job status '%s' for getting update"%job.result)
                     self.progress("Invalid status '%s' after getting update"%job.result)
@@ -423,8 +430,12 @@ class Remote(dbus.service.Object):
 
     @dbus.service.method("inseca.Manager.GetUpdates")
     def get_updates(self):
+        self._get_updates(True)
+
+    def _get_updates(self, notify_user=False):
         """Search for any live Linux (build) repo, and returns True if a new
         update has been staged (to be installed at the next reboot)"""
+        self._get_update_notify=notify_user
         if self._get_updates_job:
             # already getting updates
             return
@@ -433,6 +444,8 @@ class Remote(dbus.service.Object):
             self.progress("A staged update is being applied")
             return
 
+        if notify_user:
+            self._ui.live_env.notify("Looking for updates")
         job=jobs.LiveLinuxUpdatesGetJob(self._device_config_file, self._stage_dir)
         self._get_updates_job=job
         self.status_changed()
@@ -446,9 +459,11 @@ class Remote(dbus.service.Object):
         if job.finished():
             # restore the default signal handling
             signal.signal(signal.SIGTERM, signal.SIG_DFL)
+
             if job.exception:
                 syslog.syslog(syslog.LOG_ERR, "Apply staged job finished, error: %s"%str(job.exception))
                 self.progress("Apply staged job finished, error: %s"%str(job.exception))
+                self._ui.live_env.notify("Finished applying staged update, an error occurred")
             else:
                 if job.result==0:
                     syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: no staged update available")
@@ -456,6 +471,7 @@ class Remote(dbus.service.Object):
                 elif job.result==1:
                     syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: an update has been applied, a reboot is needed")
                     self.progress("An update has been applied, a reboot is needed")
+                    self._ui.live_env.notify("An update has been applied, a reboot is needed")
                     # remove files in self._stage_dir
                     for fname in os.listdir(self._stage_dir):
                         path="%s/%s"%(self._stage_dir, fname)
@@ -465,7 +481,8 @@ class Remote(dbus.service.Object):
                             syslog.syslog(syslog.LOG_WARNING, "Could not remove '%s' file: %s"%(path, str(e)))        
                 else:
                     syslog.syslog(syslog.LOG_ERR, "Invalid job status '%s' for applying staged update"%job.result)
-                    self.progress("Invalid job status '%s' for applying staged update"%job.result)
+                    self.progress("Finished applying staged update, an error occurred")
+                    self._ui.live_env.notify("Finished applying staged update, an error occurred")
             self._apply_update_job=None
             self.status_changed()
             return False # don't keep the timer
@@ -489,6 +506,8 @@ class Remote(dbus.service.Object):
         signal.signal(signal.SIGTERM, self.handler)
 
         iso_file="%s/live-linux.iso"%self._stage_dir
+        if os.path.exists(iso_file):
+            self._ui.live_env.notify("Applying staged update, do not close the session")
         job=jobs.LiveLinuxUpdateApplyJob(iso_file, blob0, int_password, data_password)
         self._apply_update_job=job
         self.status_changed()
@@ -499,12 +518,12 @@ class Remote(dbus.service.Object):
 # Main
 #
 def get_updates_startup(remote):
-    remote.get_updates()
+    remote._get_updates(True)
     GLib.timeout_add(1000*60*60, get_updates_recurrent, remote) # run every hour
     return False # remove timer
 
 def get_updates_recurrent(remote):
-    remote.get_updates()
+    remote._get_updates()
     return True # keep timer
 
 try:
