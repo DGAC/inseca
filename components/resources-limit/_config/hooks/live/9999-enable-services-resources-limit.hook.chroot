@@ -32,11 +32,11 @@ EOF
 
 cat > /etc/apt/preferences.d/20cgroup << EOF
 Package: cgroup-tools
-Pin: release a=testing
+Pin: version 2.0.1-1 
 Pin-Priority: 600
 
 Package: libcgroup1
-Pin: release a=testing
+Pin: version 2.0-1
 Pin-Priority: 600
 EOF
 
