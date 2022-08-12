@@ -169,7 +169,7 @@ sparser.add_argument("--decrypt_key", metavar="decrypt-key", help=_("Force a spe
 
 sparser=subparsers.add_parser("dev-umount", help=_("Unmount a mounted partition of an INSECA device"))
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
-sparser.add_argument("partition_id", metavar="partition-id", help=_("Partition ID (name) to umount"))
+sparser.add_argument("partition_id", metavar="partition-id", help=_("Partition ID (name) to umount, pass '-' to unmount all"))
 
 sparser=subparsers.add_parser("dev-users", help=_("List the users declared"))
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
@@ -2040,7 +2040,10 @@ def dev_mount(args):
 
 def dev_umount(args):
     dev=Device.Device(args.devfile)
-    dev.umount(args.partition_id)
+    if args.partition_id!="-":
+        dev.umount(args.partition_id)
+    else:
+        Device.umount_all_partitions(args.devfile)
 
 def dev_wipe(args):
     if not args.devfile.startswith("/dev/"):

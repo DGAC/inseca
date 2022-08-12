@@ -1,4 +1,4 @@
-Main component to manage a running INSECA system.
+Main component to manage a running INSECA system with a GUI.
 
 # Build configuration attributes
 

@@ -23,11 +23,12 @@ import Utils as util
 
 # create the /etc/docker/daemon.json file in PRIVDATA_DIR
 conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
-key="docker-bip"
-if key in conf:
-    data={
-        "bip": conf[key]
-    }
-    destdir="%s/etc/docker"%os.environ["PRIVDATA_DIR"]
-    os.makedirs(destdir, exist_ok=True)
-    util.write_data_to_file(json.dumps(data), "%s/daemon.json"%destdir, perms=0o600)
+if conf:
+    key="docker-bip"
+    if key in conf:
+        data={
+            "bip": conf[key]
+        }
+        destdir="%s/etc/docker"%os.environ["PRIVDATA_DIR"]
+        os.makedirs(destdir, exist_ok=True)
+        util.write_data_to_file(json.dumps(data), "%s/daemon.json"%destdir, perms=0o600)
