@@ -3,11 +3,11 @@ Description=INSECA Manager session service (handles end of session)
 
 [Service]
 Type=simple
-Environment="PYTHONPATH=/opt/inseca-manager"
-ExecStart=/opt/inseca-manager/session-end-manager.py
+Environment="PYTHONPATH=/opt/inseca"
+ExecStart=/opt/inseca/session-end-manager.py
 TimeoutSec=5
 RestartSec=5
-Restart=always
+Restart=no
 
 [Install]
 WantedBy=default.target

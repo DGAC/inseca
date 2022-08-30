@@ -32,7 +32,7 @@ import FingerprintHash as fphash
 
 # https://papy-tux.legtux.org/doc1064/index.php
 
-end_reserved_space=5 # MB
+end_reserved_space=32 # MB (LUKS headers are huge)
 
 #
 # Device "formatting" functions according to specifications:
@@ -569,6 +569,14 @@ class Device:
         for partdata in partitions["partitions"]:
             if "id" in partdata and partdata["id"]==partition_id:
                 return _partition_name_from_number(self._devfile, partdata["number"])
+        raise Exception("Could not identify partition with ID '%s'"%partition_id)
+
+    def get_partition_filesystem(self, partition_id):
+        """Get the filesystem for the specified partition_id"""
+        partitions=self.get_partitions_layout()
+        for partdata in partitions["partitions"]:
+            if "id" in partdata and partdata["id"]==partition_id:
+                return filesystem.fstype_from_string(partdata["filesystem"])
         raise Exception("Could not identify partition with ID '%s'"%partition_id)
 
     def define_decryptors(self, decryptors):
@@ -1243,11 +1251,9 @@ def _format_partition(devfile, pspec, part_number):
         # get filesystem to use
         fstype=None
         fslabel=None
-        fsvol=None
         if "filesystem" in pspec:
             fstype=filesystem.fstype_from_string(pspec["filesystem"])
             fslabel=pspec["label"]
-            fsvol=pspec["volume-id"]
 
         # partition formatting
         part_name=_partition_name_from_number(devfile, part_number)
@@ -1266,13 +1272,13 @@ def _format_partition(devfile, pspec, part_number):
             if fstype:
                 (status, out, err)=util.exec_sync(["/bin/ls", "/dev/mapper"])
                 mapped=obj.open()
-                filesystem.create_filesystem(mapped, fstype, fslabel, fsvol)
+                filesystem.create_filesystem(mapped, fstype, fslabel)
                 obj.close()
 
             return password
 
         elif fstype:
-            filesystem.create_filesystem(part_name, fstype, fslabel, fsvol)
+            filesystem.create_filesystem(part_name, fstype, fslabel)
             return None
 
 def _umount(what):

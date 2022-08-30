@@ -61,10 +61,9 @@ class Params(GObject.Object):
         """
         core_params=self._iconf.parameters_core.copy()
 
-        # user password is in the "core" parameters but should be defined by the user (the others
-        # are defined automatically)
+        # "core" parameters which should be defined by the user (the others are defined automatically)
         self._iconf_params={}
-        for pname in ["password-user"]:
+        for pname in ["password-user", "fs-data", "enctype-data"]:
             self._iconf_params[pname]=core_params[pname]
             del core_params[pname]
 
@@ -127,8 +126,6 @@ class Params(GObject.Object):
     def _generate_core_parameters(self):
         """Generate all the CORE parameters, from random values or fixed/contextual information"""
         res={}
-        # fs
-        res["fs"]="exfat"
         # password-internal
         res["password-internal"]=cgen.generate_password()
         # password-data
@@ -157,21 +154,28 @@ class Params(GObject.Object):
         else:
             return "userdata|%s|%s"%(component, pname)
 
+    def _get_widget_for_param(self, pname):
+        lname=self._compute_link_name(self._iconf_params, None, pname)
+        if lname in self._links:
+            return self._links[lname]
+        return None
+
     def create_widgets(self, builder):
         """Create the actual labels and entry widgets for all the parameters"""
         top=2
         grid=builder.get_object("install-grid")
 
-        # default
+        # config params
         for pname in self._iconf_params:
-            pspec=self._iconf_params[pname]
-            label=mui.create_label_widget(pspec)
-            grid.attach(label, 0, top, 1, 1)
-            widget=mui.create_param_entry(pspec)
-            widget.connect("data_changed", self._data_changed_cb)
-            self._links[self._compute_link_name(self._iconf_params, None, pname)]=widget
-            grid.attach(widget, 1, top, 1, 1)
-            top+=1
+            if pname not in self._iconf.overrides:
+                pspec=self._iconf_params[pname]
+                label=mui.create_label_widget(pspec)
+                grid.attach(label, 0, top, 1, 1)
+                widget=mui.create_param_entry(pspec)
+                widget.connect("data_changed", self._data_changed_cb)
+                self._links[self._compute_link_name(self._iconf_params, None, pname)]=widget
+                grid.attach(widget, 1, top, 1, 1)
+                top+=1
 
         # userdata
         for component in self._userdata_params:
@@ -189,25 +193,32 @@ class Params(GObject.Object):
     def _data_changed_cb(self, widget):
         self.emit("data_changed")
 
-    def get_install_params(self):
+    def get_install_valued_params(self):
         """Returns all the parameters required to create an installation"""
+        # core and from UI
         res=self._generate_core_parameters()
-        # default & core
         for pname in self._iconf_params:
-            widget=self._links[self._compute_link_name(self._iconf_params, None, pname)]
-            value=widget.get_value()
-            if value=="":
-                raise Exception("%s: invalid empty value"%pname)
-            res[pname]=value
+            widget=self._get_widget_for_param(pname)
+            if widget:
+                value=widget.get_value()
+                if value=="":
+                    raise Exception("%s: invalid empty value"%pname)
+                res[pname]=value
+
+        # overrides
+        overrides=self._iconf.overrides
+        for pname in overrides:
+            res[pname]=overrides[pname]
         
         # userdata
         res["_components"]={}
         for component in self._userdata_params:
             res["_components"][component]={}
             for pname in self._userdata_params[component]:
-                widget=self._links[self._compute_link_name(self._userdata_params, component, pname)]
-                value=widget.get_value()
-                res["_components"][component][pname]=value
+                widget=self._get_widget_for_param(pname)
+                if widget:
+                    value=widget.get_value()
+                    res["_components"][component][pname]=value
         return res
 
 
@@ -342,7 +353,7 @@ class Component:
             # no install configuration selected
             return
         try:
-            pvalues=self._params.get_install_params()
+            pvalues=self._params.get_install_valued_params()
             self._devfile=self._combo_device.get_selected_devfile()
             if self._devfile is None:
                 raise Exception("No device selected")

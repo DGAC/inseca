@@ -21,7 +21,6 @@ import tarfile
 import tempfile
 import time
 import json
-
 import Utils as util
 import Live
 import Job
@@ -29,98 +28,88 @@ import Sync
 import Installer
 import Borg
 
-class InsecaStartupJob(Job.Job):
-    """Used the user provided password to perform all the required verifications and mount the encrypted filesystems"""
-    def __init__(self, live_env, passwd):
+class InsecaUnlockJob(Job.Job):
+    """Used the user provided password to perform all the required verifications and mount the encrypted filesystems.
+    Returns the (blob0, int_password, data_password) tuple"""
+    def __init__(self, live_env, passwd, with_user_config_files=False):
         if not isinstance(live_env, Live.Environ):
             raise Exception("CODEBUG: invalid @live_env argument")
         Job.Job.__init__(self)
         self._live_env=live_env
         self._passwd=passwd
+        self._with_user_config_files=with_user_config_files
 
     def run(self):
         try:
-            syslog.syslog(syslog.LOG_INFO, "InsecaStartupJob started")
-            bp=Live.BootProcessWKS(self._live_env)
-            res=bp.start(self._passwd) # result will be (blob0, int_password, data_password)
-            syslog.syslog(syslog.LOG_INFO, "InsecaStartupJob done")
+            syslog.syslog(syslog.LOG_INFO, "Device unlock started")
+            bp=Live.BootProcessWKS.get_instance(self._live_env)
+            res=bp.unlock(self._passwd) # result will be (blob0, int_password, data_password)
             self.result=res
+            syslog.syslog(syslog.LOG_INFO, "Device unlock done")
+        except Live.InvalidCredentialException as e:
+            self.exception=e
+            syslog.syslog(syslog.LOG_ERR, "%s", str(e))
+            return
+        except Live.DeviceIntegrityException as e:
+            self.exception=e
+            syslog.syslog(syslog.LOG_ERR, "%s", str(e))
+            return
         except Exception as e:
-            self.exception=Exception("Wrong password or device compromised")
-            syslog.syslog(syslog.LOG_ERR, "InsecaStartupJob failed: %s"%str(e))
+            self.exception=Exception("Internal configuration error: %s"%str(e))
+            syslog.syslog(syslog.LOG_ERR, "Internal configuration error: %s"%str(e))
+            return
 
-class InsecaPostStartupJob(Job.Job):
-    """Post startup job"""
-    def __init__(self, live_env, passwd):
-        if not isinstance(live_env, Live.Environ):
-            raise Exception("CODEBUG: invalid @live_env argument")
-        Job.Job.__init__(self)
-        self._live_env=live_env
-        self._passwd=passwd
-
-    def run(self):
         try:
-            syslog.syslog(syslog.LOG_INFO, "InsecaPostStartupJob started")
-            bp=Live.BootProcessWKS(self._live_env)
-            bp.post_start(self._passwd)
-            syslog.syslog(syslog.LOG_INFO, "InsecaPostStartupJob done")
-            # add events
+            syslog.syslog(syslog.LOG_INFO, "Components configuration started (stage 0)")
+            self._live_env.configure_components(0)
+            syslog.syslog(syslog.LOG_INFO, "Components configuration done (stage 0)")
+
+            if self._with_user_config_files:
+                syslog.syslog(syslog.LOG_INFO, "User config files extract started")
+                # extract TAR archives from the default profile
+                self._live_env.define_UI_environment()
+                dirname=self._live_env.default_profile_dir
+                if dirname:
+                    for base in os.listdir(dirname):
+                        if base.endswith(".tar"):
+                            syslog.syslog(syslog.LOG_INFO, "Extracting profile file '%s'"%base)
+                            filename="%s/%s"%(dirname, base)
+                            obj=tarfile.open(filename)
+                            obj.extractall(self._live_env.home_dir)
+
+                # change the user's wallpaper to mark the end of the boot process
+                if os.path.exists("/internal/resources/default-wallpaper"):
+                    self._live_env.user_setting_set("org.gnome.desktop.background", "picture-uri",
+                                                    "/internal/resources/default-wallpaper")
+                    self._live_env.user_setting_set("org.gnome.desktop.background", "picture-options", "stretched")
+
+                # remove any NO-BACKUP mark
+                self._live_env.user_config_clean_nobackup()
+
+                # restore backed up config files
+                self._live_env.user_config_restore()
+
+                # make sure all the extracted files belong to the user
+                (status, out, err)=util.exec_sync(["chown", "-R", "%s.%s"%(self._live_env.uid, self._live_env.gid), self._live_env.home_dir])
+                if status!=0:
+                    syslog.syslog(syslog.LOG_WARNING, "Could not give ownership of $HOME to logged user: %s"%err)
+                syslog.syslog(syslog.LOG_INFO, "User config files extract done")
+
+            syslog.syslog(syslog.LOG_INFO, "Components configuration started (stage 1)")
+            self._live_env.configure_components(1)
+            syslog.syslog(syslog.LOG_INFO, "Components configuration done (stage 1)")
+        except Exception as e:
+            self.exception=Exception("Could not configure some component")
+            syslog.syslog(syslog.LOG_ERR, "Could not configure some component: %s"%str(e))
+            return
+
+        try:
+            syslog.syslog(syslog.LOG_INFO, "Declaring device")
             self._live_env.events.declare_device()
+            syslog.syslog(syslog.LOG_INFO, "Adding boot infos")
             self._live_env.events.add_booted_event()
         except Exception as e:
-            self.exception=e
-            syslog.syslog(syslog.LOG_ERR, "Job InsecaPostStartupJob failed: %s"%str(e))
-
-class InsecaConfigureComponentsJob(Job.Job):
-    """Configure all the components which have a configure<stage>.py script"""
-    def __init__(self, live_env, stage):
-        if not isinstance(live_env, Live.Environ):
-            raise Exception("CODEBUG: invalid @live_env argument")
-        Job.Job.__init__(self)
-        self._live_env=live_env
-        self._stage=stage
-    def run(self):
-        try:
-            syslog.syslog(syslog.LOG_INFO, "InsecaConfigureComponentsJob started")
-            self._live_env.configure_components(self._stage)
-            syslog.syslog(syslog.LOG_INFO, "InsecaConfigureComponentsJob done")
-        except Exception as e:
-            self.exception=e
-            syslog.syslog(syslog.LOG_ERR, "Job InsecaConfigureComponentsJob failed: %s"%str(self.exception))
-
-class ConfigFilesExtractJob(Job.Job):
-    """Copy and extracts all the user config files"""
-    def __init__(self, live_env):
-        if not isinstance(live_env, Live.Environ):
-            raise Exception("CODEBUG: invalid @live_env argument")
-        Job.Job.__init__(self)
-        self._live_env=live_env
-
-    def run(self):
-        syslog.syslog(syslog.LOG_INFO, "ConfigFilesExtractJob started")
-        try:
-            # extract TAR archives from the default profile
-            dirname=self._live_env.default_profile_dir
-            if dirname:
-                for base in os.listdir(dirname):
-                    if base.endswith(".tar"):
-                        syslog.syslog(syslog.LOG_INFO, "Extracting profile file '%s'"%base)
-                        filename="%s/%s"%(dirname, base)
-                        obj=tarfile.open(filename)
-                        obj.extractall(self._live_env.home_dir)
-
-            # restore backed up config files
-            self._live_env.user_config_restore()
-
-            # make sure all the extracted files belong to the user
-            (status, out, err)=util.exec_sync(["chown", "-R", "%s.%s"%(self._live_env.uid, self._live_env.gid), self._live_env.home_dir])
-            if status!=0:
-                syslog.syslog(syslog.LOG_WARNING, "Could not give ownership of $HOME to logged user: %s"%err)
-
-            syslog.syslog(syslog.LOG_INFO, "ConfigFilesExtractJob done")
-        except Exception as e:
-            self.exception=e
-            syslog.syslog(syslog.LOG_ERR, "ConfigFilesExtractJob failed: %s"%str(self.exception))
+            syslog.syslog(syslog.LOG_ERR, "Error logging events: %s"%str(e))
 
 class LiveLinuxUpdatesGetJob(Job.Job):
     """Download and stage live Linux upddates"""
@@ -170,11 +159,11 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                         remote=Sync.SyncLocation(repo_id, so)
                         local=Sync.SyncLocation(repo_dir)
 
-                        self.set_progress("Downloading update data")
+                        self.set_progress(Live.UpdatesStatus.DOWNLOAD)
                         rclone=Sync.RcloneSync(remote, local)
                         rclone.sync(add_event_func=self.set_progress)
                         
-                        self.set_progress("Checking for an update")
+                        self.set_progress(Live.UpdatesStatus.CHECK)
                         borg_repo=Borg.Repo(repo_dir, repo_password)
                         borg_repo.check() # ensure repo is useable
                         (archive_ts, archive_name)=borg_repo.get_latest_archive()
@@ -182,7 +171,7 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                             # compare with existing staged archive
                             if archive_name!=staged_archive_name:
                                 syslog.syslog(syslog.LOG_INFO, "Extracting live Linux for next boot")
-                                self.set_progress("Preparing update")
+                                self.set_progress(Live.UpdatesStatus.STAGE)
                                 # clear the staging dir of any previous file
                                 for fname in os.listdir(self._stage_dir):
                                     os.remove("%s/%s"%(self._stage_dir, fname))

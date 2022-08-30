@@ -448,6 +448,7 @@ Name: %s
             map={
                 confs.BuildType.ADMIN: "INSECA-ADMIN",
                 confs.BuildType.WKS: "INSECA",
+                confs.BuildType.SERVER: "INSECA",
                 confs.BuildType.SIMPLE: "INSECA-LIVE",
             }
             (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "iso-create", iso_contents_dir, map[conf_type], self.image_file], exec_env=cenv)

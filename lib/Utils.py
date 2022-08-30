@@ -511,7 +511,7 @@ def get_partition_data_sizes(partition_path):
     """Get total and available sizes in bytes"""
     (status, out, err)=exec_sync(["/bin/df", "-B", "1024", partition_path])
     if status!=0:
-        raise Exception("Can't analyse partition size")
+        raise Exception("Can't analyse partition size: %s"%err)
     else:
         lines=out.splitlines()
         parts=lines[1].split()
@@ -665,6 +665,16 @@ def change_user_comment(user, comment):
         syslog.syslog(syslog.LOG_INFO, "Usermod to '%s'"%comment)
     else:
         syslog.syslog(syslog.LOG_ERR, "Failed to usermod to '%s'"%(comment, err))
+
+def change_user_password(user, passwd):
+    """Change user password"""
+    if passwd=="" or passwd is None:
+        (status, out, err)=exec_sync(["passwd", "-d", user])
+    else:
+        (status, out, err)=exec_sync(["chpasswd"], stdin_data="%s:%s"%(user, passwd))
+
+    if status!=0:
+        raise Exception("Could not change logged user's password: %s"%err)
 
 def chown_r(filename, uid, gid):
     os.chown(filename, uid, gid)

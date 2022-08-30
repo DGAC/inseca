@@ -1587,8 +1587,8 @@ def dev_install(args):
     # build config specified?
     bconf=gconf.get_build_conf(args.config, exception_if_not_found=False)
     if bconf:
-        if bconf.build_type==confs.BuildType.WKS:
-            raise Exception("Workstation build types must be installed using an install. configuration")
+        if bconf.build_type in (confs.BuildType.WKS, confs.BuildType.SERVER):
+            raise Exception("Workstation or server builds must be installed using an install. configuration")
         if args.archive: # use specified archive
             if bconf.repo_id:
                 rconf=gconf.get_repo_conf(bconf.repo_id)

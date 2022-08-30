@@ -19,9 +19,20 @@
 
 set -e
 
+# make sure the symlinks are replaced by actual copies
+pushd "$COMPONENT_DIR/opt/inseca" > /dev/null 2>&1
+for file in *
+do
+    [ -h "$file" ] && {
+        rm -f "$LIVE_DIR/opt/inseca/$file"
+        cp -aL "$file" "$LIVE_DIR/opt/inseca"
+    }
+done
+popd > /dev/null 2>&1
+
 # copy library components
-mkdir -p "$LIVE_DIR/opt/inseca-simple"
+mkdir -p "$LIVE_DIR/opt/inseca"
 for file in "$LIBS_DIR/"*
 do
-    cp -a "$file" "$LIVE_DIR/opt/inseca-simple"
+    cp -a "$file" "$LIVE_DIR/opt/inseca"
 done

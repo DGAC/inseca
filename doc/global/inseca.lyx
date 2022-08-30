@@ -117,13 +117,21 @@ Concrètement; INSECA permet de créer les systèmes suivants (sur la base
 \end_layout
 
 \begin_layout Itemize
-des systèmes 
+des systèmes live Linux 
+\begin_inset Quotes cld
+\end_inset
+
+
 \series bold
-live Linux simples
+simples
 \series default
+
+\begin_inset Quotes crd
+\end_inset
+
  reposant sur le démarrage à partir d'une image ISO, comme il en existe
  beaucoup.
- INSECA apporte alors uniquement une sur-couche de gestion autour d'outils
+ INSECA apporte alors uniquement une sur-couche de paramétrage autour d'outils
  déjà existants
 \begin_inset Foot
 status collapsed
@@ -203,6 +211,44 @@ et autres méthodes plus tard
 \end_inset
 
 .
+\end_layout
+
+\end_deeper
+\begin_layout Itemize
+des systèmes de type 
+\begin_inset Quotes cld
+\end_inset
+
+
+\series bold
+serveur
+\series default
+
+\begin_inset Quotes crd
+\end_inset
+
+, identiques en tout point aux systèmes 
+\begin_inset Quotes cld
+\end_inset
+
+workstation
+\begin_inset Quotes crd
+\end_inset
+
+ hormis:
+\end_layout
+
+\begin_deeper
+\begin_layout Itemize
+la partie concernant l'initialisation;
+\end_layout
+
+\begin_layout Itemize
+le fait qu'il n'y a pas de d'environnement graphique (GUI); et
+\end_layout
+
+\begin_layout Itemize
+la finalité qui est de faire fonctionner un ou plusieurs services applicatifs.
 \end_layout
 
 \end_deeper
@@ -1850,7 +1896,7 @@ noprefix "false"
 \end_inset
 
 ) qui seront requis pour créer une installation, afin de pouvoir attribuer
- le périphérique créé à une activité, par ex:
+ le périphérique créé à une activité, par ex.:
 \begin_inset listings
 lstparams "basicstyle={\ttfamily}"
 inline false
@@ -1923,7 +1969,24 @@ status open
 
 \begin_layout Description
 "dev-format": décrit les informations conservées dans les méta-données du
- périphérique, et affichées dans l'IHM de l'environnement de gestion:
+ périphérique (pouvant référencer des paramètres décrits dans la section
+ "parameters").
+ Au delà des sections "unprotected", "protected", "decryptors" et "signatures"
+ (cf.
+ §
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "conf:partitionning"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+), il est possible de faire figurer une sections "overrides" qui permet
+ de surcharger certains paramètres qui sont habituellement laissés au choix
+ de l'administrateur.
+ Par ex.:
 \begin_inset listings
 lstparams "basicstyle={\ttfamily}"
 inline false
@@ -1941,7 +2004,7 @@ status open
 
 \begin_layout Plain Layout
 
-        "context": "{usage-context}",
+        "context": "Labo",
 \end_layout
 
 \begin_layout Plain Layout
@@ -1952,6 +2015,34 @@ status open
 \begin_layout Plain Layout
 
         "user-lastname": "{lastname}"
+\end_layout
+
+\begin_layout Plain Layout
+
+    },
+\end_layout
+
+\begin_layout Plain Layout
+
+	
+\begin_inset Quotes cld
+\end_inset
+
+overrides
+\begin_inset Quotes crd
+\end_inset
+
+: {
+\end_layout
+
+\begin_layout Plain Layout
+
+        "enctype-data": "luks",
+\end_layout
+
+\begin_layout Plain Layout
+
+        "fs-data": "ext4"
 \end_layout
 
 \begin_layout Plain Layout
@@ -5995,7 +6086,7 @@ status open
 
 \begin_layout Plain Layout
 
-  "fs" : "exfat",
+  "fs-data" : "exfat",
 \end_layout
 
 \begin_layout Plain Layout
@@ -7633,7 +7724,8 @@ vues
 \series bold
 "unprotected"
 \series default
-:
+: données sous forme de clé/valeur stockées de manière non chiffrées dans
+ la zone de méta données;
 \end_layout
 
 \begin_layout Itemize
@@ -7641,7 +7733,8 @@ vues
 \series bold
 "protected"
 \series default
-:
+: données sous forme de clé/valeur stockées de manière chiffrée dans la
+ zone de méta données;
 \end_layout
 
 \begin_layout Itemize
@@ -7649,7 +7742,7 @@ vues
 \series bold
 "decryptors"
 \series default
-:
+: liste des moyens de déchiffrer les données de la section "protected"
 \end_layout
 
 \begin_layout Itemize
@@ -7727,14 +7820,6 @@ LINUX
 "label"
 \series default
 : nom du filesystem (en général affiché par l'OS);
-\end_layout
-
-\begin_layout Itemize
-
-\series bold
-"volume-id"
-\series default
-: (optionnel) ID du volume;
 \end_layout
 
 \begin_layout Itemize

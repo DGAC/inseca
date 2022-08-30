@@ -5,6 +5,7 @@ python3-psutil
 dnsutils
 borgbackup rclone
 python3-pacparser
+python3-requests python3-gi python3-dbus
 btrfs-progs
 firmware-iwlwifi
 sshfs

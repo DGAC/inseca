@@ -185,7 +185,7 @@ class Installer:
         - @build_infos: build infos (version, build type, etc)
 
         NB: if @conf is an InstallConfig object, then the build configuration which generated the live Linux
-            should be of type WKS.
+            should be of type WKS or SERVER.
         """
         assert isinstance(conf, confs.InstallConfig) or isinstance(conf, confs.FormatConfig)
 
@@ -203,7 +203,7 @@ class Installer:
             assert isinstance(build_infos, dict)
             assert "build-type" in build_infos
             build_type=confs.BuildType(build_infos["build-type"])
-            assert build_type==confs.BuildType.WKS
+            assert build_type in (confs.BuildType.WKS, confs.BuildType.SERVER)
             self._config_data["install"]=valh.replace_variables(self._config_data["install"], params)
 
         self._live_iso_file=live_iso_file

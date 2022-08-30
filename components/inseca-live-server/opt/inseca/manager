@@ -1,0 +1,572 @@
+#!/usr/bin/python3
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+#
+# This file implements a DBus service to change the password or trigger an update
+#
+# This script is run as root.
+#
+
+import sys
+import os
+import gi
+import json
+import syslog
+import datetime
+import signal
+import Utils as util
+import Jobs as jobs
+import CryptoGen as crypto
+import Live
+import Sync
+import ConfigManager as cm
+
+# sanity checks
+if not util.is_run_as_root():
+    raise Exception("This script needs to be run as root")
+
+syslog.syslog(syslog.LOG_INFO, "Program started")
+live_env=Live.Environ()
+
+# proxy setup
+proxy_pac_file="/opt/share/proxy.pac"
+if os.path.exists(proxy_pac_file):
+    Sync.proxy_pac_file=proxy_pac_file
+
+gi.require_version("GLib", "2.0")
+from gi.repository import GLib
+import dbus
+import dbus.service
+import dbus.mainloop.glib
+
+#
+# Networking management
+#
+class Networking:
+    """Basic network operations"""
+    def __init__(self):
+        # default route backup
+        self._default_route=None
+
+        # network can be always disabled
+        self._force_disable=False
+
+        # list network interfaces
+        (status, out, err)=util.exec_sync(["ip", "-j", "link"])
+        if status!=0:
+            raise Exception("Could not list network interfaces: %s"%err)
+        netlist=json.loads(out)
+        self._ifaces=[]
+        for entry in netlist:
+            if entry["link_type"]!="loopback":
+                self._ifaces+=[entry["ifname"]]
+
+    def _change_network_interfaces_status(self, enabled):
+        for iface in self._ifaces:
+            (status, out, err)=util.exec_sync(["ip", "link", "set", iface, "up" if enabled else "down"])
+            if status!=0:
+                raise Exception("Could not change status of network interface '%s': %s"%(iface, err))
+
+    def _get_default_route(self):
+        """Returns the IP address of the GW, may return None"""
+        (status, out, err)=util.exec_sync(["ip", "-j", "route", "show", "default"])
+        if status!=0:
+            raise Exception("Could not get default route: %s"%err)
+        # @out will be like: [{"dst":"default","gateway":"192.168.12.1","dev":"eth0","protocol":"dhcp","metric":100,"flags":[]}]
+        data=json.loads(out)
+        if len(data)>0:
+            return data[0]["gateway"]
+        return None
+
+    def enable(self):
+        """Enable system wide networking"""
+        if self._force_disable:
+            return
+        self._change_network_interfaces_status(True)
+        if self._default_route:
+            default_route=self._get_default_route()
+            if default_route is None:
+                (status, out, err)=util.exec_sync(["ip", "route", "add", "default", "via", self._default_route])
+                if status!=0:
+                    raise Exception("Could not define default route to '%s': %s"%(self._default_route, err))
+
+    def disable(self):
+        """Disable system wide networking"""
+        self._default_route=self._get_default_route()
+        self._change_network_interfaces_status(False)
+
+    def force_always_disabled(self):
+        self._force_disable=True
+
+#
+# TERM signal handling
+#
+def _term_signal_ignore(signum, frame):
+    # ignore the signal
+    syslog.syslog(syslog.LOG_INFO, "Ignoring TERM signal when applying a staged update")
+
+def _term_signal_handle(signum, frame):
+    syslog.syslog(syslog.LOG_INFO, "RECEIVED TERM signal!!!!!!!")
+    bp=Live.BootProcessWKS.get_instance()
+    bp.prepare_shutdown()
+    sys.exit(0)
+
+# define default TERM signal handler tu properly umount partitions
+signal.signal(signal.SIGTERM, _term_signal_handle)
+
+#
+# Remote control using DBus
+#
+class Remote(dbus.service.Object):
+    def __init__(self, conn, live_env, object_path="/remote"):
+        if not isinstance(live_env, Live.Environ):
+            raise Exception("Code bug")
+        self._live_env=live_env
+        dbus.service.Object.__init__(self, conn, object_path)
+
+        self._device_config_file="/internal/resources/config.json"
+        self._net=Networking()
+        self._unlock_job=None
+        self._unlocked=self._live_env.unlocked
+        self._tried_password_times=0
+
+        # update management
+        self._upd_stage_dir="/internal/update-staging"
+        self._upd_get_job=None
+        self._upd_apply_job=None
+        self._upd_action_status=Live.UpdatesStatus.IDLE # what the Manager is currently doing
+        self._upd_last_state="" # the updat's status last time there was a self._upd_action_status change, as a human readable string
+
+        # key infos
+        self._version=None
+        self._valid_from=None
+        self._valid_to_ts=None
+        self._valid_to_str=None
+        try:
+            keyinfos=json.loads(util.load_file_contents("/opt/share/keyinfos.json"))
+            self._version=keyinfos["version"]
+            self._valid_from=keyinfos["valid-from"]
+            self._valid_to_ts=keyinfos["valid-to"]
+            valid_to_dt=datetime.datetime.fromtimestamp(self._valid_to_ts - 1)
+            self._valid_to_str=valid_to_dt.strftime('%d/%m/%Y')
+        except Exception as e:
+            syslog.syslog(syslog.LOG_WARNING, "Key infos error: %s"%str(e))
+
+        # check if expired
+        self.expired=False
+        if self._valid_to_ts:
+            now=datetime.datetime.utcnow()
+            ts=int(now.timestamp())
+            if ts<self._valid_from or ts>self._valid_to_ts:
+                self.expired=True
+                syslog.syslog(syslog.LOG_WARNING, "Device expired")
+        else:
+            self.expired=True
+            syslog.syslog(syslog.LOG_WARNING, "Device expired (no EOV detected)")
+
+        # load build-time configuration
+        conf_file=None
+        if os.path.exists("/etc/inseca-live.json"):
+            conf_file="/etc/inseca-live.json"
+        elif os.path.exists("/etc/inseca-live-wks.json"):
+            conf_file="/etc/inseca-live-wks.json"
+        conf=None
+        if conf_file:
+            conf=json.load(open(conf_file, "r"))
+
+        # get allowed virtual environments and test if executed in an allowed virtual environment
+        venvs=[]
+        if conf and "allowed-virtualized" in conf:
+            data=conf["allowed-virtualized"]
+            if data is not None:
+                venvs=data.split(",")
+
+        self._invalid_env=False
+        (status, out, err)=util.exec_sync(["systemd-detect-virt"])
+        if status==0 and out not in venvs:
+            self._invalid_env=True
+            syslog.syslog(syslog.LOG_WARNING, "Invalid virtual environment '%s'"%out)
+
+        # disable some INSECA services if specificed
+        dservs=[]
+        servs=["update"] # services which can be disabled
+        if conf and "disabled-net-services" in conf:
+            data=conf["disabled-net-services"]
+            if data is not None:
+                dservs=data.split(",")
+        if "all" in dservs:
+            dservs=servs
+        self._updates_enabled=True
+        for serv in dservs:
+            if serv:
+                syslog.syslog(syslog.LOG_INFO, "Disabling INSECA '%s' service as specified in the build config"%serv)
+                if serv=="update":
+                    self._updates_enabled=False
+
+        # start shutdown timer and disable networking
+        self._start_killer_counter()
+        if cm.disable_network_before_unlock:
+            self._network_disable()
+
+    @property
+    def version(self):
+        return self._version
+
+    @property
+    def valid_to(self):
+        return self._valid_to_str
+
+    @property
+    def updates_enabled(self):
+        return self._updates_enabled
+
+    #
+    # User management API
+    #
+    @dbus.service.method("inseca.Manager.UserEnv")
+    def change_password(self, current_password, new_password):
+        """Change the user's password"""
+        # check new password
+        crypto.validate_password(new_password)
+
+        # check password is really changed
+        if current_password==new_password:
+            raise Exception("Mots de passe identiques")
+
+        job=jobs.PasswordChangeJob(self._live_env, current_password, new_password)
+        job.start()
+        job.wait_finished(GLib.MainLoop())
+        if job.exception:
+            raise job.exception
+
+        # change the current session's password
+        (status, out, err)=util.exec_sync(["chpasswd"], stdin_data="insecauser:%s"%new_password)
+        if status!=0:
+            raise Exception("Could not change logged user's password: %s"%err)
+
+    @dbus.service.method("inseca.Manager.UserEnv")
+    def delete_user_config(self):
+        """Delete the data associated with the current user, and avoid saving these data when the session
+        terminates"""
+        self._live_env.user_config_remove()
+
+    #
+    # Status info
+    #
+    @dbus.service.method("inseca.Manager.Status")
+    def get_version(self):
+        return self.version
+
+    @dbus.service.method("inseca.Manager.Status")
+    def get_expired(self):
+        return self.expired
+
+    @dbus.service.method("inseca.Manager.Status")
+    def get_invalid_env(self):
+        return self._invalid_env
+
+    @dbus.service.method("inseca.Manager.Status")
+    def get_valid_to(self):
+        return self.valid_to
+
+    @dbus.service.method("inseca.Manager.Status", out_signature="a{ss}")
+    def get_extra_infos(self):
+        # execute the infos.py script for all the components which have one script
+        infos={} # key=component name, value=component status
+        exec_env=os.environ.copy()
+        exec_env["PYTHONPATH"]=os.path.dirname(__file__)
+        comp_live_config_dir=self._live_env.components_live_config_dir
+        components=os.listdir(comp_live_config_dir)
+        for component in components:
+            script="%s/%s/infos.py"%(comp_live_config_dir, component)
+            if os.path.exists(script):
+                exec_env["USERDATA_DIR"]="/internal/components/%s"%component
+                (status, out, err)=util.exec_sync([script], exec_env=exec_env)
+                lines=out.splitlines()
+                if len(lines)>0:
+                    cid=lines[0]
+                    if status==0:
+                        infos[cid]="\n".join(lines[1:])
+                    elif status==255:
+                        # component not available (e.g. some userdata is missing)
+                        pass
+                    else:
+                        # infos.py script failed
+                        infos[cid]=err
+                else:
+                    syslog.syslog(syslog.LOG_ERR, "Invalid output from the infos.py script of component '%s'"%component)
+        return infos
+
+    @dbus.service.method("inseca.Manager.Status")
+    def is_unlocked(self):
+        return self._unlocked
+
+    #
+    # System operations
+    #
+    def _shutdown(self):
+        syslog.syslog(syslog.LOG_INFO, "Powering OFF now")
+        util.exec_sync(["/sbin/poweroff"])
+        sys.exit(0)
+
+    def _start_killer_counter(self, seconds=120):
+        def killer_handler(signum, frame):
+            syslog.syslog(syslog.LOG_INFO, "SHUTDOWN now!")
+            self._shutdown()
+
+        # Set the signal handler and a X second alarm
+        signal.signal(signal.SIGALRM, killer_handler)
+        signal.alarm(seconds)
+        syslog.syslog(syslog.LOG_INFO, "Started killer counter (%s seconds)"%seconds)
+
+    def _stop_killer_counter(self):
+        signal.alarm(0)
+        syslog.syslog(syslog.LOG_INFO, "Stopped killer counter")
+
+    @dbus.service.method("inseca.Manager.System")
+    def network_disable(self):
+        """Force the network to always be disabled"""
+        self._net.force_always_disabled()
+
+    def _network_disable(self):
+        self._net.disable()
+        syslog.syslog(syslog.LOG_INFO, "Network disabled")
+
+    def _network_enable(self):
+        self._net.enable()
+        syslog.syslog(syslog.LOG_INFO, "Network enabled")
+
+    #
+    # Device unlock
+    #
+    @dbus.service.signal("inseca.Manager.Unlock")
+    def unlock_done(self):
+        syslog.syslog(syslog.LOG_INFO, "Device unlocked")
+        self._stop_killer_counter()
+        self._network_enable()
+        self._unlocked=True
+
+    @dbus.service.signal("inseca.Manager.Unlock", signature="is")
+    def unlock_failed(self, reason, message):
+        # @reason is mapped to Live.UnlockFailedReasonType
+        syslog.syslog(syslog.LOG_INFO, "Failed to unlock device: %s/%s"%(reason, message))
+        self._start_killer_counter()
+        self._network_disable()
+
+    def _check_unlock_job_finished(self, job):
+        if job.finished():
+            if job.exception:
+                syslog.syslog(syslog.LOG_ERR, "Unlock job finished, error: %s"%str(job.exception))
+                if self._tried_password_times>=3:
+                    reason=Live.UnlockFailedReasonType.TOO_MANY_ATTEMPTS.value
+                elif isinstance(job.exception, Live.InvalidCredentialException):
+                    reason=Live.UnlockFailedReasonType.CREDENTIAL.value
+                elif isinstance(job.exception, Live.DeviceIntegrityException):
+                    reason=Live.UnlockFailedReasonType.INTEGRITY.value
+                else:
+                    reason=Live.UnlockFailedReasonType.OTHER.value
+                self.unlock_failed(reason, str(job.exception))
+            else:
+                syslog.syslog(syslog.LOG_INFO, "Unlock job finished, Ok")
+                self.unlock_done()
+
+                # check if some updates have previously been staged to be applied
+                (blob0, int_password, data_password)=job.result
+                self._apply_staged(blob0, int_password, data_password)
+
+            self._unlock_job=None
+            return False # don't keep the timer
+        else:
+            return True # keep timer
+
+    @dbus.service.method("inseca.Manager.Unlock", signature="s")
+    def unlock_with_password(self, password):
+        """Unlock device using a password"""
+        if self._unlocked:
+            self.unlock_done()
+            return
+        if self._unlock_job:
+            return
+        if self.expired:
+            raise Exception("Device has expired")
+        if self._invalid_env:
+            raise Exception("Device should not be used from a virtual environment")
+
+        self._tried_password_times+=1
+        if self._tried_password_times>3:
+            raise Exception("Too many failed attempts")
+
+        self._stop_killer_counter()
+        job=jobs.InsecaUnlockJob(self._live_env, password, with_user_config_files=cm.has_user_config_file)
+        self._unlock_job=job
+        job.start()
+        GLib.timeout_add(2000, self._check_unlock_job_finished, job)
+
+    #
+    # Updates download
+    #
+    @dbus.service.method("inseca.Manager.GetUpdates")
+    def get_updates_status(self):
+        """Get what the system is doing regarding updates.
+        """
+        return (self._upd_action_status.value, self._upd_last_state)
+
+    @dbus.service.signal("inseca.Manager.GetUpdates")
+    def updates_status_changed(self):
+        syslog.syslog(syslog.LOG_INFO, "Update status changed!")
+
+    def _upd_progress(self, action, last):
+        changed=False
+        if action is not None and action!=self._upd_action_status:
+            self._upd_action_status=action
+            changed=True
+        if last is not None and last!=self._upd_last_state:
+            self._upd_last_state=last
+            changed=True
+        if changed:
+            self.updates_status_changed()
+
+    def _check_get_updated_job_finished(self, job):
+        if job.finished():
+            self._upd_get_job=None
+            if job.exception:
+                syslog.syslog(syslog.LOG_ERR, "Get update job finished, error: %s"%str(job.exception))
+                self._upd_progress(Live.UpdatesStatus.IDLE, "Error: %s"%str(job.exception))
+            else:
+                if job.result==0:    
+                    syslog.syslog(syslog.LOG_INFO, "Get update job finished: no update available")
+                    self._upd_progress(Live.UpdatesStatus.IDLE, "No update available")
+                elif job.result==1:
+                    syslog.syslog(syslog.LOG_INFO, "Get update job finished: an update will be installed next reboot")
+                    self._upd_progress(Live.UpdatesStatus.IDLE, "An update will be installed next reboot")
+                else:
+                    syslog.syslog(syslog.LOG_WARNING, "Invalid job status '%s' for getting update"%job.result)
+                    self._upd_progress(Live.UpdatesStatus.IDLE, "Invalid status '%s' after getting update"%job.result)
+            return False # don't keep the timer
+        else:
+            p=job.progress # as reported by the job itself
+            try:
+                action=Live.UpdatesStatus(p)
+                last=None
+            except:
+                action=None
+                last=p
+            self._upd_progress(action, last)
+            return True # keep timer
+
+    @dbus.service.method("inseca.Manager.GetUpdates")
+    def get_updates(self):
+        """Search for any live Linux (build) repo, and returns True if a new
+        update has been staged (to be installed at the next reboot)"""
+        if self._upd_get_job:
+            # already getting updates
+            return
+        if self._upd_apply_job:
+            # must wait for the staged update being applied first
+            self._upd_progress(None, "A staged update is being applied")
+            return
+
+        self._upd_progress(Live.UpdatesStatus.DOWNLOAD, None)
+        job=jobs.LiveLinuxUpdatesGetJob(self._device_config_file, self._upd_stage_dir)
+        self._upd_get_job=job
+        self.updates_status_changed()
+        job.start()
+        GLib.timeout_add(2000, self._check_get_updated_job_finished, job)
+
+    #
+    # Applying staged update API
+    #
+    def _check_apply_staged_job_finished(self, job):
+        if job.finished():
+            # restore the signal handling
+            signal.signal(signal.SIGTERM, _term_signal_handle)
+            self._upd_apply_job=None
+
+            if job.exception:
+                syslog.syslog(syslog.LOG_ERR, "Apply staged job finished, error: %s"%str(job.exception))
+                self._upd_progress(Live.UpdatesStatus.IDLE, "Apply staged job finished, error: %s"%str(job.exception))
+            else:
+                if job.result==0:
+                    syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: no staged update available")
+                elif job.result==1:
+                    syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: an update has been applied, a reboot is needed")
+                    self._upd_progress(Live.UpdatesStatus.IDLE, "An update has been applied, a reboot is needed")
+                    # remove files in self._upd_stage_dir
+                    for fname in os.listdir(self._upd_stage_dir):
+                        path="%s/%s"%(self._upd_stage_dir, fname)
+                        try:
+                            os.remove(path)
+                        except Exception as e:
+                            syslog.syslog(syslog.LOG_WARNING, "Could not remove '%s' file: %s"%(path, str(e)))        
+                else:
+                    syslog.syslog(syslog.LOG_ERR, "Invalid job status '%s' for applying staged update"%job.result)
+                    self._upd_progress(Live.UpdatesStatus.IDLE, "Finished applying staged update, an error occurred")
+
+            return False # don't keep the timer
+        else:
+            return True # keep timer
+
+    # don't make this method callable using DBus because it's not needed
+    def _apply_staged(self, blob0, int_password, data_password):
+        """Apply a staged update if any"""
+        if self._upd_apply_job:
+            return
+
+        # catch any TERM signal which lay be sent by systemd when shutting down to avoid interrupting the process
+        signal.signal(signal.SIGTERM, _term_signal_ignore)
+
+        iso_file="%s/live-linux.iso"%self._upd_stage_dir
+        if os.path.exists(iso_file):
+            self._upd_progress(Live.UpdatesStatus.APPLY, "Applying staged update, do not close the session")
+        job=jobs.LiveLinuxUpdateApplyJob(iso_file, blob0, int_password, data_password)
+        self._upd_apply_job=job
+        self.updates_status_changed()
+        job.start()
+        GLib.timeout_add(1000, self._check_apply_staged_job_finished, job)
+
+#
+# Main
+#
+def get_updates_startup(remote):
+    remote.get_updates()
+    GLib.timeout_add(1000*60*60, get_updates_recurrent, remote) # run every hour
+    return False # remove timer
+
+def get_updates_recurrent(remote):
+    remote.get_updates()
+    return True # keep timer
+
+try:
+    # remote command using DBus
+    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+    bus=dbus.SystemBus()
+    name=dbus.service.BusName("inseca.Manager", bus)
+    remote=Remote(bus, live_env)
+
+    # ask for updates if not disabled
+    if remote.updates_enabled:
+        GLib.timeout_add(1000, get_updates_startup, remote) # try to get updates
+
+    # finish start
+    syslog.syslog(syslog.LOG_INFO, "Running GLib's main loop")
+    GLib.MainLoop().run()
+
+except Exception as e:
+    syslog.syslog(syslog.LOG_ERR, "Main() error: %s"%str(e))
+    sys.exit(1)

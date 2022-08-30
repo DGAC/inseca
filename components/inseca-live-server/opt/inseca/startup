@@ -1,0 +1,131 @@
+#!/usr/bin/python3
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+#
+# Ask for a user password (TUI) and unlock the device
+#
+# This script is run as root.
+#
+
+import syslog
+import Utils as util
+import syslog
+from dialog import Dialog
+import locale
+import time
+import Live
+
+import dbus
+import dbus.mainloop.glib
+
+import gi
+gi.require_version("GLib", "2.0")
+from gi.repository import GLib
+
+def dbus_exception_to_str(e):
+    # DBus exceptions display a lot of data, extract only the relevant part
+    err=str(e).splitlines()[-1]
+    if err.startswith("Exception: "):
+        return err[11:]
+    else:
+        return str(e)
+
+class UnlockProcess:
+    def __init__(self):
+        locale.setlocale(locale.LC_ALL, "")
+        self._d=Dialog(dialog="dialog")
+        self._unlocked=False
+        self._unlock_error_reason=None
+        self._unlock_error_message=None
+
+        # force switching to tty2
+        (status, out, err)=util.exec_sync(["chvt", "2"])
+        if status!=0:
+            syslog.syslog(syslog.LOG_ERR, "Could not switch to tty2: %s"%err)
+
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        system_bus=dbus.SystemBus()
+        while True:
+            try:
+                self._manager=system_bus.get_object("inseca.Manager", "/remote")
+                self._manager.connect_to_signal("unlock_done", self._unlock_done_cb, dbus_interface="inseca.Manager.Unlock")
+                self._manager.connect_to_signal("unlock_failed", self._unlock_failed_cb, dbus_interface="inseca.Manager.Unlock")
+                self._loop=GLib.MainLoop()
+                break
+            except Exception as e:
+                self._d.infobox("Please wait...")
+                syslog.syslog(syslog.LOG_WARNING, "Can't use the inseca.Manager (so we wait a bit): %s"%str(e))
+                time.sleep(1)
+
+    def _unlock_done_cb(self):
+        self._unlocked=True
+        self._loop.quit()
+
+    def _unlock_failed_cb(self, reason, message):
+        self._unlock_error_reason=reason
+        self._unlock_error_message=message
+        self._loop.quit()
+
+    def unlock(self):
+        """Unlock the device asking for a password"""
+        if self._manager.is_unlocked(dbus_interface="inseca.Manager.Status"):
+            return True
+        counter=0
+        while counter<3:
+            counter+=1
+            try:
+                # ask for unlock password
+                while True:
+                    (status, password)=self._d.passwordbox("Enter device unlock password", insecure=True, no_cancel=True, ok_label="Unlock")
+                    if status==self._d.OK:
+                        break
+
+                # run the unlock procedure
+                self._d.infobox("Unlocking device...")
+                self._manager.unlock_with_password(password, dbus_interface="inseca.Manager.Unlock")
+
+                # wait for device unlock to complete or fail
+                self._loop.run()
+
+                if self._unlocked:
+                    self._d.infobox("Device unlocked")
+                    return True
+                
+                if self._unlock_error_reason==Live.UnlockFailedReasonType.TOO_MANY_ATTEMPTS.value:
+                    self._d.infobox("Too many failed attempts")
+                    return False
+                elif self._unlock_error_reason==Live.UnlockFailedReasonType.CREDENTIAL.value:
+                    self._d.infobox(self._unlock_error_message)
+                    time.sleep(5)
+                else:
+                    raise Exception(self._unlock_error_message)
+
+            except Exception as e:
+                syslog.syslog(syslog.LOG_ERR, "Error while unlocking: %s"%dbus_exception_to_str(e))
+                message="An error occurred: %s"%str(e)
+                self._d.infobox(message)
+                time.sleep(5)
+        return False
+
+# Main
+p=UnlockProcess()
+if p.unlock():
+    while True:
+        time.sleep(3600)
+time.sleep(120)

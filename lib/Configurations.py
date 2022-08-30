@@ -72,7 +72,7 @@ def _validate_parameter_definition(data): # FIXME: put someplace where it can al
 
     if not isinstance(data["descr"], str):
         raise Exception(_("Invalid 'descr' attribute: wrong type"))
-    if data["type"] not in ("str", "filesystem", "password", "timestamp", "int", "file", "size-mb"):
+    if data["type"] not in ("str", "filesystem", "password", "timestamp", "int", "file", "size-mb", "encryptiontype"):
         raise Exception(_("Invalid 'type' attribute '%s'")%data["type"])
     if not isinstance(data["attest"], bool):
         raise Exception(_("Invalid 'attest' attribute: wrong type"))
@@ -127,6 +127,7 @@ class BuildType(str, enum.Enum):
     SIMPLE="simple"
     ADMIN="admin"
     WKS="workstation"
+    SERVER="server"
 
 class BuildConfig:
     """Represents a live Linux configuration"""
@@ -152,6 +153,8 @@ class BuildConfig:
             return BuildType.ADMIN
         if "inseca-live-wks" in self._components:
             return BuildType.WKS
+        if "inseca-live-server" in self._components:
+            return BuildType.SERVER
         return BuildType.SIMPLE
 
     @property
@@ -344,9 +347,9 @@ class BuildConfig:
         if not cinit:
             raise Exception("Missing a 'components-init' component")
 
-        # if build type is not WKS, then the components list should not include any component
+        # if build type is not WKS or SERVER, then the components list should not include any component
         # which needs a USERDATA
-        if self.build_type!=BuildType.WKS:
+        if self.build_type not in (BuildType.WKS, BuildType.SERVER):
             for cid in self._components:
                 cdata=cdefs[cid]
                 if len (cdata["userdata"])>0:
@@ -427,6 +430,12 @@ class InstallConfig:
     def parameters(self):
         """Get the list of all the parameters"""
         return self._params_combined
+
+    @property
+    def overrides(self):
+        """Get the values of parameters which are overriden by the configuration (and can thus not be changed
+        by the admin)"""
+        return self._overrides
 
     @property
     def devicemeta_pubkey(self):
@@ -530,13 +539,19 @@ class InstallConfig:
                     dev_fmt[section][entry]=conf_dev_format[section][entry]
         self._dev_format=dev_fmt
         #print("SPEC: %s"%json.dumps(data, indent=4))
+
+        # compute overrides
+        self._overrides={}
+        if "override" in data["dev-format"]:
+            self._overrides=data["dev-format"]["override"].copy()
+
         self._data=data
 
     def validate(self):
         """Check that the configuration is coherent"""
         if self.build_id:
             bconf=self._gconf.get_build_conf(self.build_id)
-            if bconf.build_type!=BuildType.WKS:
+            if bconf.build_type not in (BuildType.WKS, BuildType.SERVER):
                 raise Exception(_("Build configuration is not of type 'workstation'"))
 
     def export_complete_configuration(self):
@@ -597,6 +612,12 @@ class FormatConfig:
     def parameters(self):
         """Get the list of all the parameters"""
         return self._params_combined
+
+    @property
+    def overrides(self):
+        """Get the values of parameters which are overriden by the configuration (and can thus not be changed
+        by the admin)"""
+        return self._overrides
 
     @property
     def devicemeta_pubkey(self):
@@ -674,6 +695,12 @@ class FormatConfig:
                         raise Exception(_(f"Invalid configuration entry '{entry}' in section '{section}': already part of core configuration"))
                     dev_fmt[section][entry]=conf_dev_format[section][entry]
         self._dev_format=dev_fmt
+
+        # compute overrides
+        self._overrides={}
+        if "override" in data["dev-format"]:
+            self._overrides=data["dev-format"]["override"].copy()
+
         #print("SPEC: %s"%json.dumps(data, indent=4))
         self._data=data
 

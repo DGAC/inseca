@@ -1,9 +1,15 @@
 {
     "parameters": {
-        "fs": {
+        "fs-data": {
             "descr": "Data partition filesystem",
             "type": "filesystem",
             "default": "exfat",
+            "attest": false
+        },
+        "enctype-data": {
+            "descr": "Data encryption type",
+            "type": "encryptiontype",
+            "default": "luks",
             "attest": false
         },
         "password-user": {
@@ -22,7 +28,7 @@
             "attest": false
         },
         "confid": {
-            "descr": "Format config ID",
+            "descr": "Install configuration ID",
             "type": "str",
             "attest": true
         },
@@ -70,7 +76,6 @@
                 "id": "grub",
                 "type": "BIOS",
                 "label": "bios_grub",
-                "volume-id": null,
                 "encryption": null,
                 "immutable": false,
                 "filesystem": "ext4",
@@ -81,7 +86,6 @@
                 "id": "dummy",
                 "type": "LINUX",
                 "label": "dummy",
-                "volume-id": null,
                 "encryption": null,
                 "immutable": false,
                 "filesystem": "ext4",
@@ -92,7 +96,6 @@
                 "id": "EFI",
                 "type": "EFI",
                 "label": "efi",
-                "volume-id": null,
                 "encryption": null,
                 "immutable": false,
                 "filesystem": "fat",
@@ -103,7 +106,6 @@
                 "id": "live",
                 "type": "LINUX",
                 "label": "live",
-                "volume-id": null,
                 "encryption": null,
                 "immutable": false,
                 "filesystem": "ext4",
@@ -114,7 +116,6 @@
                 "id": "internal",
                 "type": "LINUX",
                 "label": "system",
-                "volume-id": null,
                 "encryption": "luks",
                 "immutable": false,
                 "filesystem": "btrfs",
@@ -125,10 +126,9 @@
                 "id": "data",
                 "type": "LINUX",
                 "label": "Documents",
-                "volume-id": "{password-internal}",
-                "encryption": "veracrypt",
+                "encryption": "{enctype-data}",
                 "immutable": false,
-                "filesystem": "{fs}",
+                "filesystem": "{fs-data}",
                 "password": "{password-data}",
                 "size-mb": null
             }

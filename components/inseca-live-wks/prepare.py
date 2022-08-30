@@ -36,11 +36,17 @@ shutil.copyfile(file, "%s/userdata-skey.pub"%destdir)
 pubkey=util.load_file_contents(file)
 util.write_data_to_file("USERDATA signing public key: %s"%pubkey, os.environ["BUILD_DATA_FILE"], append=True)
 
+# data/ mapping configuration
+map_data={
+    "": "/home/insecauser/Documents"
+}
+util.write_data_to_file(json.dumps(map_data), "%s/inseca-data-map.json"%destdir)
+
 # other config. elements
 protected_conf={
     "allowed-virtualized": conf.get("allowed-virtualized", ""),
     "disabled-net-services": conf.get("disabled-net-services", "")
 }
-util.write_data_to_file(json.dumps(protected_conf), "%s/etc/inseca-live-wks.json"%os.environ["LIVE_DIR"])
+util.write_data_to_file(json.dumps(protected_conf), "%s/etc/inseca-live.json"%os.environ["LIVE_DIR"])
 util.write_data_to_file("Allowed virtual environments: %s\n"%protected_conf["allowed-virtualized"], os.environ["BUILD_DATA_FILE"], append=True)
 util.write_data_to_file("Disabled net services: %s\n"%protected_conf["disabled-net-services"], os.environ["BUILD_DATA_FILE"], append=True)

@@ -61,7 +61,7 @@ def _validate_template(templ):
             if key not in pspec:
                 raise Exception("Missing key '%s' for parameter '%s'"%(key, pname))
             ptype=pspec["type"]
-            if ptype not in ("int", "str", "filesystem", "timestamp", "date", "file", "password", "size-mb"):
+            if ptype not in ("int", "str", "filesystem", "timestamp", "date", "file", "password", "size-mb", "encryptiontype"):
                 raise Exception("Invalid type '%s' for parameter '%s'"%(ptype, pname))
 
     # specifications
@@ -88,7 +88,6 @@ def _validate_template(templ):
         "id": [str, False],
         "type": [str, True],
         "label": [str, False],
-        "volume-id": [str, True],
         "encryption": [str, True],
         "immutable": [bool, False],
         "filesystem": [str, True],
@@ -216,6 +215,9 @@ class Builder():
                         value="%s/%s"%(rel_dir, value)
                     if not os.path.exists(value):
                         raise Exception("File does not exist")
+                elif pspec["type"]=="encryptiontype":
+                    if value not in ("luks", "veracrypt"):
+                        raise Exception("Invalid encryption type '%s'"%value)
                 self._param_values[name]=value
             except Exception as e:
                 raise Exception("Invalid value '%s' for parameter '%s': %s"%(value, name, str(e)))

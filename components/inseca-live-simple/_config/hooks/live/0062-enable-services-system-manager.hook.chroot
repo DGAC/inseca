@@ -19,7 +19,7 @@
 
 set -e
 
-for svce in inseca-setup
+for svce in inseca-startup
 do
 	systemctl start "$svce"
 	systemctl enable "$svce"

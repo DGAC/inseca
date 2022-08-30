@@ -21,6 +21,7 @@ import sys
 import os
 import gi
 import Job
+import Live
 
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
@@ -77,10 +78,8 @@ class MainUI:
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         self._system_bus=dbus.SystemBus()
         self._manager=self._system_bus.get_object("inseca.Manager", "/remote")
-        self._manager.connect_to_signal("status_changed", self._manager_status_changed, dbus_interface="inseca.Manager.Status")
-        self._manager.connect_to_signal("progress", self._manager_progress_cb, dbus_interface="inseca.Manager.GetUpdates")
-        self._manager_progress_cb(self._manager.get_updates_progress(dbus_interface="inseca.Manager.GetUpdates"))
-        self._manager_status_changed()
+        self._manager.connect_to_signal("updates_status_changed", self._manager_updates_status_changed, dbus_interface="inseca.Manager.GetUpdates")
+        self._manager_updates_status_changed()
 
         # version and informations
         label=self._builder.get_object("version-value")
@@ -189,12 +188,15 @@ class MainUI:
     def updates_get_cb(self, button):
         self._manager.get_updates(dbus_interface="inseca.Manager.GetUpdates")
 
-    def _manager_status_changed(self):
-        status=self._manager.get_updates_status(dbus_interface="inseca.Manager.Status")
-        if status!="":
-            self._builder.get_object("update-status").set_text(status)
+    def _manager_updates_status_changed(self):
+        (action, last)=self._manager.get_updates_status(dbus_interface="inseca.Manager.GetUpdates")
+        eaction=Live.UpdatesStatus(action)
+        if eaction==Live.UpdatesStatus.IDLE:
+            self._builder.get_object("update-status").set_text(last)
+        else:
+            self._builder.get_object("update-status").set_text(action)
 
-        if status=="":
+        if eaction==Live.UpdatesStatus.IDLE:
             self._builder.get_object("update-button").set_sensitive(True)
             self._builder.get_object("update-spinner").stop()
         else:

@@ -1,0 +1,241 @@
+#!/usr/bin/python3
+
+# This file is part of INSECA.
+#
+#    Copyright (C) 2020-2022 INSECA authors
+#
+#    INSECA is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    INSECA is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
+
+#
+# This file starts the system, monitors it and offers a DBus service to change the password or trigger an update
+#
+
+import sys
+import os
+import gi
+import syslog
+import time
+import Live
+
+live_env=Live.Environ()
+while not live_env.define_UI_environment():
+    syslog.syslog(syslog.LOG_INFO, "User not yet created...")
+    time.sleep(2)
+
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk
+
+import dbus
+import dbus.service
+import dbus.mainloop.glib
+
+def dbus_exception_to_str(e):
+    # DBus exceptions display a lot of data, extract only the relevant part
+    err=str(e).splitlines()[-1]
+    if err.startswith("Exception: "):
+        return err[11:]
+    else:
+        return str(e)
+
+#
+# UI
+#
+class UnlockProcessUI:
+    """Contains all the UI features"""
+    def __init__(self, live_env):
+        if not isinstance(live_env, Live.Environ):
+            raise Exception("Code bug")
+        self._live_env=live_env
+
+        self.scriptdir=os.path.realpath(os.path.dirname(sys.argv[0]))
+        self._builder=Gtk.Builder()
+        self._builder.add_from_file("%s/%s"%(self.scriptdir, "main.ui"))
+        self._main_window=self._builder.get_object("main")
+        self._main_window.set_icon_from_file("/opt/inseca/logo-128.png")
+        self._main_nb=self._builder.get_object("main-nb")
+        self._builder.connect_signals(self)
+
+        self.expired=None
+        self.invalid_env=None
+
+        # Misc.
+        live_env.user_setting_set("org.gnome.software", "allow-updates", "false")
+
+        # access to the inseca.Manager object via DBUS
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        system_bus=dbus.SystemBus()
+        while True:
+            try:
+                self._manager=system_bus.get_object("inseca.Manager", "/remote")
+                self._manager.connect_to_signal("unlock_done", self._unlock_done_cb, dbus_interface="inseca.Manager.Unlock")
+                self._manager.connect_to_signal("unlock_failed", self._unlock_failed_cb, dbus_interface="inseca.Manager.Unlock")
+                self._manager.connect_to_signal("updates_status_changed", self._manager_updates_status_changed, dbus_interface="inseca.Manager.GetUpdates")
+                break
+            except Exception as e:
+                syslog.syslog(syslog.LOG_WARNING, "Can't use the inseca.Manager (so we wait a bit): %s"%str(e))
+                time.sleep(1)
+
+        # version and informations
+        self._add_ui_key_infos()
+        self.is_unlocked=self._manager.is_unlocked(dbus_interface="inseca.Manager.Status")
+
+    def _add_ui_key_infos(self):
+        """Load system's information from when the live build was generated and display it in the UI"""
+        try:
+            label=self._builder.get_object("infos-label")
+            version=self._manager.get_version(dbus_interface="inseca.Manager.Status")
+            valid_to=self._manager.get_valid_to(dbus_interface="inseca.Manager.Status")
+            self.expired=self._manager.get_expired(dbus_interface="inseca.Manager.Status")
+            self.invalid_env=self._manager.get_invalid_env(dbus_interface="inseca.Manager.Status")
+            text="<small>Version %s (valide jusqu'au %s)</small>"%(version, valid_to)
+            label.set_markup(text)
+        except Exception as e:
+            syslog.syslog(syslog.LOG_INFO, "Infos error: %s"%str(e))
+
+    def icon_pressed(self, entry, icon_position, event):
+        entry.set_visibility(True)
+
+    def icon_released(self, entry, icon_position, event):
+        entry.set_visibility(False)
+
+    def _unlock_done_cb(self):
+        # finish the initialization "post unlock"
+        try:
+            # final notice
+            self.show_page("final", can_close=True)
+        except Exception as e:
+            self.show_error(str(e))
+
+    def _unlock_failed_cb(self, reason, message):
+        live_env.notify(message)
+        if reason==Live.UnlockFailedReasonType.CREDENTIAL.value:
+            self.show_page("password")
+        elif reason==Live.UnlockFailedReasonType.TOO_MANY_ATTEMPTS.value:
+            self.show_error("Too many failed attempts")
+        else:
+            self.show_error(message)
+
+    def _manager_updates_status_changed(self):
+        (action, last)=self._manager.get_updates_status(dbus_interface="inseca.Manager.GetUpdates")
+        eaction=Live.UpdatesStatus(action)
+        if last is None:
+            if eaction==Live.UpdatesStatus.IDLE:
+                live_env.notify("")
+            else:
+                live_env.notify(action)
+        else:
+            if eaction==Live.UpdatesStatus.IDLE:
+                live_env.notify(last)
+            else:
+                live_env.notify("%s (%s)"%(action, last))
+
+    def on_password_button_clicked(self, button):
+        """Callback after user enterered password"""
+        try:
+            self.show_message("Unlocking device...")
+            widget=self._builder.get_object("password")
+            passwd=widget.get_text()
+            self._manager.unlock_with_password(passwd)
+        except Exception as e:
+            self.show_error(dbus_exception_to_str(str(e)))
+
+    def on_close_button_clicked(self, button):
+        Gtk.main_quit()
+
+    #
+    # Generic UI
+    #
+    def show_message(self, message, can_close=False):
+        self.show_page("message", can_close)
+        if message:
+            widget=self._builder.get_object("message")
+            widget.set_markup("<span size='large'>"+message+"</span>")
+
+    def show_warning(self, message):
+        self.show_page("warning", True)
+        if message:
+            widget=self._builder.get_object("warnmsg")
+            widget.set_markup("<span size='large'>"+message+"</span>")
+
+    def show_error(self, message):
+        self.show_page("error", False)
+        widget=self._builder.get_object("errormsg")
+        widget.set_markup("<span size='large'>"+message+"</span>")
+
+        close_button=self._builder.get_object("close-button")
+        close_button.show()
+
+    def show_page(self, page, can_close=False):
+        indexes={
+            "message": 0,
+            "error": 1,
+            "password": 2,
+            "final": 3,
+            "warning": 4
+        }
+        self._main_nb.set_current_page(indexes[page])
+        self._main_window.present()
+        self._main_window.set_keep_above(True)
+
+        close_button=self._builder.get_object("close-button")
+        password_button=self._builder.get_object("password-go-button")
+        # buttons and more
+        if page=="password":
+            can_close=False
+            password_button.show()
+            close_button.hide()
+        else:
+            password_button.hide()
+            close_button.set_sensitive(can_close)
+            close_button.show()
+
+#
+# Main
+#
+
+try:
+    syslog.syslog(syslog.LOG_INFO, "Starting up")
+
+    # REM: if the graphical environment is not yet available, then the program will
+    #      crash while creating the UI object, and will bre started by systemd
+    ui=None
+    ui=UnlockProcessUI(live_env)
+    syslog.syslog(syslog.LOG_INFO, "Created UI")
+
+    # Decide which UI page to show
+    if ui.expired:
+        ui.show_error("This device has expired (or invalid hardware clock)")
+    elif ui.invalid_env:
+        ui.show_error("Invalid execution environment detected")
+    elif not ui.is_unlocked:
+        # define user's environment while not authenticated
+        syslog.syslog(syslog.LOG_INFO, "Setting user env. as not yet authenticated")
+        live_env.user_setting_set("org.gnome.desktop.background", "picture-uri", "")
+        live_env.user_setting_set("org.gnome.desktop.background", "primary-color", "#ff5050") # red background
+        live_env.user_setting_set("org.gnome.settings-daemon.plugins.power", "sleep-inactive-ac-type", "nothing")
+        live_env.user_setting_set("org.gnome.settings-daemon.plugins.power", "sleep-inactive-battery-type", "nothing")
+        ui.show_page("password")
+    else:
+        ui.show_page("final", can_close=True)
+
+    syslog.syslog(syslog.LOG_INFO, "Reached Gtk's main()")
+    Gtk.main()
+
+except Exception as e:
+    syslog.syslog(syslog.LOG_ERR, "MAIN error: %s"%str(e))
+    live_env.notify(str(e))
+    if ui:
+        ui.show_error(str(e))
+    if Gtk.main_level()==0:
+        Gtk.main()

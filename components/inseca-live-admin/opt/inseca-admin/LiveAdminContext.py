@@ -31,16 +31,6 @@ import CryptoPass as cpass
 import SpecBuilder
 import Live
 
-def _change_current_user_password(username, passwd):
-    # change user password
-    if passwd=="" or passwd is None:
-        (status, out, err)=util.exec_sync(["passwd", "-d", username])
-    else:
-        (status, out, err)=util.exec_sync(["chpasswd"], stdin_data="%s:%s"%(username, passwd))
-
-    if status!=0:
-        raise Exception("Could not change logged user's password: %s"%err)
-
 class Context:
     def __init__(self):
         # key validity
@@ -51,7 +41,9 @@ class Context:
 
         # UI environment variables
         self._live_env=Live.Environ()
-        self._live_devfile=self._live_env.live_devfile
+
+        live_devpart=util.get_root_live_partition()
+        self._live_devfile=util.get_device_of_partition(live_devpart)
         self._live_env.define_UI_environment()
 
         # device status
@@ -96,8 +88,8 @@ class Context:
 
     @property
     def is_unlocked(self):
-        """Tells if the device is unlocked (i.e. /internal is mounted)"""
-        return self._live_env.startup_done
+        """Tells if the device is unlocked"""
+        return self._live_env.unlocked
 
     def _compute_extra_partitions(self):
         """Analyse the device and determine if the "dummy" and "internal" partitions exist.
@@ -336,7 +328,7 @@ class Context:
             obj.mount("/internal")
 
             # alter the user's password and display name
-            _change_current_user_password("insecauser", password)
+            util.change_user_password("insecauser", password)
             util.change_user_comment(self._live_env.logged, cn)
 
             # deactivate GDM autologin
@@ -352,11 +344,11 @@ class Context:
         if self._internal_partfile is not None:
             encobj=enc.Enc("luks", self._internal_partfile)
             encobj.umount()
-            _change_current_user_password("insecauser", None)
+            util.change_user_password("insecauser", None)
 
     def password_change(self, name, current_password, new_password):
         if not self.is_valid:
             raise Exception("Device is not valid anymore")
         (ipw, cn)=self._get_internal_password(current_password)
         self.declare_user(name, new_password, ipw)
-        _change_current_user_password("insecauser", new_password)
+        util.change_user_password("insecauser", new_password)

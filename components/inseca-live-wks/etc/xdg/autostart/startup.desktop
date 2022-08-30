@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=INSECA startup
+GenericName=INSECA startup
+Comment=INSECA startup application
+Exec=/opt/inseca/startup
+Icon=/opt/inseca/logo-128.png
+Terminal=false
+Type=Application
+Categories=Utility
+NoDisplay=true
+X-GNOME-Autostart-enabled=true

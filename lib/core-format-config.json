@@ -1,9 +1,15 @@
 {
     "parameters": {
-        "fs": {
+        "fs-data": {
             "descr": "Data partition filesystem",
             "type": "filesystem",
             "default": "exfat",
+            "attest": false
+        },
+        "enctype-data": {
+            "descr": "Data encryption type",
+            "type": "encryptiontype",
+            "default": "luks",
             "attest": false
         },
         "password-data": {
@@ -12,7 +18,7 @@
             "attest": false
         },
         "confid": {
-            "descr": "Format config ID",
+            "descr": "Format configuration ID",
             "type": "str",
             "attest": true
         },
@@ -45,10 +51,9 @@
                 "id": "data",
                 "type": "LINUX",
                 "label": "Documents",
-                "volume-id": "data",
-                "encryption": "veracrypt",
+                "encryption": "{enctype-data}",
                 "immutable": false,
-                "filesystem": "{fs}",
+                "filesystem": "{fs-data}",
                 "password": "{password-data}",
                 "size-mb": null
             }

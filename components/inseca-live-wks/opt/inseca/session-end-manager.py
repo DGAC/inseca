@@ -23,6 +23,7 @@ import syslog
 import os
 import tarfile
 import signal
+import time
 import Live
 import Utils as util
 
@@ -130,7 +131,6 @@ class Backup:
                 else:
                     syslog.syslog(syslog.LOG_ERR, "Error executing the shutdown script for componeent '%s': %s"%(component, err))
 
-backup=Backup()
 def QueryEndSession_cb(flags):
     #print("QueryEndSession received")
     syslog.syslog(syslog.LOG_INFO, "Possible end of session, starting backup")
@@ -159,16 +159,25 @@ signal.signal(signal.SIGTERM, term_handler)
 # DBUS stuff
 
 dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-os.seteuid(backup.uid) # switch to connected user, required to connect to the session bus
-sessionBus = dbus.SessionBus()
-mngr_proxy=sessionBus.get_object(SM_DBUS_NAME, SM_DBUS_PATH)
-smClientId=mngr_proxy.RegisterClient(APP_ID, "", dbus_interface=SM_DBUS_INTERFACE)
 
-client_proxy=sessionBus.get_object(SM_DBUS_NAME, smClientId)
-client_proxy.connect_to_signal("QueryEndSession", QueryEndSession_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
-client_proxy.connect_to_signal("EndSession", EndSession_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
-client_proxy.connect_to_signal("CancelEndSession", CancelEndSession_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
-client_proxy.connect_to_signal("Stop", Stop_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
+while True:
+    try:
+        backup=Backup()
+        os.seteuid(backup.uid) # switch to connected user, required to connect to the session bus
+        sessionBus = dbus.SessionBus()
+        mngr_proxy=sessionBus.get_object(SM_DBUS_NAME, SM_DBUS_PATH)
+        smClientId=mngr_proxy.RegisterClient(APP_ID, "", dbus_interface=SM_DBUS_INTERFACE)
+
+        client_proxy=sessionBus.get_object(SM_DBUS_NAME, smClientId)
+        client_proxy.connect_to_signal("QueryEndSession", QueryEndSession_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
+        client_proxy.connect_to_signal("EndSession", EndSession_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
+        client_proxy.connect_to_signal("CancelEndSession", CancelEndSession_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
+        client_proxy.connect_to_signal("Stop", Stop_cb, dbus_interface=SM_CLIENT_DBUS_INTERFACE)
+        break
+    except Exception as e:
+        syslog.syslog(syslog.LOG_WARNING, "Can't connect to the session manager (so we wait a bit): %s"%str(e))
+        time.sleep(1)
+
 os.seteuid(0) # back to root
 
 loop=GLib.MainLoop()

@@ -1,0 +1,17 @@
+[Unit]
+Description=INSECA startup service for server environments
+After=getty@tty2.service
+
+# https://alan-mushi.github.io/2014/10/26/execute-an-interactive-script-at-boot-with-systemd.html
+
+[Service]
+Type=oneshot
+Environment="PYTHONPATH=/opt/inseca"
+ExecStart=/opt/inseca/startup
+StandardInput=tty
+TTYPath=/dev/tty2
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=default.target

@@ -26,14 +26,16 @@ class FSType(str, enum.Enum):
     ext4 = "EXT4"
     exfat = "EXFAT"
     btrfs = "BTRFS"
+    xfs = "XFS"
 
 def fstype_to_description(fstype):
     descr={
-        FSType.fat: "FAT: Windows, MacOSX et Linux (limite fichiers 4Go)",
-        FSType.ntfs: "NTFS: Windows et Linux",
-        FSType.ext4: "Ext4: Linux",
-        FSType.exfat: "EXFat: Windows et Linux(-) (MacOSX?)",
-        FSType.btrfs: "BTRFS: Linux"
+        FSType.fat: "FAT (Windows, MacOS & Linux, < 4Go)",
+        FSType.ntfs: "NTFS (Windows & Linux)",
+        FSType.ext4: "Ext4 (Linux)",
+        FSType.exfat: "EXFat (Windows, MacOS & Linux)",
+        FSType.btrfs: "BTRFS (Linux)",
+        FSType.xfs: "XFS (Linux)"
     }
     if fstype in descr:
         return descr[fstype]
@@ -59,30 +61,24 @@ def fstype_from_string(string):
             return FSType.exfat
         elif string.startswith("btrfs"):
             return FSType.btrfs
+        elif string.startswith("xfs"):
+            return FSType.xfs
         else:
             raise Exception("Invalid filesystem type '%s'"%string)
 
-def create_filesystem(partname, fstype, label, fsvol=None):
+def create_filesystem(partname, fstype, label):
     if not isinstance(fstype, FSType):
         raise Exception("Invalid filesystem argument, expected FSType, got %s"%type(fstype))
     util.wait_for_partition(partname)
     fstype_str=fstype.name
     if fstype==FSType.fat:
         args=["/sbin/mkfs.vfat", "-n", label]
-        if fsvol:
-            args+=["-i", fsvol]
     elif fstype==FSType.exfat:
         args=["/sbin/mkfs.exfat", "-n", label]
-        if fsvol:
-            args+=["-i", fsvol]
     elif fstype==FSType.ntfs:
         args=["/sbin/mkfs.ntfs", "-f", "-L", label]
-        if fsvol:
-            raise Exception("NTFS does not support using a volume ID")
     elif fstype==FSType.ext4:
         args=["/sbin/mkfs.ext4", "-F", "-L", label]
-        if fsvol:
-            args+=["-U", fsvol]
     elif fstype==FSType.btrfs:
         if os.path.exists("/sbin/mkfs.btrfs"):
             # Debian 11
@@ -90,8 +86,8 @@ def create_filesystem(partname, fstype, label, fsvol=None):
         else:
             # Debian 10
             args=["/bin/mkfs.btrfs", "-f", "-L", label]
-        if fsvol:
-            args+=["-U", fsvol]
+    elif fstype==FSType.xfs:
+        args=["/sbin/mkfs.xfs", "-L", label]
     else:
         raise Exception("Unhandled FS type '%s'"%fstype_str)
 
@@ -101,7 +97,7 @@ def create_filesystem(partname, fstype, label, fsvol=None):
         if "does not exist" in err: # sometimes, on slow devices, it seems udev is slow to create the device files, or some other weird behaviour
             syslog.syslog(syslog.LOG_INFO, "Device file '%s' was present and has disappeared, waiting till it's present again"%partname)
             util.wait_for_partition(partname)
-            create_filesystem(partname, fstype, label, fsvol)
+            create_filesystem(partname, fstype, label)
             return
         raise Exception("Impossible de formater '%s' en %s: %s" % (partname, fstype_str, err))
 

@@ -1,0 +1,30 @@
+{
+    "descr": "Component to manage a running INSECA system",
+    "provides": [
+        "components-init"
+    ],
+    "requires": [],
+    "builddata": {
+        "userdata-skey-pub-file": {
+            "descr": "Public key used to verify the signature of USERDATA resources",
+            "type": "file"
+        },
+        "allowed-virtualized": {
+            "descr": "CSV list of allowed virtualization execution environment",
+            "type": "str"
+        },
+        "disabled-net-services": {
+            "descr": "List of INSECA's network services to disable",
+            "type": "str"
+        },
+        "data-mapping": {
+            "descr": "Mapping of directories in the data/ partition to the host, as a CSV of <dir in data/>:<mount dir>",
+            "type": "str"
+        },
+        "post-unlock-script": {
+            "descr": "Script to execute after the server has been unlocked to actually start the service(s)",
+            "type": "file"
+        }
+    },
+    "userdata": {}
+}

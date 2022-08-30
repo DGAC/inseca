@@ -19,13 +19,23 @@
 
 import os
 import shutil
+import syslog
 import Utils as util
 
 # restart the Docker daemon if it is installed as its configuration may have been
 # modified by some PRIVDATA build parameters
 docker_path=shutil.which("docker")
 if docker_path:
+    syslog.syslog(syslog.LOG_INFO, "(re)Starting Docker")
+    (status, out, err)=util.exec_sync(["systemctl", "daemon-reload"])
+    if status!=0:
+        syslog.syslog(syslog.LOG_ERR, "Failed to reload systemd's configuration: %s"%err)
+        raise Exception("Failed to reload systemd's configuration")
+
     (status, out, err)=util.exec_sync(["systemctl", "restart", "docker"])
+    if status!=0:
+        syslog.syslog(syslog.LOG_ERR, "(re)Starting Docker failed: %s"%err)
+        raise Exception("Failed to start the Docker daemon")
 
 # dump PCR registers from TPM2 if any
 ts=util.get_timestamp(as_str=True)

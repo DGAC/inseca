@@ -55,11 +55,11 @@ def compute_hmac(data, key, digest="sha256"):
     return f.hexdigest()
 
 class CryptoPassword(crypto.Crypto):
-    def __init__(self, password):
+    def __init__(self, password, ignore_password_strength=False):
         crypto.Crypto.__init__(self)
         if not isinstance(password, str):
             raise Exception(_("Invalid password: expected a string"))
-        if len(password)<10:
+        if not ignore_password_strength and len(password)<10:
             raise Exception(_("Invalid password: not strong enough"))
         self._password=password
 

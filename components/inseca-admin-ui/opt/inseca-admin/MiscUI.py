@@ -22,6 +22,7 @@ from gi.repository import Gtk
 from gi.repository import GdkPixbuf
 
 import CryptoGen as cgen
+import Filesystem as filesystem
 
 def create_label_widget(pspec):
     label=Gtk.Label(label="%s:"%pspec["descr"])
@@ -136,6 +137,64 @@ class ComboEntry(Gtk.ComboBoxText):
     def get_value(self):
         return self.get_active_text()
 
+class EncTypeEntry(Gtk.ComboBoxText):
+    """UI entry to select an encryption type"""
+    __gsignals__ = {
+        "data_changed": (GObject.SIGNAL_RUN_FIRST, None, ())
+    }
+    _mapping={
+        "LUKS (Linux)": "luks",
+        "VeraCrypt": "veracrypt"
+    }
+    def __init__(self, spec):
+        Gtk.ComboBoxText.__init__(self)
+        self._spec=spec
+        default_value=None
+        index=0
+        if "default" in spec:
+            default_value=spec["default"]
+        for key in EncTypeEntry._mapping:
+            self.append_text(key)
+            if EncTypeEntry._mapping[key]==default_value:
+                self.set_active(index)
+            index+=1
+        self.connect("changed", self._changed_cb)
+
+    def _changed_cb(self, dummy):
+        self.emit("data_changed")
+
+    def get_value(self):
+        return EncTypeEntry._mapping[self.get_active_text()]
+
+class FilesystemEntry(Gtk.ComboBoxText):
+    """UI entry to select a filesystem type"""
+    __gsignals__ = {
+        "data_changed": (GObject.SIGNAL_RUN_FIRST, None, ())
+    }
+    def __init__(self, spec):
+        Gtk.ComboBoxText.__init__(self)
+        self._spec=spec
+        default_value=None
+        index=0
+        if "default" in spec:
+            default_value=filesystem.fstype_from_string(spec["default"])
+        for fs in filesystem.FSType:
+            descr=filesystem.fstype_to_description(fs)
+            self.append_text(descr)
+            if fs==default_value:
+                self.set_active(index)
+            index+=1
+        self.connect("changed", self._changed_cb)
+
+    def _changed_cb(self, dummy):
+        self.emit("data_changed")
+
+    def get_value(self):
+        text=self.get_active_text()
+        for fs in filesystem.FSType:
+            if filesystem.fstype_to_description(fs)==text:
+                return fs.value
+
 class TODOEntry(Gtk.Label):
     """UI entry holder for future work"""
     _gsignals__ = {
@@ -162,11 +221,12 @@ def create_param_entry(pspec):
         print("TODO (size-mb pspec): %s"%pspec)
         widget=TODOEntry(pspec)
     elif ptype=="filesystem":
-        print("TODO (filesystem pspec): %s"%pspec)
-        widget=TODOEntry(pspec)
+        widget=FilesystemEntry(pspec)
     elif ptype=="file":
         print("TODO (file pspec): %s"%pspec)
         widget=TODOEntry(pspec)
     elif ptype=="combo":
         widget=ComboEntry(pspec)
+    elif ptype=="encryptiontype":
+        widget=EncTypeEntry(pspec)
     return widget

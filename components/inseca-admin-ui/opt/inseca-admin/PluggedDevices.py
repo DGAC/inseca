@@ -92,7 +92,6 @@ class PluggedDevices(GObject.Object):
     def _udisks_prop_changed(self, dbus_interface, changed_properties, invalidated_properties, sender_path):
         if dbus_interface=="org.freedesktop.UDisks2.Filesystem":
             syslog.syslog(syslog.LOG_INFO, "Notification from UDISKS for %s"%sender_path)
-            print("Notification from UDISKS for %s"%sender_path)
             self.emit("changed")
 
 def _get_udisks2_devices(system_bus):

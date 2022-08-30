@@ -29,7 +29,9 @@ import Device
 import base64
 import sqlite3
 import requests
+import enum
 import Utils as util
+import Filesystem as filesystem
 import CryptoPass as cpass
 import CryptoX509 as x509
 import CryptoGen as cgen
@@ -85,8 +87,11 @@ def _efi_ignore(root, relative):
 # Misc.
 #
 def deactivate_gdm_autologin():
-    """Make sure GDM's autologin is turned off"""
+    """Make sure GDM's autologin is turned off (if GDM is present)"""
     gdmconf_file="/etc/gdm3/daemon.conf"
+    if not os.path.exists(gdmconf_file):
+        return
+
     econf=util.load_file_contents(gdmconf_file)
     nconf=[]
     for line in econf.splitlines():
@@ -169,14 +174,45 @@ def install_live_linux_files_from_iso(live_path, source_dir):
         srcfile="%s/live/%s"%(source_dir, fname)
         shutil.copyfile(srcfile, "%s/%s"%(live_path, fname))
 
+class InvalidCredentialException(Exception):
+    pass
+
+class DeviceIntegrityException(Exception):
+    pass
+
+class UnlockFailedReasonType(int, enum.Enum):
+    """Device unlock failure reason types"""
+    CREDENTIAL = 0
+    INTEGRITY = 1
+    OTHER = 2
+    TOO_MANY_ATTEMPTS = 3
+
+class UpdatesStatus(str, enum.Enum):
+    """Device update status"""
+    IDLE = "Idle"
+    DOWNLOAD = "Downloading update information"
+    CHECK = "Checking for an update"
+    STAGE = "Staging update"
+    APPLY = "Applying staged update"
+
 class BootProcessWKS:
     """Class to help asserting integrity of a "workstation" device. See the Installer object to understand the operations
     performed here"""
+    __instance = None
+
+    @staticmethod
+    def get_instance(live_env=None):
+        """Method to get a singleton"""
+        if BootProcessWKS.__instance is None :
+            BootProcessWKS.__instance = BootProcessWKS(live_env)
+        return BootProcessWKS.__instance
+
     def __init__(self, live_env):
         if not isinstance(live_env, Environ):
             raise Exception("CODEBUG: @live_env should be an Environ object")
         self._live_env=live_env
-        self._dev=Device.Device(live_env.live_devfile)
+        live_devpart=util.get_root_live_partition()
+        self._dev=Device.Device(util.get_device_of_partition(live_devpart))
 
         self._user_uuid=None
         self._cn=None
@@ -192,7 +228,8 @@ class BootProcessWKS:
     def _unlock_blob0(self, user_password):
         """Get the blob0 from the user's password, and retreives information about user.
         Returns the blob0 (as a string)"""
-        eobj0=cpass.CryptoPassword(user_password) # for INSECA created before using the password hardening
+        # blob0 might contain something like: {"d3a96fec-d9f4-4a77-bc10-ce8f88796cd8": {"mode": "password", "salt": "I4&G...e\\m", "enc-blob": "sha256:sVTJ...T0=", "cn": "Firstname Lastname"}}
+        eobj0=cpass.CryptoPassword(user_password, ignore_password_strength=True)
         mp=self._dev.mount(partid_dummy)
         blobs=json.loads(util.load_file_contents("%s/resources/blob0.json"%mp))
         for slot in blobs:
@@ -214,11 +251,13 @@ class BootProcessWKS:
                 self._cn=entry["cn"]
 
                 # change user's comment, for the UI
-                util.change_user_comment(self._live_env.logged, self._cn)
+                if self._live_env.logged is not None:
+                    util.change_user_comment(self._live_env.logged, self._cn)
                 return blob0
-            except Exception:
+            except Exception as e:
                 pass
-        raise Exception("Invalid password")
+        self._dev.umount(partid_dummy)
+        raise InvalidCredentialException("Invalid password")
 
     def _unlock_blob1(self, blob0):
         """Use blob0 to decrypt blob1's private key and load it"""
@@ -229,58 +268,75 @@ class BootProcessWKS:
             blob1=eobj.decrypt(encdata).decode()
             self._blob1_priv=blob1
         except Exception:
+            self._dev.umount(partid_dummy)
             raise Exception("Internal error (could not decrypt 'blob1')")
 
-    def start(self, user_password):
+    def unlock(self, user_password):
         """Starts the whole process of "opening" the device while making all the verifications
-        Returns the (blob0, int_password, data_password) values, to be used to apply staged updates if any """
+        Returns the (blob0, int_password, data_password) tuple, to be used to apply staged updates if any
+        """
+        if self._live_env.unlocked:
+            raise Exception("Device already unlocked")
         dmp=self._dev.mount(partid_dummy)
 
         # authenticate device
-        verifiers={"Admin": {
-            "type": "key",
-            "public-key-file": "%s/resources/meta-sign.pub"%dmp
+        try:
+            verifiers={"Admin": {
+                "type": "key",
+                "public-key-file": "%s/resources/meta-sign.pub"%dmp
+                }
             }
-        }
-        self._dev.verify(verifiers)
+            self._dev.verify(verifiers)
+        except Exception as e:
+            self._dev.umount(partid_dummy)
+            raise e
 
         # get to blob0 and blob1's private key
         blob0=self._unlock_blob0(user_password)
-        self._unlock_blob1(blob0)
 
-        # load "live" chunks
-        eobj=x509.CryptoKey(self._blob1_priv, None)
-        echunks=util.load_file_contents("%s/resources/chunks.enc"%dmp)
-        chunks=json.loads(eobj.decrypt(echunks))
+        try:
+            self._unlock_blob1(blob0)
 
-        lmp=self._dev.mount(partid_live)
-        (hash0, log0)=fpchunks.verify_files_chunks(lmp, chunks)
+            # load "live" chunks
+            eobj=x509.CryptoKey(self._blob1_priv, None)
+            echunks=util.load_file_contents("%s/resources/chunks.enc"%dmp)
+            chunks=json.loads(eobj.decrypt(echunks))
 
-        # compute integrity fingerprint
-        (ifp, log)=compute_integrity_fingerprint(self._dev, self._blob1_priv, hash0)
-        log+=[{"live": log0}]
-        util.write_data_to_file(json.dumps(log), "/tmp/integrity-fingerprint-log-verif.json")
+            lmp=self._dev.mount(partid_live)
+            (hash0, log0)=fpchunks.verify_files_chunks(lmp, chunks)
 
-        # unlock and mount "internal" partition
-        eobj=cpass.CryptoPassword(ifp)
-        data=util.load_file_contents("%s/resources/internal-pass.enc"%dmp)
-        int_password=eobj.decrypt(data).decode()
-        self._dev.umount(partid_dummy)
+            # compute integrity fingerprint
+            (ifp, log)=compute_integrity_fingerprint(self._dev, self._blob1_priv, hash0)
+            log+=[{"live": log0}]
+            util.write_data_to_file(json.dumps(log), "/tmp/integrity-fingerprint-log-verif.json")
 
-        self._dev.set_partition_secret("internal", "password", int_password)
-        self._dev.mount("internal", "/internal", options="nodev,x-gvfs-hide", auto_umount=False)
+            # unlock and mount "internal" partition
+            eobj=cpass.CryptoPassword(ifp)
+            data=util.load_file_contents("%s/resources/internal-pass.enc"%dmp)
+            int_password=eobj.decrypt(data).decode()
 
-        # unlock and mount "data" partition
-        data=util.load_file_contents("/internal/credentials/data-pass.enc")
-        data_password=eobj.decrypt(data).decode()
-        self._dev.set_partition_secret("data", "password", data_password)
-        self._dev.mount("data", "/home/insecauser/Documents", options="sync,nodev,x-gvfs-hide,uid=1000,gid=1000",
-                        auto_umount=False)
+            self._dev.set_partition_secret("internal", "password", int_password)
+            self._dev.mount(partid_internal, "/internal", options="nodev,x-gvfs-hide", auto_umount=False)
 
-        return (blob0, int_password, data_password)
+            # unlock and mount "data" partition
+            data=util.load_file_contents("/internal/credentials/data-pass.enc")
+            data_password=eobj.decrypt(data).decode()
+            self._dev.set_partition_secret("data", "password", data_password)
+            os.makedirs("/data")
+            fstype=self._dev.get_partition_filesystem("data")
+            options="nodev,x-gvfs-hide"
+            if fstype in (filesystem.FSType.fat, filesystem.FSType.exfat):
+                options+=",uid=1000,gid=1000"
+            self._dev.mount(partid_data, "/data", options=options, auto_umount=False)
+        except Exception as e:
+            syslog.syslog(syslog.LOG_ERR, "While trying to mount encrypted partitions: %s"%str(e))
+            raise DeviceIntegrityException("Device may be compromised")
+        finally:
+            self._dev.umount(partid_dummy)
 
-    def post_start(self, user_password):
-        # changement du mot de passe de l'utilisateur
+        self._live_env.update_unlocked_status()
+
+        # user password change to the provided password
         (status, out, err)=util.exec_sync(["chpasswd"], stdin_data="insecauser:%s"%user_password)
         if status!=0:
             raise Exception("Could not change logged user's password: %s"%err)
@@ -292,36 +348,64 @@ class BootProcessWKS:
             # extract the PRIVDATA of all the components
             self._live_env.extract_privdata()
 
+            # map data/ directories
+            self.map_directories()
+
             # extract all the component's specific code
             self._live_env.extract_live_config_scripts()
 
             # create SSH server keys if on 1st boot (we don't want to have the same SSH keys on all the devices)
-            os.makedirs(self._live_env.ssh_keys_dir, exist_ok=True, mode=0o700)
-            ssh_privkey="%s/ssh_host_ed25519_key"%self._live_env.ssh_keys_dir
-            ssh_pubkey="%s.pub"%ssh_privkey
-            if not os.path.exists(ssh_privkey):
-                (status, out, err)=util.exec_sync(["ssh-keygen", "-q", "-N", "", "-t", "ed25519", "-f", ssh_privkey])
-                if status!=0:
-                    self._live_env.events.add_exception_event("ssh-privatekey-generation", err)
-                (status, out, err)=util.exec_sync(["ssh-keygen", "-y", "-f", ssh_privkey])
-                if status!=0:
-                    self._live_env.events.add_exception_event("ssh-publickey-generation", err)
-                    os.remove(ssh_privkey)
-                util.write_data_to_file(out, ssh_pubkey)
+            self._live_env.configure_ssh_keys()
 
-            # remove any existing SSH server key and deploy the specific keys
-            for filename in os.listdir("/etc/ssh"):
-                if filename.startswith("ssh_host_"):
-                    os.remove("/etc/ssh/%s"%filename)
-            shutil.copyfile(ssh_privkey, "/etc/ssh/ssh_host_ed25519_key")
-            os.chmod("/etc/ssh/ssh_host_ed25519_key", 0o400)
-            shutil.copyfile(ssh_pubkey, "/etc/ssh/ssh_host_ed25519_key.pub")
-            (status, out, err)=util.exec_sync(["systemctl", "restart", "sshd"])
-            if status!=0:
-                raise Exception("Could not restart SSHD service after keys update: %s"%err)
+            # if there is a post unlock script, execute it now
+            post_unlock_script="/opt/share/post-unlock-script"
+            if os.path.exists(post_unlock_script):
+                (status, out, err)=util.exec_sync([post_unlock_script])
+                if status!=0:
+                    raise Exception("Could not execute post unlock script '%s': %s"%(post_unlock_script, err))
         except Exception as e:
             self._live_env.events.add_exception_event("post-start", str(e))
             syslog.syslog(syslog.LOG_ERR, "post-start failed: %s"%str(e))
+            raise e
+
+        return (blob0, int_password, data_password)
+
+    def map_directories(self):
+        """Map directories from the /data partition"""
+        data_map=json.load(open("/opt/share/inseca-data-map.json", "r"))
+        for key in data_map:
+            dest=data_map[key]
+            src="/data/%s"%key
+            if not os.path.exists(src):
+                if os.path.exists(dest):
+                    # initialize @src with @dest's contents before "replacing it" (via the bind mount)
+                    shutil.copytree(dest, src)
+                else:
+                    raise Exception("Could not bind 'data/%s': directories don't exist"%key)
+            os.makedirs(dest, exist_ok=True)
+            syslog.syslog(syslog.LOG_INFO, "Binding %s to %s"%(src, dest))
+            (status, out, err)=util.exec_sync(["mount", "--bind", "-o", "x-gvfs-hide", src, dest])
+            if status!=0:
+                raise Exception("Could not bind 'data/%s' to '%s': %s"%(src, dest, err))
+
+    def unmap_directories(self):
+        data_map=json.load(open("/opt/share/inseca-data-map.json", "r"))
+        for key in data_map:
+            dest=data_map[key]
+            syslog.syslog(syslog.LOG_INFO, "Unbinding %s"%dest)
+            (status, out, err)=util.exec_sync(["umount", dest])
+            if status!=0:
+                raise Exception("Could not unbind '%s': %s"%(dest, err))
+
+    def prepare_shutdown(self):
+        """Unmount partitions before shuting down"""
+        try:
+            self.unmap_directories()
+            self._dev.umount(partid_data)
+            # don't umount partid_internal as it will be busy
+        except Exception as e:
+            syslog.syslog(syslog.LOG_WARNING, "Error unmount partition: %s"%str(e))
+
 
 #
 # users settings' backup and restore parameters
@@ -329,6 +413,7 @@ class BootProcessWKS:
 def _backup_dconf(live_env, backup_filename):
     os.seteuid(live_env.uid)
     cenv=os.environ.copy()
+    live_env.define_UI_environment()
     cenv["HOME"]=live_env.home_dir # dconf seems to use $HOME
 
     (status, out, err)=util.exec_sync(["dconf", "dump", "/"], exec_env=cenv)
@@ -343,6 +428,7 @@ def _restore_dconf(live_env, backup_filename):
     if os.path.exists(backup_filename):
         data=util.load_file_contents(backup_filename)
 
+        live_env.define_UI_environment()
         os.seteuid(live_env.uid)
         cenv=os.environ.copy()
         cenv["HOME"]=live_env.home_dir
@@ -562,9 +648,6 @@ _user_config_definition={
 class Environ:
     """Object to get information about a "workstation" or "admin" live environment"""
     def __init__(self):
-        self._live_devpart=util.get_root_live_partition()
-        self._live_devfile=util.get_device_of_partition(self._live_devpart)
-
         # determine live Linux type
         infos_file="/opt/share/keyinfos.json"
         try:
@@ -576,7 +659,7 @@ class Environ:
         self._events=None
         self._ssh_keys_dir=None
         self._default_profile_dir=None
-        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.SERVER, confs.BuildType.ADMIN):
             self._events=Events()
             self._ssh_keys_dir="/internal/ssh"
             self._default_profile_dir="/internal/default-profile"
@@ -585,41 +668,30 @@ class Environ:
         self._uid=None
         self._gid=None
 
-        self._startup_done=False
-        self._update_startup_status()
+        self._unlocked=False
+        self.update_unlocked_status()
 
         self.components_live_config_dir="/tmp/components-live-config"
         self.privdata_dir="/tmp/privdata"
 
-    def _update_startup_status(self):
-        """Computes/updates the "startup status" of the environment: if the /internal directory is a mount point"""
-        if self._startup_done:
-            return
-        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+    def update_unlocked_status(self):
+        """Computes/updates the "unlocked status" of the environment: if the /internal directory is a mount point"""
+        self._unlocked=False
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.SERVER, confs.BuildType.ADMIN):
             (status, out, err)=util.exec_sync(["findmnt", "/internal"])
             if status==0:
-                self._startup_done=True
+                self._unlocked=True
         else:
-            self._startup_done=True # basic live Linux => no startup performed
+            self._unlocked=True # basic live Linux => no startup performed
 
     @property
     def events(self):
         return self._events
 
     @property
-    def startup_done(self):
+    def unlocked(self):
         """Tells if the startup has already been done"""
-        return self._startup_done
-
-    @property
-    def live_devfile(self):
-        """Device file which is hosting the live Linux squashfs"""
-        return self._live_devfile
-
-    @property
-    def live_devpart(self):
-        """Partition file which is hosting the live Linux squashfs"""
-        return self._live_devpart
+        return self._unlocked
 
     @property
     def logged(self):
@@ -673,10 +745,6 @@ class Environ:
         return path
 
     @property
-    def ssh_keys_dir(self):
-        return self._ssh_keys_dir
-
-    @property
     def default_profile_dir(self):
         return self._default_profile_dir
 
@@ -698,7 +766,7 @@ class Environ:
         privtmp=self.privdata_dir
         os.makedirs(privtmp, mode=0o700, exist_ok=True)
 
-        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.SERVER, confs.BuildType.ADMIN):
             privkey_file="/internal/credentials/privdata-ekey.priv"
         else:
             privkey_file="/credentials/privdata-ekey.priv"
@@ -740,7 +808,7 @@ class Environ:
             shutil.rmtree(self.components_live_config_dir)
         os.makedirs(self.components_live_config_dir, mode=0o700)
 
-        if self._live_type in (confs.BuildType.WKS, confs.BuildType.ADMIN):
+        if self._live_type in (confs.BuildType.WKS, confs.BuildType.SERVER, confs.BuildType.ADMIN):
             privkey_file="/internal/credentials/privdata-ekey.priv"
         else:
             privkey_file="/credentials/privdata-ekey.priv"
@@ -768,11 +836,40 @@ class Environ:
                 if os.path.exists(script):
                     syslog.syslog(syslog.LOG_INFO, "Initializing component '%s', stage %d"%(component, stage))
                     exec_env["PRIVDATA_DIR"]="%s/%s"%(self.privdata_dir, component)
-                    if self._live_type==confs.BuildType.WKS:
+                    if self._live_type in (confs.BuildType.WKS, confs.BuildType.SERVER):
                         exec_env["USERDATA_DIR"]="/internal/components/%s"%component
                     (status, out, err)=util.exec_sync([script], exec_env=exec_env)
                     if status!=0:
                         raise Exception("Error initializing component '%s': %s"%(component, err))
+
+    #
+    # SSH keys unique to each device
+    #
+    def configure_ssh_keys(self):
+        os.makedirs(self._ssh_keys_dir, exist_ok=True, mode=0o700)
+        ssh_privkey="%s/ssh_host_ed25519_key"%self._ssh_keys_dir
+        ssh_pubkey="%s.pub"%ssh_privkey
+        if not os.path.exists(ssh_privkey):
+            (status, out, err)=util.exec_sync(["ssh-keygen", "-q", "-N", "", "-t", "ed25519", "-f", ssh_privkey])
+            if status!=0:
+                self.events.add_exception_event("ssh-privatekey-generation", err)
+            (status, out, err)=util.exec_sync(["ssh-keygen", "-y", "-f", ssh_privkey])
+            if status!=0:
+                self.events.add_exception_event("ssh-publickey-generation", err)
+                os.remove(ssh_privkey)
+            util.write_data_to_file(out, ssh_pubkey)
+
+        # remove any existing SSH server key and deploy the specific keys
+        for filename in os.listdir("/etc/ssh"):
+            if filename.startswith("ssh_host_"):
+                os.remove("/etc/ssh/%s"%filename)
+        shutil.copyfile(ssh_privkey, "/etc/ssh/ssh_host_ed25519_key")
+        os.chmod("/etc/ssh/ssh_host_ed25519_key", 0o400)
+        shutil.copyfile(ssh_pubkey, "/etc/ssh/ssh_host_ed25519_key.pub")
+        (status, out, err)=util.exec_sync(["systemctl", "restart", "sshd"])
+        if status!=0:
+            if not err.endswith("Unit sshd.service not found."):
+                raise Exception("Could not restart SSHD service after keys update: %s"%err)
 
     #
     # User setting management
@@ -852,15 +949,17 @@ class Environ:
     def notify(self, message):
         """Display a notification. 
         Make sure define_UI_environment() was called"""
-        args=["sudo", "-H", "-u", self.logged, "DBUS_SESSION_BUS_ADDRESS=%s"%os.environ["DBUS_SESSION_BUS_ADDRESS"],
-              "zenity", "--notification", "--text", message]
+        args=["zenity", "--notification", "--text", message]
+        if util.is_run_as_root():
+            args=["sudo", "-H", "-u", self.logged, "DBUS_SESSION_BUS_ADDRESS=%s"%os.environ["DBUS_SESSION_BUS_ADDRESS"]]+args  
         util.exec_sync(args)
 
     def user_setting_get(self, section, what):
         """Get a user setting. 
         Make sure define_UI_environment() was called"""
-        args=["sudo", "-H", "-u", self.logged, "DBUS_SESSION_BUS_ADDRESS=%s"%os.environ["DBUS_SESSION_BUS_ADDRESS"],
-              "gsettings", "get", section, what]
+        args=["gsettings", "get", section, what]
+        if util.is_run_as_root():
+            args=["sudo", "-H", "-u", self.logged, "DBUS_SESSION_BUS_ADDRESS=%s"%os.environ["DBUS_SESSION_BUS_ADDRESS"]]+args
         (status, out, err)=util.exec_sync(args)
         if status==0:
             return out
@@ -870,8 +969,9 @@ class Environ:
     def user_setting_set(self, section, what, value):
         """Change a user setting. 
         Make sure define_UI_environment() was called"""
-        args=["sudo", "-H", "-u", self.logged, "DBUS_SESSION_BUS_ADDRESS=%s"%os.environ["DBUS_SESSION_BUS_ADDRESS"],
-              "gsettings", "set", section, what, value]
+        args=["gsettings", "set", section, what, value]
+        if util.is_run_as_root():
+            args=["sudo", "-H", "-u", self.logged, "DBUS_SESSION_BUS_ADDRESS=%s"%os.environ["DBUS_SESSION_BUS_ADDRESS"]]+args
         (status, out, err)=util.exec_sync(args)
         if status!=0:
             syslog.syslog(syslog.LOG_ERR, "Could not define setting '%s %s' to '%s': %s"%(section, what, value, err))
@@ -951,7 +1051,7 @@ class Events:
 
     def _get_default_data_set(self):
         self._ensure_device_id()
-        (dtotal, davail)=util.get_partition_data_sizes("/home/insecauser/Documents")
+        (dtotal, davail)=util.get_partition_data_sizes("/data")
         (itotal, iavail)=util.get_partition_data_sizes("/internal")
         return {
             "device-id": self.device_id,
