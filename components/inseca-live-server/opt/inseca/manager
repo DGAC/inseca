@@ -67,15 +67,25 @@ class Networking:
         # network can be always disabled
         self._force_disable=False
 
-        # list network interfaces
-        (status, out, err)=util.exec_sync(["ip", "-j", "link"])
-        if status!=0:
-            raise Exception("Could not list network interfaces: %s"%err)
-        netlist=json.loads(out)
+        # detect NetworkManager
+        self._use_nm=True
         self._ifaces=[]
-        for entry in netlist:
-            if entry["link_type"]!="loopback":
-                self._ifaces+=[entry["ifname"]]
+        (status, out, err)=util.exec_sync(["nmcli", "-v"])
+        if status!=0:
+            syslog.syslog(syslog.LOG_INFO, "Not using NetworkManager to disable and enable networking")
+
+            self._use_nm=False
+
+            # list network interfaces
+            (status, out, err)=util.exec_sync(["ip", "-j", "link"])
+            if status!=0:
+                raise Exception("Could not list network interfaces: %s"%err)
+            netlist=json.loads(out)
+            for entry in netlist:
+                if entry["link_type"]!="loopback":
+                    self._ifaces+=[entry["ifname"]]
+        else:
+            syslog.syslog(syslog.LOG_INFO, "Using NetworkManager to disable and enable networking")
 
     def _change_network_interfaces_status(self, enabled):
         for iface in self._ifaces:
@@ -98,6 +108,15 @@ class Networking:
         """Enable system wide networking"""
         if self._force_disable:
             return
+
+        # use NetworkManager if possible
+        if self._use_nm:
+            (status, out, err)=util.exec_sync(["nmcli", "networking", "on"])
+            if status!=0:
+                raise Exception("Could not enable networking with NetworkManager: %s"%err)
+            return
+
+        # fallback
         self._change_network_interfaces_status(True)
         if self._default_route:
             default_route=self._get_default_route()
@@ -108,6 +127,14 @@ class Networking:
 
     def disable(self):
         """Disable system wide networking"""
+        # use NetworkManager if possible
+        if self._use_nm:
+            (status, out, err)=util.exec_sync(["nmcli", "networking", "off"])
+            if status!=0:
+                raise Exception("Could not disable networking with NetworkManager: %s"%err)
+            return
+
+        # fallback
         self._default_route=self._get_default_route()
         self._change_network_interfaces_status(False)
 
@@ -119,10 +146,10 @@ class Networking:
 #
 def _term_signal_ignore(signum, frame):
     # ignore the signal
-    syslog.syslog(syslog.LOG_INFO, "Ignoring TERM signal when applying a staged update")
+    syslog.syslog(syslog.LOG_INFO, "Ignoring TERM signal (applying a staged update)")
 
 def _term_signal_handle(signum, frame):
-    syslog.syslog(syslog.LOG_INFO, "RECEIVED TERM signal!!!!!!!")
+    syslog.syslog(syslog.LOG_INFO, "Received TERM signal, preparing shutdown")
     bp=Live.BootProcessWKS.get_instance()
     bp.prepare_shutdown()
     sys.exit(0)
@@ -231,10 +258,6 @@ class Remote(dbus.service.Object):
     @property
     def valid_to(self):
         return self._valid_to_str
-
-    @property
-    def updates_enabled(self):
-        return self._updates_enabled
 
     #
     # User management API
@@ -352,6 +375,15 @@ class Remote(dbus.service.Object):
         self._net.enable()
         syslog.syslog(syslog.LOG_INFO, "Network enabled")
 
+    def _get_updates_after_unlock(self):
+        self.get_updates()
+        GLib.timeout_add(1000*60*60, self._get_updates_recurrent, remote) # run every hour
+        return False # remove timer
+
+    def _get_updates_recurrent(self):
+        self.get_updates()
+        return True # keep timer
+
     #
     # Device unlock
     #
@@ -361,6 +393,10 @@ class Remote(dbus.service.Object):
         self._stop_killer_counter()
         self._network_enable()
         self._unlocked=True
+
+        # ask for updates if not disabled
+        if self._updates_enabled:
+            GLib.timeout_add(1000*60, self._get_updates_after_unlock) # try to get updates after a full minute to let the network come up
 
     @dbus.service.signal("inseca.Manager.Unlock", signature="is")
     def unlock_failed(self, reason, message):
@@ -429,7 +465,8 @@ class Remote(dbus.service.Object):
 
     @dbus.service.signal("inseca.Manager.GetUpdates")
     def updates_status_changed(self):
-        syslog.syslog(syslog.LOG_INFO, "Update status changed!")
+        (action, last)=self.get_updates_status()
+        syslog.syslog(syslog.LOG_INFO, "Update status changed: %s / %s!"%(action, last))
 
     def _upd_progress(self, action, last):
         changed=False
@@ -477,15 +514,10 @@ class Remote(dbus.service.Object):
         if self._upd_get_job:
             # already getting updates
             return
-        if self._upd_apply_job:
-            # must wait for the staged update being applied first
-            self._upd_progress(None, "A staged update is being applied")
-            return
 
-        self._upd_progress(Live.UpdatesStatus.DOWNLOAD, None)
         job=jobs.LiveLinuxUpdatesGetJob(self._device_config_file, self._upd_stage_dir)
         self._upd_get_job=job
-        self.updates_status_changed()
+        self._upd_progress(Live.UpdatesStatus.DOWNLOAD, None)
         job.start()
         GLib.timeout_add(2000, self._check_get_updated_job_finished, job)
 
@@ -495,6 +527,7 @@ class Remote(dbus.service.Object):
     def _check_apply_staged_job_finished(self, job):
         if job.finished():
             # restore the signal handling
+            syslog.syslog(syslog.LOG_INFO, "Apply staged Linux: once again not ignoring the TERM signal")
             signal.signal(signal.SIGTERM, _term_signal_handle)
             self._upd_apply_job=None
 
@@ -504,6 +537,7 @@ class Remote(dbus.service.Object):
             else:
                 if job.result==0:
                     syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: no staged update available")
+                    self._upd_progress(Live.UpdatesStatus.IDLE, None)
                 elif job.result==1:
                     syslog.syslog(syslog.LOG_INFO, "Apply staged job finished: an update has been applied, a reboot is needed")
                     self._upd_progress(Live.UpdatesStatus.IDLE, "An update has been applied, a reboot is needed")
@@ -529,6 +563,7 @@ class Remote(dbus.service.Object):
             return
 
         # catch any TERM signal which lay be sent by systemd when shutting down to avoid interrupting the process
+        syslog.syslog(syslog.LOG_INFO, "Apply staged Linux: now ignoring the TERM signal")
         signal.signal(signal.SIGTERM, _term_signal_ignore)
 
         iso_file="%s/live-linux.iso"%self._upd_stage_dir
@@ -536,32 +571,18 @@ class Remote(dbus.service.Object):
             self._upd_progress(Live.UpdatesStatus.APPLY, "Applying staged update, do not close the session")
         job=jobs.LiveLinuxUpdateApplyJob(iso_file, blob0, int_password, data_password)
         self._upd_apply_job=job
-        self.updates_status_changed()
         job.start()
         GLib.timeout_add(1000, self._check_apply_staged_job_finished, job)
 
 #
 # Main
 #
-def get_updates_startup(remote):
-    remote.get_updates()
-    GLib.timeout_add(1000*60*60, get_updates_recurrent, remote) # run every hour
-    return False # remove timer
-
-def get_updates_recurrent(remote):
-    remote.get_updates()
-    return True # keep timer
-
 try:
     # remote command using DBus
     dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
     bus=dbus.SystemBus()
     name=dbus.service.BusName("inseca.Manager", bus)
     remote=Remote(bus, live_env)
-
-    # ask for updates if not disabled
-    if remote.updates_enabled:
-        GLib.timeout_add(1000, get_updates_startup, remote) # try to get updates
 
     # finish start
     syslog.syslog(syslog.LOG_INFO, "Running GLib's main loop")

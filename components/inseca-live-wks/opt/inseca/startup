@@ -127,18 +127,11 @@ class UnlockProcessUI:
             self.show_error(message)
 
     def _manager_updates_status_changed(self):
+        # Display only some information, to avoid flooding the user with notifications during updates
         (action, last)=self._manager.get_updates_status(dbus_interface="inseca.Manager.GetUpdates")
         eaction=Live.UpdatesStatus(action)
-        if last is None:
-            if eaction==Live.UpdatesStatus.IDLE:
-                live_env.notify("")
-            else:
-                live_env.notify(action)
-        else:
-            if eaction==Live.UpdatesStatus.IDLE:
-                live_env.notify(last)
-            else:
-                live_env.notify("%s (%s)"%(action, last))
+        if eaction!=Live.UpdatesStatus.IDLE:
+            live_env.notify(action)
 
     def on_password_button_clicked(self, button):
         """Callback after user enterered password"""

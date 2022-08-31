@@ -178,6 +178,8 @@ class LiveLinuxUpdatesGetJob(Job.Job):
 
                                 # extract the archive contents
                                 borg_repo.extract_archive(archive_name, self._stage_dir)
+                                for fname in os.listdir(self._stage_dir):
+                                    os.chown("%s/%s"%(self._stage_dir, fname), 0, 0) # give ownership to root
                                 util.write_data_to_file(archive_name, staged_archive_file)
                                 self.result=1
                                 return
