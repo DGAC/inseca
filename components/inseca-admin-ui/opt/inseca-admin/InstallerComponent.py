@@ -148,16 +148,16 @@ class Params(GObject.Object):
         res["internal-size"]=46080 # FIXME: don't hard code
         return res
 
-    def _compute_link_name(self, params_set, component, pname):
-        if params_set==self._core_params or params_set==self._iconf_params:
-            return "||%s"%pname
-        else:
+    def _compute_link_name(self, component, pname):
+        if component:
             return "userdata|%s|%s"%(component, pname)
+        else:
+            return "||%s"%pname
 
-    def _get_widget_for_param(self, pname):
-        lname=self._compute_link_name(self._iconf_params, None, pname)
-        if lname in self._links:
-            return self._links[lname]
+    def _get_widget_for_param(self, pname, component=None):
+        link_name=self._compute_link_name(component, pname)
+        if link_name in self._links:
+            return self._links[link_name]
         return None
 
     def create_widgets(self, builder):
@@ -173,7 +173,8 @@ class Params(GObject.Object):
                 grid.attach(label, 0, top, 1, 1)
                 widget=mui.create_param_entry(pspec)
                 widget.connect("data_changed", self._data_changed_cb)
-                self._links[self._compute_link_name(self._iconf_params, None, pname)]=widget
+                link_name=self._compute_link_name(None, pname)
+                self._links[link_name]=widget
                 grid.attach(widget, 1, top, 1, 1)
                 top+=1
 
@@ -185,7 +186,8 @@ class Params(GObject.Object):
                 grid.attach(label, 0, top, 1, 1)
                 widget=mui.create_param_entry(pspec)
                 widget.connect("data_changed", self._data_changed_cb)
-                self._links[self._compute_link_name(self._userdata_params, component, pname)]=widget
+                link_name=self._compute_link_name(component, pname)
+                self._links[link_name]=widget
                 grid.attach(widget, 1, top, 1, 1)
                 top+=1
         grid.show_all()
@@ -215,7 +217,7 @@ class Params(GObject.Object):
         for component in self._userdata_params:
             res["_components"][component]={}
             for pname in self._userdata_params[component]:
-                widget=self._get_widget_for_param(pname)
+                widget=self._get_widget_for_param(pname, component)
                 if widget:
                     value=widget.get_value()
                     res["_components"][component][pname]=value
