@@ -1,0 +1,9 @@
+{
+    "descr": "Podman",
+    "provides": [],
+    "requires": [
+        "base-os"
+    ],
+    "builddata": {},
+    "userdata": {}
+}
