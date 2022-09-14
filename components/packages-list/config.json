@@ -1,0 +1,14 @@
+{
+    "descr": "Add some Debian packages",
+    "provides": [],
+    "requires": [
+        "base-os"
+    ],
+    "builddata": {
+        "packages": {
+            "descr": "List of packages, separated by spaces",
+            "type": "str"
+        }
+    },
+    "userdata": {}
+}
