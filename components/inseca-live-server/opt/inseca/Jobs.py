@@ -48,11 +48,11 @@ class InsecaUnlockJob(Job.Job):
             syslog.syslog(syslog.LOG_INFO, "Device unlock done")
         except Live.InvalidCredentialException as e:
             self.exception=e
-            syslog.syslog(syslog.LOG_ERR, "%s", str(e))
+            syslog.syslog(syslog.LOG_ERR, "%s"%str(e))
             return
         except Live.DeviceIntegrityException as e:
             self.exception=e
-            syslog.syslog(syslog.LOG_ERR, "%s", str(e))
+            syslog.syslog(syslog.LOG_ERR, "%s"%str(e))
             return
         except Exception as e:
             self.exception=Exception("Internal configuration error: %s"%str(e))
