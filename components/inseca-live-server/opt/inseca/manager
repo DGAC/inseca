@@ -226,7 +226,7 @@ class Remote(dbus.service.Object):
 
         self._invalid_env=False
         (status, out, err)=util.exec_sync(["systemd-detect-virt"])
-        if status==0 and out not in venvs:
+        if status==0 and "all" not in venvs and out not in venvs:
             self._invalid_env=True
             syslog.syslog(syslog.LOG_WARNING, "Invalid virtual environment '%s'"%out)
 

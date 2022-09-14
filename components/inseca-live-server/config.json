@@ -10,7 +10,7 @@
             "type": "file"
         },
         "allowed-virtualized": {
-            "descr": "CSV list of allowed virtualization execution environment",
+            "descr": "CSV list of allowed virtualization execution environment, use 'all' to allow any",
             "type": "str"
         },
         "disabled-net-services": {
