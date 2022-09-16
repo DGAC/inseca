@@ -724,7 +724,7 @@ def _config_remove_one(gconf, uid, confirmation_required):
 
         # # ensure the associated repository is empty
         if conf.repo_id:
-            rconf=gconf.get_repo_config(conf.repo_id)
+            rconf=gconf.get_repo_conf(conf.repo_id)
             if len(rconf.get_all_archives())!=0:
                 raise Exception("Build config's associated repository is not empty")
 
