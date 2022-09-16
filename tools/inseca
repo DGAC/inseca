@@ -82,7 +82,7 @@ sparser.add_argument("config", nargs=argparse.REMAINDER, help=_("Configuration(s
 
 sparser=subparsers.add_parser("config-remove", help=_("Remove a configuration and its associated repository"))
 sparser.add_argument("config", nargs=argparse.REMAINDER, help=_("Configuration(s) ID(s)"))
-sparser.add_argument("--confirm", help=_("Confirm the removal without any confirmation asked"), action="store_true")
+sparser.add_argument("--confirm", help=_("Don't ask for any confirmation"), action="store_true")
 
 sparser=subparsers.add_parser("build", help=_("Build a live Linux"))
 sparser.add_argument("build", nargs=argparse.REMAINDER, help=_("Build configuration ID(s)"))
@@ -94,6 +94,8 @@ sparser.add_argument("repo", help=_("Repository ID"))
 sparser.add_argument("--archive", help=_("Archive ID, to list files in that archive"))
 
 sparser=subparsers.add_parser("repo-prune", help=_("Remove all obsolete archives in the repositories (or specified repository)"))
+sparser.add_argument("-e", "--empty", help=_("Remove all the repo's archives"), action="store_true")
+sparser.add_argument("--confirm", help=_("Don't ask for any confirmation"), action="store_true")
 sparser.add_argument("repos", nargs=argparse.REMAINDER, help=_("Repository or repositories ID(s)"))
 
 sparser=subparsers.add_parser("userdata-import", help=_("Import data (replace any existing) in a USERDATA repository"))
@@ -730,8 +732,8 @@ def _config_remove_one(gconf, uid, confirmation_required):
 
             _config_remove_one(gconf, conf.repo_id, False)
         print("To remove BUILD %s: %s"%(uid, conf.descr))
-        print("rm -rf %s"%conf.config_dir)
-        #shutil.rmtree(conf.config_dir)
+        #print("rm -rf %s"%conf.config_dir)
+        shutil.rmtree(conf.config_dir)
         return
 
     # install configuration ?    
@@ -744,8 +746,8 @@ def _config_remove_one(gconf, uid, confirmation_required):
                 raise Exception("Install config is referenced by domain config '%s'"%dconf.descr)
         _config_remove_one(gconf, conf.repo_id, False)
         print("To remove INSTALL %s: %s"%(uid, conf.descr))
-        print("rm -rf %s"%conf.config_dir)
-        #shutil.rmtree(conf.config_dir)
+        #print("rm -rf %s"%conf.config_dir)
+        shutil.rmtree(conf.config_dir)
         return
 
     # format configuration ?    
@@ -758,8 +760,8 @@ def _config_remove_one(gconf, uid, confirmation_required):
                 raise Exception("Format config is referenced by domain config '%s'"%dconf.descr)
         _config_remove_one(gconf, conf.repo_id, False)
         print("To remove FORMAT %s: %s"%(uid, conf.descr))
-        print("rm -rf %s"%conf.config_dir)
-        #shutil.rmtree(conf.config_dir)
+        #print("rm -rf %s"%conf.config_dir)
+        shutil.rmtree(conf.config_dir)
         return
 
     # domain configuration ?    
@@ -1124,20 +1126,36 @@ def repo_prune(args):
     else:
         repos=args.repos
 
+    if args.empty:
+        if not args.confirm:
+            c=input("Confirm removing all archives in repo (enter YES):")
+            if c!="YES":
+                print("Cancelled")
+                return
+
+
     # handle all repos
     for ruid in repos:
         if len(repos)>1:
             print("Analysing repository '%s'"%ruid)
         rconf=gconf.get_repo_conf(ruid)
-        # keep only the latest and greatest archive in the repo
         arlist=rconf.get_all_archives()
         if len(arlist)>0:
-            tslist=list(arlist.keys())
-            tslist.sort(reverse=True)
-            for ts in tslist[1:]:
-                arname=arlist[ts]
-                print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
-                rconf.borg_repo.delete_archive(arname)
+            if args.empty:
+                # remove all archives
+                tslist=list(arlist.keys())
+                for ts in tslist:
+                    arname=arlist[ts]
+                    print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
+                    rconf.borg_repo.delete_archive(arname)
+            else:
+                # keep only the latest and greatest archive in the repo
+                tslist=list(arlist.keys())
+                tslist.sort(reverse=True)
+                for ts in tslist[1:]:
+                    arname=arlist[ts]
+                    print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
+                    rconf.borg_repo.delete_archive(arname)
 
 def _publish_build(bconf):
     files=(bconf.image_iso_file, bconf.image_userdata_specs_file)

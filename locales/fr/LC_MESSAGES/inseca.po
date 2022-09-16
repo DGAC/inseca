@@ -152,7 +152,7 @@ msgstr "ID d'une archive, pour lister les fichiers de cette archive"
 msgid ""
 "Remove all obsolete archives in the repositories (or specified repository)"
 msgstr ""
-"Supprime toutes les archives obsolètes des dépôts (ou su dépôt spécifié)"
+"Supprime toutes les archives obsolètes des dépôts (ou du dépôt spécifié)"
 
 #: ../tools/inseca:97 ../tools/inseca:113
 msgid "Repository or repositories ID(s)"
