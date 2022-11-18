@@ -13,7 +13,7 @@
             "descr": "CSV list of allowed virtualization execution environment, use 'all' to allow any",
             "type": "str"
         },
-        "disabled-net-services": {
+        "disable-inseca-services": {
             "descr": "List of INSECA's network services to disable",
             "type": "str"
         },

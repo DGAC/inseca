@@ -16,7 +16,11 @@
             "descr": "CSV list of allowed virtualization execution environment",
             "type": "str"
         },
-        "disabled-net-services": {
+        "allow-network-connections": {
+            "descr": "True if the network stack (managed by NetworkManager) is enabled",
+            "type": "boolean"
+        },
+        "disable-inseca-services": {
             "descr": "List of INSECA's network services to disable",
             "type": "str"
         }

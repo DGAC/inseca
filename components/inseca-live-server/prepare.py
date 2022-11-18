@@ -64,8 +64,9 @@ if file:
 # other config. elements
 protected_conf={
     "allowed-virtualized": conf.get("allowed-virtualized", ""),
-    "disabled-net-services": conf.get("disabled-net-services", "")
+    "disable-inseca-services": conf.get("disable-inseca-services", ""),
+    "allow-network-connections": conf.get("allow-network-connections", True)
 }
 util.write_data_to_file(json.dumps(protected_conf), "%s/etc/inseca-live.json"%os.environ["LIVE_DIR"])
 util.write_data_to_file("Allowed virtual environments: %s\n"%protected_conf["allowed-virtualized"], os.environ["BUILD_DATA_FILE"], append=True)
-util.write_data_to_file("Disabled net services: %s\n"%protected_conf["disabled-net-services"], os.environ["BUILD_DATA_FILE"], append=True)
+util.write_data_to_file("Disabled net services: %s\n"%protected_conf["disable-inseca-services"], os.environ["BUILD_DATA_FILE"], append=True)

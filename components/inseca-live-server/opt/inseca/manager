@@ -151,7 +151,8 @@ def _term_signal_ignore(signum, frame):
 def _term_signal_handle(signum, frame):
     syslog.syslog(syslog.LOG_INFO, "Received TERM signal, preparing shutdown")
     bp=Live.BootProcessWKS.get_instance()
-    bp.prepare_shutdown()
+    if bp:
+        bp.prepare_shutdown()
     sys.exit(0)
 
 # define default TERM signal handler tu properly umount partitions
@@ -233,8 +234,8 @@ class Remote(dbus.service.Object):
         # disable some INSECA services if specificed
         dservs=[]
         servs=["update"] # services which can be disabled
-        if conf and "disabled-net-services" in conf:
-            data=conf["disabled-net-services"]
+        if conf and "disable-inseca-services" in conf:
+            data=conf["disable-inseca-services"]
             if data is not None:
                 dservs=data.split(",")
         if "all" in dservs:
@@ -245,6 +246,10 @@ class Remote(dbus.service.Object):
                 syslog.syslog(syslog.LOG_INFO, "Disabling INSECA '%s' service as specified in the build config"%serv)
                 if serv=="update":
                     self._updates_enabled=False
+
+        # enable network after authentication?
+        if conf and "allow-network-connections" in conf and conf["allow-network-connections"]==False:
+            self._net.force_always_disabled()
 
         # start shutdown timer and disable networking
         self._start_killer_counter()
