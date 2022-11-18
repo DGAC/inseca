@@ -203,7 +203,7 @@ class BootProcessWKS:
     @staticmethod
     def get_instance(live_env=None):
         """Method to get a singleton"""
-        if BootProcessWKS.__instance is None :
+        if BootProcessWKS.__instance is None and live_env:
             BootProcessWKS.__instance = BootProcessWKS(live_env)
         return BootProcessWKS.__instance
 
@@ -315,7 +315,7 @@ class BootProcessWKS:
             data=util.load_file_contents("%s/resources/internal-pass.enc"%dmp)
             int_password=eobj.decrypt(data).decode()
 
-            self._dev.set_partition_secret("internal", "password", int_password)
+            self._dev.set_partition_secret(partid_internal, "password", int_password)
             self._dev.mount(partid_internal, "/internal", options="nodev,x-gvfs-hide", auto_umount=False)
 
             # unlock and mount "data" partition
@@ -372,7 +372,8 @@ class BootProcessWKS:
 
     def map_directories(self):
         """Map directories from the /data partition"""
-        data_map=json.load(open("/opt/share/inseca-data-map.json", "r"))
+        map_file="/opt/share/inseca-data-map.json"
+        data_map=json.load(open(map_file, "r"))
         for key in data_map:
             dest=data_map[key]
             src="/data/%s"%key
@@ -389,7 +390,10 @@ class BootProcessWKS:
                 raise Exception("Could not bind 'data/%s' to '%s': %s"%(src, dest, err))
 
     def unmap_directories(self):
-        data_map=json.load(open("/opt/share/inseca-data-map.json", "r"))
+        map_file="/opt/share/inseca-data-map.json"
+        if not os.path.exists(map_file):
+            return
+        data_map=json.load(open(map_file, "r"))
         for key in data_map:
             dest=data_map[key]
             syslog.syslog(syslog.LOG_INFO, "Unbinding %s"%dest)

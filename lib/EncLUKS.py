@@ -38,9 +38,13 @@ class Encrypted():
                 2: "invalid password",
                 3: "out of memory",
                 4: "wrong device",
-                5: "device already exists or is busy"
+                5: "device already exists or is busy",
+                -9: "Not enough memory" # OOM killer did its job
             }
-            raise Exception("Unable to open LUKS volume '%s': %s"%(self._part_name, msgs[status]))
+            if status in msgs:
+                raise Exception("Unable to open LUKS volume '%s': %s"%(self._part_name, msgs[status]))
+            raise Exception("Unable to open LUKS volume '%s': %s(%s)"%(self._part_name, status))
+
         (mapped, mp)=util.get_encrypted_partition_mapped_elements(self._part_name)
         return mapped
 
@@ -56,7 +60,7 @@ class Encrypted():
         # LUKS format
         if not self._password:
             raise Exception("No password specified")
-        args=["/sbin/cryptsetup", "luksFormat", self._part_name, "--type", "luks2", "-d", "-"]
+        args=["/sbin/cryptsetup", "luksFormat", self._part_name, "--type", "luks2", "--pbkdf-memory", "524288", "-d", "-"] # limit mem consumption to 512 Mio
         (status, out, err)=util.exec_sync(args, stdin_data=self._password) # no newline!
         if status != 0:
             # from the man page: Error codes are: 1 wrong parameters, 2 no permission (bad passphrase),

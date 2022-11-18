@@ -438,8 +438,6 @@ def list_configs(args):
     elif ctype=="repo":
         configs=gconf.repo_configs
         for type in confs.RepoType:
-            if not args.verbose and type!=confs.RepoType.USERDATA:
-                continue
             print("%s repositories:"%type.value.upper())
             for uid in configs:
                 rconf=gconf.get_repo_conf(uid)
@@ -1108,6 +1106,7 @@ def sync_pull(args):
 
     # extract last archive of BUILD and USERDATA repos
     util.print_event("Extracting last BUILD and USERDATA archives")
+    ngconf=confs.GlobalConfiguration()
     for ruid in updated_repos:
         rconf=ngconf.get_repo_conf(ruid)
         if rconf.type in (confs.RepoType.BUILD, confs.RepoType.USERDATA):
@@ -2099,7 +2098,7 @@ def dev_run_in_vm(args):
     # umount all partitions of @target
     Device.umount_all_partitions(args.devfile)
 
-    mem=2048
+    mem=3072
     if args.mem:
         mem=int(args.mem)
 

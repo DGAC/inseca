@@ -8,7 +8,8 @@
   "validity-months": 3,
   "version": "0.1",
   "components": {
-    "base-debian-bullseye": {
+    "base-debian-bullseye": null,
+    "gnome-desktop": {
       "display-type": "wayland"
     },
     "veracrypt": null,
@@ -23,7 +24,7 @@
     "sandboxed-programs": null,
     "inseca-live-wks": {
       "userdata-skey-pub-file": "userdata-sign-key.pub",
-      "network-connections-allowed": true,
+      "allow-network-connections": true,
       "allowed-virtualized": ""
     }
   }

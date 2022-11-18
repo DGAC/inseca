@@ -7,7 +7,8 @@ borgbackup rclone
 python3-pacparser
 python3-requests python3-gi python3-dbus
 btrfs-progs
-firmware-iwlwifi
+firmware-linux
 sshfs
 opensc-pkcs11
 tpm2-tools
+pciutils
