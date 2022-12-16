@@ -263,11 +263,13 @@ class Installer:
         if isinstance(self._conf, confs.FormatConfig):
             return
 
-        # install the GRUB Liveloader
-        # FIXME: use the binaries from the live build ISO (located in /EFI/boot)
-        util.print_event("Installing Grub")
-        boot_binaries_archive="%s/resources/boot-binaries.txz"%(os.path.dirname(os.path.realpath(sys.argv[0])))
-        self._dev.install_grub_efi(boot_binaries_archive)
+        # install GRUB (EFI), from the live Linux ISO
+        efi_mp=self._dev.mount(Live.partid_efi)
+        util.print_event("Installing Grub (EFI)")
+        self._dev.install_grub_efi(self._live_iso_file, efi_mp)
+
+        # install GRUB (legacy BIOS)
+        util.print_event("Installing Grub (legacy BIOS)")
         self._dev.install_grub_bios()
 
         # install GRUB common config files
@@ -300,8 +302,6 @@ class Installer:
 
     def _install_live_linux(self):
         """Install the live Linux on the device (in the live0 partition)"""
-        _verify_live_linux_iso(self._live_iso_file, self._conf.signing_pubkey)
-
         # mount the live Linux ISO and copy files from it
         with tempfile.TemporaryDirectory() as tmpdirname:
             (status, out, err)=util.exec_sync(["mount", "-o", "ro,loop", self._live_iso_file, tmpdirname])
@@ -580,6 +580,7 @@ class Installer:
         try:
             self._install_low_level()
             if isinstance(self._conf, confs.InstallConfig):
+                _verify_live_linux_iso(self._live_iso_file, self._conf.signing_pubkey)
                 self._install_live_linux()
                 self._install_resources()
                 self._install_build_repo()
@@ -643,9 +644,6 @@ class Updater:
 
     def _install_live_linux(self):
         """Install the live Linux on the device (in the live0 partition)"""
-        # try to identify a signing key
-        _verify_live_linux_iso(self._live_iso_file, self._signing_pubkey)
-
         # get the current slot index
         livelink="%s/live"%self._mp_live
         path=os.readlink(livelink)
@@ -680,8 +678,16 @@ class Updater:
         data=util.load_file_contents("%s/resources/blob1.priv.enc"%self._mp_dummy)
         blob1_priv=eobj0.decrypt(data).decode()
 
+        # try to identify a signing key
+        _verify_live_linux_iso(self._live_iso_file, self._signing_pubkey)
+
         # install new live Linux
         self._install_live_linux()
+
+        # install GRUB (EFI), from the live Linux ISO
+        efi_mp=self._dev.mount(Live.partid_efi)
+        util.print_event("Updating Grub (EFI)")
+        self._dev.install_grub_efi(self._live_iso_file, efi_mp)
 
         (chunks, hash, log0)=fpchunks.compute_files_chunks(self._mp_live)
         if _debug:

@@ -861,18 +861,19 @@ class Device:
                 return part_info
         raise Exception("Could not identify EFI partition")
 
-    def install_grub_efi(self, boot_binaries_archive):
-        """Installs the Grub signed binaries in the EFI partition, along with the shim's secureboot signed binaries"""
-        # find the EFI partition
-        efipart=self._get_efi_partition()
-        efipartid=efipart["id"]
-
-        # copy binaries to EFI partition
-        mp=self.mount(efipartid)
-        target_dir="%s/EFI/boot"%mp
-        os.makedirs(target_dir, exist_ok=True)
-        tarobj=tarfile.open(boot_binaries_archive, mode="r|xz")
-        tarobj.extractall(target_dir)
+    def install_grub_efi(self, live_iso_file, efi_mount_point):
+        """Install the Grub EFI binaries from the specified live Linux ISO"""
+        with tempfile.TemporaryDirectory() as tmpdirname:
+            (status, out, err)=util.exec_sync(["mount", "-o", "ro,loop", live_iso_file, tmpdirname])
+            if status!=0:
+                raise Exception("Could not mount the live Linux file '%s': %s"%(live_iso_file, err))
+            try:
+                efi_target_dir="%s/EFI/boot"%efi_mount_point
+                os.makedirs(efi_target_dir, exist_ok=True)
+                for fname in ("grubx64.efi", "bootx64.efi"):
+                    shutil.copyfile("%s/EFI/boot/%s"%(tmpdirname, fname), "%s/%s"%(efi_target_dir, fname))
+            finally:
+                (status, out, err)=util.exec_sync(["umount", tmpdirname])
 
     def install_grub_bios(self):
         """Installs the BIOS version of Grub in the hybrid MBR
