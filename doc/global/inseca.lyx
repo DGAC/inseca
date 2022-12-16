@@ -2577,7 +2577,9 @@ grub
 \end_inset
 
 : partition utile au logiciel Grub (gestionnaire de démarrage d'OS) en mode
- de partitionnement hybride (cette partition ne contient aucune donnée utile);
+ de partitionnement hybride.
+ Cette partition ne contient aucune donnée utile et n'est pas présente si
+ le système est en mode de partitionnement GPT;
 \end_layout
 
 \begin_layout Itemize
