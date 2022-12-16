@@ -21,7 +21,6 @@
 # - format a device
 #
 
-import sys
 import os
 import json
 import uuid
@@ -240,6 +239,10 @@ class Installer:
             builder.set_parameter_value(key, self._params[key], self._conf.config_dir)
         if isinstance(self._conf, confs.InstallConfig):
             builder.set_parameter_value("blob0", self._blob0)
+
+        # adapt "live" partition to the squashfs sizes (using the ISO file as a shortcut)
+        size_mb=os.stat(self._live_iso_file).st_size / 1024 / 1024
+        builder.live_partition_size=int(size_mb * 2.5)
         specs=builder.get_specifications()
         #print("SPECS: %s"%json.dumps(specs, indent=4))
 
