@@ -267,13 +267,15 @@ class Installer:
             return
 
         # install GRUB (EFI), from the live Linux ISO
-        efi_mp=self._dev.mount(Live.partid_efi)
-        util.print_event("Installing Grub (EFI)")
-        self._dev.install_grub_efi(self._live_iso_file, efi_mp)
+        if specs["type"]!="dos":
+            efi_mp=self._dev.mount(Live.partid_efi)
+            util.print_event("Installing Grub (EFI)")
+            self._dev.install_grub_efi(self._live_iso_file, efi_mp)
 
         # install GRUB (legacy BIOS)
-        util.print_event("Installing Grub (legacy BIOS)")
-        self._dev.install_grub_bios()
+        if specs["type"]!="gpt":
+            util.print_event("Installing Grub (legacy BIOS)")
+            self._dev.install_grub_bios()
 
         # install GRUB common config files
         util.print_event("Installing Grub configuration")

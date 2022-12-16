@@ -517,7 +517,11 @@ class InstallConfig:
         # load the core configuration which contains the hard coded parts of any install configuration
         # and which needs to be "merged" (or combined) with the parts provided by the install configurations'
         # the user defined
-        core_conf=json.load(open("%s/core-install-config.json"%os.path.dirname(__file__), "r"))
+        ptype=data["dev-format"].get("type", "hybrid") # defaults to "hybrid" if not specified
+        if ptype=="hybrid":
+            core_conf=json.load(open("%s/core-install-config-hybrid.json"%os.path.dirname(__file__), "r"))
+        else:
+            core_conf=json.load(open("%s/core-install-config.json"%os.path.dirname(__file__), "r"))
 
         # merge the configuration with the core configuration: parameters
         self._params_core=core_conf["parameters"]

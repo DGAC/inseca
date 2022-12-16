@@ -66,8 +66,22 @@
     },
     "dev-format": {
         "device": "{_dev}",
-        "type": "gpt",
+        "type": "hybrid",
+        "hybrid-partitions": [
+            "dummy",
+            "data"
+        ],
         "partitions": [
+            {
+                "id": "grub",
+                "type": "BIOS",
+                "label": "bios_grub",
+                "encryption": null,
+                "immutable": false,
+                "filesystem": "ext4",
+                "password": null,
+                "size-mb": "1"
+            },
             {
                 "id": "dummy",
                 "type": "LINUX",
