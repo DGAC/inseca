@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,6 @@
 import os
 import syslog
 import tarfile
-import tempfile
 import time
 import json
 import Utils as util
@@ -27,6 +26,7 @@ import Job
 import Sync
 import Installer
 import Borg
+import Device
 
 class InsecaUnlockJob(Job.Job):
     """Used the user provided password to perform all the required verifications and mount the encrypted filesystems.
@@ -223,17 +223,15 @@ class LiveLinuxUpdateApplyJob(Job.Job):
         dummy_mounted=False
         try:
             # mount the dummy partition
+            live_part=util.get_root_live_partition()
             target=util.get_device_of_partition(live_part)
-            tempdir=tempfile.TemporaryDirectory()
-            (status, out, err)=util.exec_sync(["mount", util.get_partition_of_device(target, 2), tempdir.name])
-            if status!=0:
-                syslog.syslog(syslog.LOG_ERR, "Could not mount the dummy partition '%s': %s"%(util.get_partition_of_device(target, 1), err))
-                self.exception=Exception("Could not mount the dummy partition '%s': %s"%(util.get_partition_of_device(target, 1), err))
+            dev=Device.Device(target)
+            mp=dev.mount(Live.partid_dummy)
             dummy_mounted=True
 
             # actual update
             signing_pubkey="/opt/share/build-sign-key.pub"
-            updater=Installer.DeviceUpdater(self._blob0, signing_pubkey, tempdir.name, "/run/live/medium", "/internal",
+            updater=Installer.DeviceUpdater(self._blob0, signing_pubkey, mp, "/run/live/medium", "/internal",
                                             self._int_password, self._data_password, self._iso_file, target)
             updater.update()
             self.result=1
@@ -242,9 +240,7 @@ class LiveLinuxUpdateApplyJob(Job.Job):
             syslog.syslog(syslog.LOG_ERR, "Error: %s"%str(e))
         finally:
             if dummy_mounted:
-                (status, out, err)=util.exec_sync(["umount", tempdir.name])
-                if status!=0:
-                    syslog.syslog(syslog.LOG_ERR, "Could not umount the dummy partition: %s"%err)
+                dev.umount(Live.partid_dummy)
             # remount live partition RO
             (status, out, err)=util.exec_sync(["mount", "-o", "ro,remount", "/run/live/medium"])
             if status!=0:
@@ -259,24 +255,20 @@ class PasswordChangeJob(Job.Job):
         self._new_password=new_password
 
     def run(self):
-        live_part=util.get_root_live_partition()
         dummy_mounted=False
         try:
-            target=util.get_device_of_partition(live_part)
-            tempdir=tempfile.TemporaryDirectory()
-            (status, out, err)=util.exec_sync(["mount", util.get_partition_of_device(target, 2), tempdir.name]) # FIXME: 2 is dummy partition, use an index by name
-            if status!=0:
-                syslog.syslog(syslog.LOG_ERR, "Could not mount the dummy partition '%s': %s"%(util.get_partition_of_device(target, 1), err))
-                self.exception=Exception("Could not mount the dummy partition '%s': %s"%(util.get_partition_of_device(target, 1), err))
+            # mount the dummy partition
+            live_part=util.get_root_live_partition()
+            dev=Device.Device(util.get_device_of_partition(live_part))
+            mp=dev.mount(Live.partid_dummy)
             dummy_mounted=True
 
-            Live.change_user_password(tempdir.name, self._current_password, self._new_password)
+            # actual password change
+            Live.change_user_password(mp, self._current_password, self._new_password)
             syslog.syslog(syslog.LOG_INFO, "Password changed")
         except Exception as e:
             self.exception=e
             syslog.syslog(syslog.LOG_ERR, "Error: %s"%str(e))
         finally:
             if dummy_mounted:
-                (status, out, err)=util.exec_sync(["umount", tempdir.name])
-                if status!=0:
-                    syslog.syslog(syslog.LOG_ERR, "Could not umount the dummy partition: %s"%err)
+                dev.umount(Live.partid_dummy)

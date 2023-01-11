@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -631,16 +631,6 @@ def get_device_of_partition(partfile):
         else:
             break
     return inv[::-1]
-
-def get_partition_of_device(devfile, partnum):
-    """Get the devide file for the specified partition number.
-    For example:
-    ("/dev/sda", 3) => "/dev/sda3"
-    ("/dev/nvme0n1", 3) => "/dev/nvme0n1p3"
-    """
-    if devfile.startswith("/dev/nvme"):
-        return "%sp%s"%(devfile, partnum)
-    return "%s%s"%(devfile, partnum)
 
 def wait_for_partition(partfile, timeout=10):
     """Wait for the specified partition to be present, and raise an exception if not after @timeout seconds"""
