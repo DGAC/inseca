@@ -2104,6 +2104,7 @@ def dev_run_in_vm(args):
 
     runargs=["virt-install", "--virt-type", "kvm", "--name", vm_name, "--memory", str(mem), "--import",
           "--disk", "%s,bus=virtio"%args.devfile, "--os-variant", "debian10", "--graphics", "spice", "--video", "qxl",
+          "--tpm", "backend.type=emulator,backend.version=2.0,model=tpm-tis",
           "--channel", "spicevmc", "--network", "default"]
     if not args.bios:
         runargs+=["--boot", "uefi"]
