@@ -1,2 +1,2 @@
-# user can manager packages
-insecauser ALL=(root) NOPASSWD: /usr/bin/apt, /usr/bin/apt-get
+# user can install packages
+insecauser ALL=(root) NOPASSWD: /usr/bin/apt update, /usr/bin/apt install, /usr/bin/apt-get update, /usr/bin/apt-get install
