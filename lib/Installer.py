@@ -691,6 +691,13 @@ class Updater:
 
         # install GRUB (EFI), from the live Linux ISO
         efi_mp=self._dev.mount(Live.partid_efi)
+
+        # remove useless file to make some space
+        ufile="%s/boot/grub/fonts/unicode.pf2"%efi_mp
+        if os.path.exists(ufile):
+            util.print_event("Removing %s"%ufile)
+            os.remove(ufile)
+
         util.print_event("Updating Grub (EFI)")
         self._dev.install_grub_efi(self._live_iso_file, efi_mp)
 

@@ -895,20 +895,25 @@ class Device:
         if part["type"]!="BIOS":
             raise Exception("1st partition must be 'BIOS' in order to install Grub BIOS")
 
-        mp=self.mount(efipart["id"])
+        efi_mp=self.mount(efipart["id"])
 
         # install Grub BIOS itself, depending if the grub-pc package is installed on the system (which may
         # not be the case on UEFI systems)
         if os.path.exists("/usr/lib/grub/i386-pc"):
             # Grub for BIOS is installed on the system.
-            args=["/usr/sbin/grub-install", "--root-directory=%s"%mp, "--force", "--target=i386-pc", self.devfile]
+            args=["/usr/sbin/grub-install", "--root-directory=%s"%efi_mp, "--force", "--target=i386-pc", self.devfile]
         else:
             # Grub for BIOS is installed on the system: use a 'grub-bios' Docker container
-            args=["docker", "run", "--privileged", "--rm", "-v", "%s:/efi"%mp, "grub-bios", "grub-install", "--root-directory=/efi", "--force", "--target=i386-pc", self.devfile]
+            args=["docker", "run", "--privileged", "--rm", "-v", "%s:/efi"%efi_mp, "grub-bios", "grub-install", "--root-directory=/efi", "--force", "--target=i386-pc", self.devfile]
         syslog.syslog(syslog.LOG_INFO, "GRUB BIOS command: %s"%" ".join(args))
         (status, out, err)=util.exec_sync(args)
         if status!=0:
             raise Exception("Could not install Grub BIOS on device '%s': %s"%(self.devfile, err))
+
+        # remove useless file
+        ufile="%s/boot/grub/fonts/unicode.pf2"%efi_mp
+        if os.path.exists(ufile):
+            os.remove(ufile)
 
     def install_grub_configuration(self, conf_tar_file, live_partition_id):
         """Install Grub's configuration files in the EFI partition, and

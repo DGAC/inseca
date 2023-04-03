@@ -95,6 +95,15 @@ Pour les administrateurs locaux, cet environnement se présente sous forme
  d'une clé USB (ou disque externe) bootable.
 \end_layout
 
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Présentation
 \end_layout
