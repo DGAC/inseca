@@ -20,6 +20,7 @@ import datetime
 import time
 import shutil
 import uuid
+import syslog
 import Utils as util
 import CryptoGen as cgen
 
@@ -162,10 +163,38 @@ class Repo:
         return res
 
     def check(self):
-        """Checks if the repository is Ok (using the "borg check" command)"""
-        self._borg_run(["check"], _("Repository is being modified, try again later"))
-        if os.path.exists("%s/lock.roster"%self._repo_dir):
-            raise Exception("Repository is already being used, try again later")
+        """Checks if the repository is Ok (using the "borg check" command).
+        Returns:
+        - None if there is no error
+        - a list of file which have problems, and which potentially require a re-sync from the
+          source (with rclone, one has to change the date first)
+        - an exception if there is an unhandled error
+        """
+        syslog.syslog(syslog.LOG_INFO, "Checking Borg repository's health")
+        (status, out, err)=util.exec_sync([self._borg_prog, "check"], exec_env=self.get_exec_env())
+        if status==0:
+            if os.path.exists("%s/lock.roster"%self._repo_dir):
+                raise Exception("Repository is already being used, try again later")
+            return None
+        else:
+            # identify file which have an integrity problem, err will be like:
+            # "Data integrity error: Segment entry checksum mismatch [segment 739, offset 1224]"
+            # the file in error will be "739" in this case
+            errfiles=[]
+            for line in err.splitlines():
+                if "[segment " in line:
+                    parts=line.split("[segment ")
+                    if len(parts)==2:
+                        parts=parts[1].split(",")
+                        segment=parts[0]
+                        for (root, dirs, files) in os.walk("%s/data"%self._repo_dir):
+                            if segment in files:
+                                errfiles+=["%s/%s"%(root, segment)]
+            if len(errfiles)>0:
+                syslog.syslog(syslog.LOG_WARNING, "Repository has some file errors: %s"%errfiles)
+                return errfiles
+            syslog.syslog(syslog.LOG_ERR, "Unhandled repository check error: %s"%err)
+            raise Exception("Unhandled repository check error")
 
     def get_latest_archive(self):
         """Get the most recent archive in the specified repository

@@ -18,6 +18,7 @@
 import os
 import syslog
 import tarfile
+import datetime
 import time
 import json
 import Utils as util
@@ -165,7 +166,24 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                         
                         self.set_progress(Live.UpdatesStatus.CHECK)
                         borg_repo=Borg.Repo(repo_dir, repo_password)
-                        borg_repo.check() # ensure repo is useable
+
+                        # ensure repo does not have any error, and if some files
+                        # are corrupted, perform a new sync() after having moved the
+                        # file's timestamps a year ago
+                        err_files=borg_repo.check()
+                        if err_files:
+                            ndate=datetime.datetime.now()+datetime.timedelta(-365)
+                            ntime=time.mktime(ndate.timetuple())
+                            # backdate the files
+                            for fname in err_files:
+                                os.utime(fname, (ntime, ntime))
+
+                            # rerun the sync.
+                            rclone.sync(add_event_func=self.set_progress)
+                            err_files=borg_repo.check()
+                            if err_files:
+                                raise Exception("Repository error")
+
                         (archive_ts, archive_name)=borg_repo.get_latest_archive()
                         if archive_ts>kernel_ts:
                             # compare with existing staged archive
