@@ -197,7 +197,7 @@ class FilesystemEntry(Gtk.ComboBoxText):
 
 class TODOEntry(Gtk.Label):
     """UI entry holder for future work"""
-    _gsignals__ = {
+    __gsignals__ = {
         "data_changed": (GObject.SIGNAL_RUN_FIRST, None, ())
     }
     def __init__(self, spec):
