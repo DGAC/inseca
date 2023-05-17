@@ -112,7 +112,8 @@ class Networking:
         # use NetworkManager if possible
         if self._use_nm:
             (status, out, err)=util.exec_sync(["nmcli", "networking", "on"])
-            if status!=0:
+            if status!=0 and status!=8:
+                # status 8 => NetworkManager is not running (has been disabled)
                 raise Exception("Could not enable networking with NetworkManager: %s"%err)
             return
 
@@ -130,7 +131,8 @@ class Networking:
         # use NetworkManager if possible
         if self._use_nm:
             (status, out, err)=util.exec_sync(["nmcli", "networking", "off"])
-            if status!=0:
+            if status!=0 and status!=8:
+                # status 8 => NetworkManager is not running (has been disabled)
                 raise Exception("Could not disable networking with NetworkManager: %s"%err)
             return
 
