@@ -1,0 +1,14 @@
+{
+    "descr": "Add Flatpak programs",
+    "provides": [],
+    "requires": [
+        "desktop"
+    ],
+    "builddata": {
+        "packages": {
+            "descr": "List of packages, separated by spaces",
+            "type": "str"
+        }
+    },
+    "userdata": {}
+}
