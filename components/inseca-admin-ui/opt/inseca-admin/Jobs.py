@@ -190,7 +190,8 @@ class ComputeInstallElementsJob(Job.Job):
             import InstallerComponent
             self._feedback_component.add_event("Analysing configuration...")
             (linuximage, linuxuserdata, infos)=self._gconf.get_install_elements(self._iconf)
-            params=InstallerComponent.Params(self._gconf, self._dconf, self._iconf, linuxuserdata)
+            linux_iso_size=os.stat(linuximage).st_size
+            params=InstallerComponent.Params(self._gconf, self._dconf, self._iconf, linuxuserdata, linux_iso_size)
             self._gconf.release_install_elements(self._iconf)
             self.result=params
         except Exception as e:
@@ -314,7 +315,7 @@ class DeviceFormatJob(InsecaRunJob):
 
 class DeviceIdentifyJob(InsecaRunJob):
     def __init__(self, target):
-        args=["dev-ident", target]
+        args=["--verbose", "dev-ident", target]
         InsecaRunJob.__init__(self, args, "Identifying device", out_as_result=True)
 
     def run(self):

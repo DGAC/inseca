@@ -52,6 +52,12 @@
             "type": "file",
             "attest": false
         },
+        "live-size": {
+            "descr": "Size of the live partition (enough to hold 2 live linux ISOs)",
+            "type": "size-mb",
+            "default": 6144,
+            "attest": false
+        },
         "internal-size": {
             "descr": "Size of the internal partition (enough to hold and run a VM)",
             "type": "size-mb",
@@ -96,7 +102,7 @@
                 "immutable": false,
                 "filesystem": "ext4",
                 "password": null,
-                "size-mb": "6144"
+                "size-mb": "{live-size}"
             },
             {
                 "id": "internal",

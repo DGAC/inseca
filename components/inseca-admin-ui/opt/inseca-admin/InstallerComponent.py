@@ -37,7 +37,7 @@ class Params(GObject.Object):
     __gsignals__ = {
         "data_changed": (GObject.SIGNAL_RUN_FIRST, None, ())
     }
-    def __init__(self, gconf, dconf, iconf, user_data_file):
+    def __init__(self, gconf, dconf, iconf, user_data_file, linux_iso_size):
         GObject.Object.__init__(self)
         if not isinstance(gconf, Configurations.GlobalConfiguration):
             raise Exception("CODEBUG: invalid @gconf argument")
@@ -48,6 +48,7 @@ class Params(GObject.Object):
         self._gconf=gconf
         self._dconf=dconf
         self._iconf=iconf
+        self._linux_iso_size=linux_iso_size
 
         self._init_parameters_sets(user_data_file)
 
@@ -144,7 +145,8 @@ class Params(GObject.Object):
         res["device-signing-private-key-file"]=os.path.basename(self._iconf.devicemeta_privkey)
         # blob0
         res["blob0"]=cgen.generate_password(50)
-        # internal-size
+        # filesystel-sizes
+        res["live-size"]=int(self._linux_iso_size/1024/1024*2.7) # allow 30% growth of live Linux
         res["internal-size"]=46080 # FIXME: don't hard code
         return res
 
