@@ -476,23 +476,25 @@ def get_disks():
             (status, out2, err)=exec_sync(["/bin/lsblk", "-n", "-o", "MOUNTPOINT", devfile])
             if status!=0:
                 raise Exception("Could not list mountpoints of disk '%s': %s"%(devfile, err))
-            disks[devfile]={
-                "useable": True,
-                "live": False,
-                "internal-disk": internal,
-                "ssd": not rota,
-                "size-G": int(int(parts[4])/1000/1000/1000),
-                "model": model
-            }
-            parts2=out2.splitlines()
-            if "/" in parts2:
-                disks[devfile]["useable"]=False
-
-            for mp in parts2:
-                if "/lib/live" in mp:
+            size_g=int(int(parts[4])/1000/1000/1000)
+            if size_g>0: # avoid any unused /dev/nbd*
+                disks[devfile]={
+                    "useable": True,
+                    "live": False,
+                    "internal-disk": internal,
+                    "ssd": not rota,
+                    "size-G": size_g,
+                    "model": model
+                }
+                parts2=out2.splitlines()
+                if "/" in parts2:
                     disks[devfile]["useable"]=False
-                    disks[devfile]["live"]=True
-                    break
+
+                for mp in parts2:
+                    if "/lib/live" in mp:
+                        disks[devfile]["useable"]=False
+                        disks[devfile]["live"]=True
+                        break
     return disks
 
 def get_virtual_machine_disk_size(imagefile):
