@@ -207,18 +207,20 @@ class BootProcessWKS:
             BootProcessWKS.__instance = BootProcessWKS(live_env)
         return BootProcessWKS.__instance
 
-    def __init__(self, live_env):
+    def __init__(self, live_env, dev=None):
         if not isinstance(live_env, Environ):
             raise Exception("CODEBUG: @live_env should be an Environ object")
         self._live_env=live_env
-        live_devpart=util.get_root_live_partition()
-        self._dev=Device.Device(util.get_device_of_partition(live_devpart))
+        if dev:
+            if not isinstance(dev, Device.Device):
+                raise Exception("CODEBUG: @dev should be a Device object")
+            self._dev=dev
+        else:
+            live_devpart=util.get_root_live_partition()
+            self._dev=Device.Device(util.get_device_of_partition(live_devpart))
 
         self._user_uuid=None
         self._cn=None
-
-        self._blob1_priv=None
-        self._log=[] # integrity log
 
     def __del__(self):
         """Call this function when done"""
@@ -259,17 +261,54 @@ class BootProcessWKS:
         self._dev.umount(partid_dummy)
         raise InvalidCredentialException("Invalid password")
 
-    def _unlock_blob1(self, blob0):
-        """Use blob0 to decrypt blob1's private key and load it"""
-        eobj=cpass.CryptoPassword(blob0)
-        mp=self._dev.mount(partid_dummy)
-        encdata=util.load_file_contents("%s/resources/blob1.priv.enc"%mp)
+    def _unblock_with_blob0(self, dummy_mountpoint, blob0):
+        # Use blob0 to decrypt blob1's private key and load it
+        log=None
+
         try:
+            # decrypt blob1
+            eobj=cpass.CryptoPassword(blob0)
+            encdata=util.load_file_contents("%s/resources/blob1.priv.enc"%dummy_mountpoint)
             blob1=eobj.decrypt(encdata).decode()
-            self._blob1_priv=blob1
-        except Exception:
-            self._dev.umount(partid_dummy)
-            raise Exception("Internal error (could not decrypt 'blob1')")
+        except Exception as e:
+            raise Exception("Could not load 'blob1.priv.enc' or decrypt blob1 from blob0", None)
+
+        try:
+            # load "live" chunks
+            eobj=x509.CryptoKey(blob1, None)
+            echunks=util.load_file_contents("%s/resources/chunks.enc"%dummy_mountpoint)
+            chunks=json.loads(eobj.decrypt(echunks))
+        except Exception as e:
+            raise Exception("Could not load 'chunks.enc' or decrypt chuks from blob1", None)
+
+        try:
+            lmp=self._dev.mount(partid_live)
+            (hash0, log0)=fpchunks.verify_files_chunks(lmp, chunks)
+        except Exception as e:
+            raise Exception("Could not verify files in the live partition (%s)"%str(e), None)
+
+        try:
+            # compute integrity fingerprint
+            (ifp, log)=compute_integrity_fingerprint(self._dev, blob1, hash0)
+            log+=[{"live": log0}]
+        except Exception as e:
+            raise Exception("Could not compute the integrity fingerprint (%s)"%str(e), None)
+
+        try:
+            # decrypt internal partition's password
+            eobj=cpass.CryptoPassword(ifp)
+            data=util.load_file_contents("%s/resources/internal-pass.enc"%dummy_mountpoint)
+            int_password=eobj.decrypt(data).decode()
+            return (eobj, int_password)
+        except Exception as e:
+            raise Exception("Could not load 'internal-pass.enc' or decrypt it from the integrity hash", log)
+
+    def check_integrity(self, blob0):
+        """Check the integrity of the device using @blob0
+        Raise an exception if the device has been modified.
+        """
+        dmp=self._dev.mount(partid_dummy)
+        self._unblock_with_blob0(dmp, blob0)
 
     def unlock(self, user_password):
         """Starts the whole process of "opening" the device while making all the verifications
@@ -295,26 +334,9 @@ class BootProcessWKS:
         blob0=self._unlock_blob0(user_password)
 
         try:
-            self._unlock_blob1(blob0)
-
-            # load "live" chunks
-            eobj=x509.CryptoKey(self._blob1_priv, None)
-            echunks=util.load_file_contents("%s/resources/chunks.enc"%dmp)
-            chunks=json.loads(eobj.decrypt(echunks))
-
-            lmp=self._dev.mount(partid_live)
-            (hash0, log0)=fpchunks.verify_files_chunks(lmp, chunks)
-
-            # compute integrity fingerprint
-            (ifp, log)=compute_integrity_fingerprint(self._dev, self._blob1_priv, hash0)
-            log+=[{"live": log0}]
-            util.write_data_to_file(json.dumps(log), "/tmp/integrity-fingerprint-log-verif.json")
+            (eobj, int_password)=self._unblock_with_blob0(dmp, blob0)
 
             # unlock and mount "internal" partition
-            eobj=cpass.CryptoPassword(ifp)
-            data=util.load_file_contents("%s/resources/internal-pass.enc"%dmp)
-            int_password=eobj.decrypt(data).decode()
-
             self._dev.set_partition_secret(partid_internal, "password", int_password)
             self._dev.mount(partid_internal, "/internal", options="nodev,x-gvfs-hide", auto_umount=False)
 
@@ -329,7 +351,7 @@ class BootProcessWKS:
                 options+=",uid=1000,gid=1000"
             self._dev.mount(partid_data, "/data", options=options, auto_umount=False)
         except Exception as e:
-            syslog.syslog(syslog.LOG_ERR, "While trying to mount encrypted partitions: %s"%str(e))
+            syslog.syslog(syslog.LOG_ERR, "While unlocking device: %s"%str(e))
             raise DeviceIntegrityException("Device may be compromised")
         finally:
             self._dev.umount(partid_dummy)

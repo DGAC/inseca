@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -192,11 +192,14 @@ sparser.add_argument("user", help=_("User for which the password will be reset")
 sparser.add_argument("--password", help=_("Password to use (use '-' if provided via stdin)"))
 sparser.add_argument("--passenv", help=_("Name of the environment variable containing the password"))
 
+sparser=subparsers.add_parser("dev-check", help=_("Check a device's integrity and display any error"))
+sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+
 # list commands which require to be run as root
 root_required_commands=["build", "dev-install", "gen-admin-iso",
                         "dev-update-linux", "dev-format", "dev-ident", "dev-copy",
                         "dev-wipe", "dev-run-in-vm", "dev-mount", "dev-umount",
-                        "dev-users", "dev-user-add", "dev-user-del", "dev-user-password"]
+                        "dev-users", "dev-user-add", "dev-user-del", "dev-user-password", "dev-check"]
 
 def _format_ts(ts):
     return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
@@ -2221,6 +2224,67 @@ def gen_keypair(args):
     key_pub.copy_to(prefix+".pub")
     os.chmod(prefix+".priv", 0o600)
 
+
+class CheckEnviron(Live.Environ):
+    """Dummy environ to satisfy BootProcessWKS"""
+    def __init__(self, dev):
+        self._dev=dev
+
+    @property
+    def logged(self):
+        return False
+
+    @property
+    def unlocked(self):
+        return False
+
+def _log_compare(expected_log, computed_log):
+    """Returns a list of differences between the expected log and the computed one"""
+    diffs=[]
+    try:
+        for (edata, cdata) in zip(expected_log, computed_log, strict=True):
+            if edata!=cdata:
+                if type(edata)!=type(cdata):
+                    diffs.append("Error: type difference between '%s' and '%s"%(edata, cdata))
+                elif isinstance(edata, str):
+                    diffs.append("Expected '%s', got '%s'"%(edata, cdata))
+                elif isinstance(edata, dict):
+                    d2=_log_compare(edata, cdata)
+                    diffs+=d2
+    except ValueError:
+        diffs.append("Incomplete or too long integrity log")
+    except Exception as e:
+        diffs.append("Error: %s"%str(e))
+    return diffs
+
+def dev_check(args):
+    try:
+        dev=Device.Device(args.devfile)
+        _dev_verify(dev)
+
+        dummy_env=CheckEnviron(dev)
+        bp=Live.BootProcessWKS(dummy_env, dev)
+        blob0=_get_blob0(dev)
+    except Exception as e:
+        print("Error: could not decrypt blob0 (%s)"%err)
+
+    try:
+        bp.check_integrity(blob0)
+        print("Ok")
+    except Exception as e:
+        (err, log)=e.args
+        print("Error: %s"%err)
+        if log:
+            mp=_dev_mount(dev, "internal")
+            oklog=json.load(open("%s/resources/integrity-fingerprint-log.json"%mp, "r"))
+            diffs=_log_compare(oklog, log)
+            if diffs:
+                for item in diffs:
+                    print(item)
+            else:
+                print("Integrity logs is Ok")
+        sys.exit(1)
+
 #
 # Main
 #
@@ -2274,7 +2338,8 @@ try:
             "dev-user-add": dev_user_add,
             "dev-user-del": dev_user_del,
             "dev-user-password": dev_user_password,
-            "gen-keypair": gen_keypair
+            "gen-keypair": gen_keypair,
+            "dev-check": dev_check
         }
         if args.cmde in map:
             if args.cmde in root_required_commands and os.getuid()!=0:

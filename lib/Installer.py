@@ -717,7 +717,7 @@ class Updater:
         os.chmod(fname, 0o400)
 
         (ifp, log)=Live.compute_integrity_fingerprint(self._dev, blob1_priv, hash)
-        log+=[{"live0": log0}]
+        log+=[{"live": log0}]
         tmp=util.Temp(data=json.dumps(log))
         fname="%s/resources/integrity-fingerprint-log.json"%self._mp_internal
         tmp.copy_to(fname)
