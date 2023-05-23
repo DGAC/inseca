@@ -45,12 +45,28 @@ import ValueHolder
 import Installer
 import Live
 import Borg
+import AppendedData as adata
 
 # Gettext stuff
 import gettext
 gettext.bindtextdomain("inseca", prog_dir+"/../locales")
 gettext.textdomain("inseca")
 _ = gettext.gettext
+
+def _get_single_useable_device():
+    devices=util.get_disks()
+    dev=None
+    for devfile in devices:
+        devdata=devices[devfile]
+        if devdata["useable"] and not devdata["internal-disk"]:
+            if dev:
+                raise Exception("More than one device is plugged in the system")
+            dev=devfile
+    if dev:
+        print("Using %s device"%dev)
+        return dev
+    raise Exception("No suitable plugged device found")
+
 
 parser=argparse.ArgumentParser()
 parser.add_argument("--root", help=_("Specify the equivalent of INSECA_ROOT"))
@@ -137,7 +153,7 @@ sparser.add_argument("--vm-size", type=int, default=64, help=_("Size of the VM i
 sparser.add_argument("--archive", help=_("Specific archive ID to get the live Linux image (instead of the last available)"))
 
 sparser=subparsers.add_parser("dev-update-linux", help=_("Update the live Linux of an INSECA installation"))
-sparser.add_argument("target", help=_("Device or VM image file to update"))
+sparser.add_argument("target", nargs='?', default=None, help=_("Device or VM image file to update"))
 sparser.add_argument("--archive", help=_("Specific archive ID to get the live Linux image (instead of the last available)"))
 
 sparser=subparsers.add_parser("dev-format", help=_("Format a storage device using a format configuration"))
@@ -146,7 +162,7 @@ sparser.add_argument("params_file", metavar="params-file", help=_("File containi
 sparser.add_argument("target", help=_("Device file to install to"))
 
 sparser=subparsers.add_parser("dev-ident", help=_("Identifies an INSECA device"))
-sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("devfile", nargs='?', default=None, help=_("Device's associated file (e.g. /dev/sda)"))
 sparser.add_argument("--protected", help=_("Also get the protected (encrypted) information"), action="store_true")
 sparser.add_argument("--decrypt_key", metavar="decrypt-key", help=_("Force a specific decryption key to get the protected data"))
 
@@ -159,19 +175,19 @@ sparser.add_argument("infile", help=_("Input file (e.g. /dev/sda)"))
 sparser.add_argument("outfile", help=_("File to copy data to"))
 
 sparser=subparsers.add_parser("dev-run-in-vm", help=_("Starts an INSECA device in a VM"))
-sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("devfile", nargs='?', default=None, help=_("Device's associated file (e.g. /dev/sda)"))
 sparser.add_argument("--bios", help=_("Boot in Legacy BIOS mode instead of UEFI"), action="store_true")
 sparser.add_argument("--mem", help=_("Quantity of RAM to allocate to the VM in Mib (2048 by default)"))
 
 sparser=subparsers.add_parser("dev-mount", help=_("Mount a partition of an INSECA device"))
-sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("devfile", nargs='?', default=None, help=_("Device's associated file (e.g. /dev/sda)"))
 sparser.add_argument("partition_id", metavar="partition-id", help=_("Partition ID name to mount"))
 sparser.add_argument("mountpoint", help=_("Directory where the partition will be mounted"))
 sparser.add_argument("--decrypt_key", metavar="decrypt-key", help=_("Force a specific decryption key to get the protected data"))
 
 sparser=subparsers.add_parser("dev-umount", help=_("Unmount a mounted partition of an INSECA device"))
-sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
-sparser.add_argument("partition_id", metavar="partition-id", help=_("Partition ID (name) to umount, pass '-' to unmount all"))
+sparser.add_argument("devfile", nargs='?', default=None, help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("partition_id", nargs='?', default="-", metavar="partition-id", help=_("Partition ID (name) to umount, pass '-' to unmount all"))
 
 sparser=subparsers.add_parser("dev-users", help=_("List the users declared"))
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
@@ -193,7 +209,7 @@ sparser.add_argument("--password", help=_("Password to use (use '-' if provided 
 sparser.add_argument("--passenv", help=_("Name of the environment variable containing the password"))
 
 sparser=subparsers.add_parser("dev-check", help=_("Check a device's integrity and display any error"))
-sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
+sparser.add_argument("devfile", nargs='?', default=None, help=_("Device's associated file (e.g. /dev/sda)"))
 
 # list commands which require to be run as root
 root_required_commands=["build", "dev-install", "gen-admin-iso",
@@ -1715,6 +1731,8 @@ def devices(args):
                 print("plugged  %s\t%s Gb (%s)"%(devfile, devdata["size-G"], devdata["model"]))
 
 def dev_update_linux(args):
+    if args.target is None:
+        args.target=_get_single_useable_device()
     target=args.target
     if args.verbose:
         util.print_events=True
@@ -2021,20 +2039,22 @@ def _dev_verify(dev, decrypt_key=None):
 
 def dev_ident(args):
     # 1st pass to read the meta data
+    if args.devfile is None:
+        args.devfile=_get_single_useable_device()
     gconf=confs.GlobalConfiguration()
     dev=Device.Device(args.devfile)
+    infos={}
 
     # try to verify the device
     verif_error=None
+    dkey=None
     try:
         (dkey, udata)=_dev_verify(dev, args.decrypt_key)
+        infos["unprotected"]=udata
+    except adata.InvalidDevice as e:
+        raise e
     except Exception as e:
-        verif_error=str(e)
-
-    # create the result information
-    infos={}
-    infos["unprotected"]=udata
-    infos["unprotected"]["verification-error"]=verif_error
+        infos["verification-error"]=str(e)
 
     if args.verbose:
         # decrypt protected data if key is provided
@@ -2065,10 +2085,14 @@ def _dev_mount(dev, partition_id, decrypt_key=None, mountpoint=None):
     return dev.mount(partition_id, mountpoint, auto_umount=True if mountpoint is None else False)
 
 def dev_mount(args):
+    if args.devfile is None:
+        args.devfile=_get_single_useable_device()
     dev=Device.Device(args.devfile)
     _dev_mount(dev, args.partition_id, args.decrypt_key, args.mountpoint)
 
 def dev_umount(args):
+    if args.devfile is None:
+        args.devfile=_get_single_useable_device()
     dev=Device.Device(args.devfile)
     if args.partition_id!="-":
         dev.umount(args.partition_id)
@@ -2102,6 +2126,8 @@ def _vm_stop(vm_name):
             break
 
 def dev_run_in_vm(args):
+    if args.devfile is None:
+        args.devfile=_get_single_useable_device()
     import namesgenerator
     vm_name=namesgenerator.get_random_name()
     _vm_stop(vm_name)
@@ -2268,6 +2294,8 @@ def _log_compare(expected_log, computed_log):
     return diffs
 
 def dev_check(args):
+    if args.devfile is None:
+        args.devfile=_get_single_useable_device()
     try:
         dev=Device.Device(args.devfile)
         _dev_verify(dev)

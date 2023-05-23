@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -57,6 +57,9 @@ def _replace_internal_references(data, layout):
             ndata+=[_replace_internal_references(key, layout)]
         return ndata
     return data
+
+class InvalidDevice(Exception):
+    pass
 
 class AppendedData:
     """Manage some appended data.
@@ -164,7 +167,7 @@ class AppendedData:
         try:
             self._data=json.loads(jdata.decode())
         except:
-            raise Exception(_("Absent or invalid device signature"))
+            raise InvalidDevice(_("Absent or invalid device signature"))
 
 #
 # Meta Data
