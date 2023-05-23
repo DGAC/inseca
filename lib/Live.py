@@ -163,6 +163,20 @@ def install_live_linux_files_from_iso(live_path, source_dir):
     os.chmod(live_path, 0o700)
     util.print_event("Installing live Linux components")
 
+    # make sure we have enough space to copy files
+    free_b=shutil.disk_usage(live_path).free
+    for fname in ["vmlinuz", "initrd.img", "filesystem.squashfs"]:
+        srcfile="%s/live/%s"%(source_dir, fname)
+        dstfile="%s/%s"%(live_path, fname)
+        if os.path.exists(dstfile):
+            # dstfile will be overwriten => space it currently occupies will be made available
+            free_b+=os.stat(dstfile).st_size
+        free_b-=os.stat(srcfile).st_size
+    free_b-=+500*1024 # keep 500K for misc. filesystem housekeeping
+    if free_b<=0:
+        raise Exception("Not enough free space to extract new live Linux components (missing %s)"%-free_b)
+    syslog.syslog(syslog.LOG_INFO, "Live Linux update: %s bytes will remain after files installation"%free_b)
+
     # remove any existing file in the new directory
     for filename in os.listdir(live_path):
         fpath="%s/%s"%(live_path, filename)
@@ -172,7 +186,8 @@ def install_live_linux_files_from_iso(live_path, source_dir):
     for fname in ["vmlinuz", "initrd.img", "filesystem.squashfs"]:
         util.print_event("Copying the '%s' component to device"%fname)
         srcfile="%s/live/%s"%(source_dir, fname)
-        shutil.copyfile(srcfile, "%s/%s"%(live_path, fname))
+        dstfile="%s/%s"%(live_path, fname)
+        shutil.copyfile(srcfile, dstfile)
 
 class InvalidCredentialException(Exception):
     pass

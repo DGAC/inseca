@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -870,8 +870,26 @@ class Device:
             try:
                 efi_target_dir="%s/EFI/boot"%efi_mount_point
                 os.makedirs(efi_target_dir, exist_ok=True)
+
+                # make sure we have enough space to copy files
+                free_b=shutil.disk_usage(efi_target_dir).free
                 for fname in ("grubx64.efi", "bootx64.efi"):
-                    shutil.copyfile("%s/EFI/boot/%s"%(tmpdirname, fname), "%s/%s"%(efi_target_dir, fname))
+                    srcfile="%s/EFI/boot/%s"%(tmpdirname, fname)
+                    dstfile="%s/%s"%(efi_target_dir, fname)
+                    if os.path.exists(dstfile):
+                        # dstfile will be overwriten => space it currently occupies will be made available
+                        free_b+=os.stat(dstfile).st_size
+                    free_b-=os.stat(srcfile).st_size
+                free_b-=+500*1024 # keep 500K for misc. filesystem housekeeping
+                if free_b<=0:
+                    raise Exception("Not enough free space to extract new live Linux components (missing %s)"%-free_b)
+                syslog.syslog(syslog.LOG_INFO, "GRUB EFI update: %s bytes will remain after files installation"%free_b)
+
+                # actual files copy
+                for fname in ("grubx64.efi", "bootx64.efi"):
+                    srcfile="%s/EFI/boot/%s"%(tmpdirname, fname)
+                    dstfile="%s/%s"%(efi_target_dir, fname)
+                    shutil.copyfile(srcfile, dstfile)
             finally:
                 (status, out, err)=util.exec_sync(["umount", tmpdirname])
 

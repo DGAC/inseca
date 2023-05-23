@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -692,7 +692,7 @@ class Updater:
         # install GRUB (EFI), from the live Linux ISO
         efi_mp=self._dev.mount(Live.partid_efi)
 
-        # remove useless file to make some space
+        # remove useless files to make some space
         ufile="%s/boot/grub/fonts/unicode.pf2"%efi_mp
         if os.path.exists(ufile):
             util.print_event("Removing %s"%ufile)
