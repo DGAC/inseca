@@ -1975,52 +1975,59 @@ def _get_protected_data(dev, dkey):
     except:
         raise Exception("Could not decrypt protected data (wrong decryption key?)")
 
+def _dev_verify(dev, decrypt_key=None):
+    gconf=confs.GlobalConfiguration()
+    udata=dev.get_unprotected_data()
+
+    dkey=decrypt_key # decrypt password
+    if "confid" not in udata:
+        raise Exception("Not an INSECA device (no 'confid' attribute)")
+
+    confid=udata["confid"]
+    conf=gconf.get_install_conf(confid, exception_if_not_found=False)
+    if not conf:
+        conf=gconf.get_format_conf(confid, exception_if_not_found=False)
+    if conf:
+        if dkey is None:
+            dkey=conf.password_rescue
+        pubkey=conf.devicemeta_pubkey
+        if os.path.exists(pubkey):
+            # identify how verification will be done
+            (status, out, err)=util.exec_sync(["openssl", "x509", "-subject", "-noout", "-in", pubkey])
+            if status==0:
+                how={"type": "certificate", "cert-file": pubkey}
+            else:
+                how={"type": "key", "public-key-file": pubkey}
+            # NB: for now, all the device's signature is performed using a key, no password
+            #     how={"type": "password", "password": pubkey}
+
+            # try to identify a signature ID
+            verified=False
+            for sid in dev.get_signature_ids():
+                verifier={sid: how}
+                try:
+                    dev.verify(verifier)
+                    udata=dev.get_unprotected_data()
+                    verified=True
+                    break
+                except Exception:
+                    pass
+            if not verified:
+                raise Exception("Altered device or wrong verification key in configuration")
+    else:
+        raise Exception("Missing configuration's public key to verify signature")
+    return (dkey, udata)
+
+
 def dev_ident(args):
     # 1st pass to read the meta data
     gconf=confs.GlobalConfiguration()
     dev=Device.Device(args.devfile)
-    udata=dev.get_unprotected_data()
 
     # try to verify the device
+    verif_error=None
     try:
-        dkey=args.decrypt_key # decrypt password
-        verif_error=None
-        if "confid" not in udata:
-            raise Exception("Not an INSECA device (no 'confid' attribute)")
-
-        confid=udata["confid"]
-        conf=gconf.get_install_conf(confid, exception_if_not_found=False)
-        if not conf:
-            conf=gconf.get_format_conf(confid, exception_if_not_found=False)
-        if conf:
-            if dkey is None:
-                dkey=conf.password_rescue
-            pubkey=conf.devicemeta_pubkey
-            if os.path.exists(pubkey):
-                # identify how verification will be done
-                (status, out, err)=util.exec_sync(["openssl", "x509", "-subject", "-noout", "-in", pubkey])
-                if status==0:
-                    how={"type": "certificate", "cert-file": pubkey}
-                else:
-                    how={"type": "key", "public-key-file": pubkey}
-                # NB: for now, all the device's signature is performed using a key, no password
-                #     how={"type": "password", "password": pubkey}
-
-                # try to identify a signature ID
-                verified=False
-                for sid in dev.get_signature_ids():
-                    verifier={sid: how}
-                    try:
-                        dev.verify(verifier)
-                        udata=dev.get_unprotected_data()
-                        verified=True
-                        break
-                    except Exception:
-                        pass
-                if not verified:
-                    raise Exception("Altered device or wrong verification key in configuration")
-        else:
-            raise Exception("Missing configuration's public key to verify signature")
+        (dkey, udata)=_dev_verify(dev, args.decrypt_key)
     except Exception as e:
         verif_error=str(e)
 
@@ -2029,34 +2036,37 @@ def dev_ident(args):
     infos["unprotected"]=udata
     infos["unprotected"]["verification-error"]=verif_error
 
-    # decrypt protected data if key is provided
-    if args.protected and dkey is not None:
-        pdata=_get_protected_data(dev, dkey)
-        if pdata is not None:
-            infos["protected"]=pdata
+    if args.verbose:
+        # decrypt protected data if key is provided
+        if args.protected and dkey is not None:
+            pdata=_get_protected_data(dev, dkey)
+            if pdata is not None:
+                infos["protected"]=pdata
 
-    # extra infos
-    infos["hardware-id"]=dev.get_hardware_id()
-    infos["dev-format"]=dev.get_partitions_layout()
+        # extra infos
+        infos["hardware-id"]=dev.get_hardware_id()
+        infos["dev-format"]=dev.get_partitions_layout()
 
     print("%s"%json.dumps(infos, indent=4))
 
-def dev_mount(args):
+def _dev_mount(dev, partition_id, decrypt_key=None, mountpoint=None):
     gconf=confs.GlobalConfiguration()
-    dev=Device.Device(args.devfile)
     udata=dev.get_unprotected_data()
     if "confid" not in udata:
         raise Exception("Not an INSECA device (no 'confid' attribute)")
     confid=udata["confid"]
-    dkey=args.decrypt_key
-    if dkey is None:
+    if decrypt_key is None:
         conf=gconf.get_install_conf(confid, exception_if_not_found=False)
         if not conf:
             conf=gconf.get_format_conf(confid, exception_if_not_found=False)
         if conf:
-            dkey=conf.password_rescue
-    _get_protected_data(dev, dkey)
-    dev.mount(args.partition_id, args.mountpoint, auto_umount=False)
+            decrypt_key=conf.password_rescue
+    _get_protected_data(dev, decrypt_key)
+    return dev.mount(partition_id, mountpoint, auto_umount=True if mountpoint is None else False)
+
+def dev_mount(args):
+    dev=Device.Device(args.devfile)
+    _dev_mount(dev, args.partition_id, args.decrypt_key, args.mountpoint)
 
 def dev_umount(args):
     dev=Device.Device(args.devfile)

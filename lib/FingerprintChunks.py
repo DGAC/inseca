@@ -124,7 +124,7 @@ def _compute_files_chunks_raw(path, excluded=None, base=None):
     return data
 
 def compute_files_chunks(path, excluded=None):
-    """Generate data which can later be verified using _check_files_chunks_hash().
+    """Generate data which can later be verified using verify_files_chunks().
     The chunks AND the associated hashes are generated at the same time.
     ex:
     [
@@ -170,7 +170,7 @@ def compute_files_chunks(path, excluded=None):
     return (result, sha256.hexdigest(), log) # (hash data, final hash, files hashing log)
 
 def verify_files_chunks(path, chunks, excluded=None):
-    """Verifies if the From @data (produced by compute_files_chunks())
+    """Verifies data in the filesystem with regards to what has been produced by compute_files_chunks()
     and returns the computed hash with the log"""
     if excluded is None:
         excluded=[]
@@ -182,7 +182,7 @@ def verify_files_chunks(path, chunks, excluded=None):
         fname="%s/%s"%(path, entry["n"])
         handled_files+=[entry["n"]]
         if entry["n"] in excluded:
-            print("Ignore Exclude '%s'"%entry["n"])
+            # print("Ignore Exclude '%s'"%entry["n"])
             continue
         if os.path.islink(fname):
             # symlink
