@@ -637,11 +637,12 @@ def get_device_of_partition(partfile):
 def wait_for_partition(partfile, timeout=10):
     """Wait for the specified partition to be present, and raise an exception if not after @timeout seconds"""
     counter=0
-    while counter<timeout:
+    while counter<timeout*2:
         if os.path.exists(partfile):
+            time.sleep(0.5) # wait a bit more for things to be ready
             return
         counter+=1
-        time.sleep(1)
+        time.sleep(0.5)
     raise Exception("No device file for partition '%s'"%partfile)
 
 def print_event(event, log=True):

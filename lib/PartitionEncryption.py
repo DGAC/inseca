@@ -28,7 +28,7 @@ class Enc():
         NB: this object will create the appropriate LUKS or VeraCrypt encryption objects in self._obj
         """
         count=0
-        while(count<10):
+        while(count<20):
             if os.path.exists(part_name):
                 break
             else:

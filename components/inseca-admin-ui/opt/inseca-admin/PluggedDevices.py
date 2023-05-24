@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -309,7 +309,6 @@ class DevInfo:
         except Exception as e:
             return # FIXME: log the error somewhere
         self._valid=True
-        #print('ident_result: %s'%json.dumps(ident_result, indent=4))
 
         try:
             gconf=Configurations.get_gconf()

@@ -380,7 +380,7 @@ class Component:
         try:
             sid=None # safe init value
             params_file=util.Temp(data=json.dumps(self._final_params))
-            if True:
+            if False:
                 # debug, to be removed
                 self._final_params["password-user"]="ChocolatChoco12"
                 open("/tmp/DEBUG-install.json", "w").write(json.dumps(self._final_params))
@@ -404,7 +404,7 @@ class Component:
         finally:
             self._back_button.set_sensitive(True)
             self._cancel_button.hide()
-            if sid:
+            if sid is not None:
                 self._cancel_button.disconnect(sid)
             self._ui.show_page("install")
             self._internal_page_change=False
