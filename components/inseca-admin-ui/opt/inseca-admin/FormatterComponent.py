@@ -66,7 +66,7 @@ class Params(GObject.Object):
 
         self._core_params=core_params
         self._fconf_params.update(self._fconf.parameters_config)
-        print("FCONF params ==> %s"%json.dumps(self._fconf_params, indent=4))
+        #print("FCONF params ==> %s"%json.dumps(self._fconf_params, indent=4))
 
     def _generate_core_parameters(self):
         """Generate all the CORE parameters, from random values or fixed/contextual information"""
@@ -94,7 +94,7 @@ class Params(GObject.Object):
             return "userdata|%s|%s"%(component, pname)
 
     def _get_widget_for_param(self, pname):
-        lname=self._compute_link_name(self._iconf_params, None, pname)
+        lname=self._compute_link_name(self._fconf_params, None, pname)
         if lname in self._links:
             return self._links[lname]
         return None
@@ -106,7 +106,7 @@ class Params(GObject.Object):
 
         # config params
         for pname in self._fconf_params:
-            if pname not in self._iconf.overrides:
+            if pname not in self._fconf.overrides:
                 pspec=self._fconf_params[pname]
                 label=mui.create_label_widget(pspec)
                 grid.attach(label, 0, top, 1, 1)
@@ -133,7 +133,7 @@ class Params(GObject.Object):
                 res[pname]=value
 
         # overrides
-        overrides=self._iconf.overrides
+        overrides=self._fconf.overrides
         for pname in overrides:
             if pname in res:
                 res[pname]=overrides[pname]
@@ -266,9 +266,7 @@ class Component:
             return
         try:
             pvalues=self._params.get_format_valued_params()
-            dev=self._combo_device.get_active_text()
-            if dev:
-                self._devfile=self._combo_device.devices_data[dev]["devfile"]
+            self._devfile=self._combo_device.get_selected_devfile()
             if self._devfile is None:
                 raise Exception("No device selected")
 
@@ -276,20 +274,26 @@ class Component:
             self._error_message.hide()
             self._format_button.set_sensitive(True)
         except Exception as e:
-            print("ERROR: %s"%str(e))
             self._error_message.set_text(str(e))
             self._error_message.show()
             self._format_button.set_sensitive(False)
 
     def _format_device(self, dummy):
         """Actually format a device"""
-        print("FORMAT CONF: %s"%json.dumps(self._final_params, indent=4))
-        print("on: %s"%self._devfile)
+        #print("FORMAT CONF: %s"%json.dumps(self._final_params, indent=4))
+        #print("on: %s"%self._devfile)
 
         self._internal_page_change=True
         self._ui.show_page("message")
         try:
-            job=jobs.DeviceFormatJob(self._fconf, self._final_params, self._devfile, self._ui.feedback_component)
+            sid=None # safe init value
+            params_file=util.Temp(data=json.dumps(self._final_params))
+            if False:
+                # debug, to be removed
+                self._final_params["password-user"]="ChocolatChoco12"
+                open("/tmp/DEBUG-format.json", "w").write(json.dumps(self._final_params))
+            args=["--verbose", "dev-format", self._fconf.id, params_file.name, self._devfile]
+            job=jobs.InsecaRunJob(args, "Formatting device", feedback_component=self._ui.feedback_component)
             job.start()
 
             self._cancel_button.show()
@@ -307,7 +311,8 @@ class Component:
         finally:
             self._back_button.set_sensitive(True)
             self._cancel_button.hide()
-            self._cancel_button.disconnect(sid)
+            if sid is not None:
+                self._cancel_button.disconnect(sid)
             self._ui.show_page("format")
             self._internal_page_change=False
             self._update_form()

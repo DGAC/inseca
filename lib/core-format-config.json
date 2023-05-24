@@ -12,7 +12,7 @@
             "default": "luks",
             "attest": false
         },
-        "password-data": {
+        "password-user": {
             "descr": "Data partition password",
             "type": "password",
             "attest": false
@@ -54,7 +54,7 @@
                 "encryption": "{enctype-data}",
                 "immutable": false,
                 "filesystem": "{fs-data}",
-                "password": "{password-data}",
+                "password": "{password-user}",
                 "size-mb": null
             }
         ],

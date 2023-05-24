@@ -698,6 +698,10 @@ class FormatConfig:
                     if entry in dev_fmt[section]:
                         raise Exception(_(f"Invalid configuration entry '{entry}' in section '{section}': already part of core configuration"))
                     dev_fmt[section][entry]=conf_dev_format[section][entry]
+
+        # add any partition specified in the format configuration to the already existing one in the core-format-config.json file
+        if "partitions" in data["dev-format"]:
+            dev_fmt["partitions"]=data["dev-format"]["partitions"]+dev_fmt["partitions"]
         self._dev_format=dev_fmt
 
         # compute overrides
@@ -713,7 +717,6 @@ class FormatConfig:
         exp=self._data.copy()
         exp["parameters"]=self._params_combined
         exp["dev-format"]=self._dev_format
-        #print("export_complete_configuration: %s"%json.dumps(exp, indent=4))
         return exp
 
 #

@@ -306,13 +306,6 @@ class InsecaRunJob(Job.Job):
         except Exception as e:
             self.exception=e
 
-
-class DeviceFormatJob(InsecaRunJob):
-    def __init__(self, fconf, params, target, feedback_component):
-        params_file=util.Temp(data=json.dumps(params))
-        args=["--verbose", "dev-format", fconf.id, params_file.name, target]
-        InsecaRunJob.__init__(self, args, "Creating INSECA device", feedback_component=feedback_component)
-
 class DeviceIdentifyJob(InsecaRunJob):
     def __init__(self, target):
         args=["--verbose", "dev-ident", target]

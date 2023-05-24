@@ -181,6 +181,7 @@ class Installer:
         - @params: the parameter's values (for all the required parameters)
         - @targetfile: where the installation will occur
         - @live_iso_file and @user_data_file: ISO image file and associated params file
+        - @user_data_file
         - @build_infos: build infos (version, build type, etc)
 
         NB: if @conf is an InstallConfig object, then the build configuration which generated the live Linux
@@ -188,12 +189,13 @@ class Installer:
         """
         assert isinstance(conf, confs.InstallConfig) or isinstance(conf, confs.FormatConfig)
 
-        live_iso_file=os.path.realpath(live_iso_file)
-        user_data_file=os.path.realpath(user_data_file)
-        for fname in (live_iso_file, user_data_file):
-            if fname:
-                if not os.path.exists(fname):
-                    raise Exception("Missing file '%s'"%fname)
+        if live_iso_file is not None:
+            live_iso_file=os.path.realpath(live_iso_file)
+            user_data_file=os.path.realpath(user_data_file)
+            for fname in (live_iso_file, user_data_file):
+                if fname:
+                    if not os.path.exists(fname):
+                        raise Exception("Missing file '%s'"%fname)
 
         self._target=targetfile
         self._conf=conf
@@ -627,7 +629,7 @@ class DeviceFormatter(Installer):
     def __init__(self, fconf, params, devfile):
         if not devfile.startswith("/dev/"):
             raise Exception("Invalid disk file name '%s'"%devfile)
-        Installer.__init__(self, fconf, params, devfile)
+        Installer.__init__(self, fconf, params, devfile, None, None)
 
 class Updater:
     def __init__(self, blob0, signing_pubkey, mp_dummy, mp_live, mp_internal, 
