@@ -225,22 +225,6 @@ class Builder():
             print("** Unknown parameter '%s'"%name)
             #raise Exception("Unknown parameter '%s'"%name)
 
-    @property
-    def live_partition_size(self):
-        for partdata in self._specifications["partitions"]:
-            if partdata["id"]=="live":
-                return partdata["size-mb"]
-        raise Exception("Could not identify information for partition 'internal'")
-
-    @live_partition_size.setter
-    def live_partition_size(self, size_mb):
-        for partdata in self._specifications["partitions"]:
-            if partdata["id"]=="live":
-                partdata["size-mb"]=size_mb
-                return
-        raise Exception("Could not identify information for partition 'internal'")
-
-
     def get_specifications(self):
         """Get the actual specifications"""
         for avar in auto_variables:
