@@ -71,7 +71,7 @@ def _get_single_useable_device():
 parser=argparse.ArgumentParser()
 parser.add_argument("--root", help=_("Specify the equivalent of INSECA_ROOT"))
 parser.add_argument("--components-dir", help=_("Specify the equivalent of INSECA_EXTRA_COMPONENTS"))
-parser.add_argument("--http-proxy", help=_("Force usage of a specific HTTP/HTTPS proxy, for example http://my.proxy.local:8080"))
+parser.add_argument("--http-proxy", help=_("Force usage of a specific HTTP/HTTPS proxy (e.g. 'http://my.proxy.local:8080'), use 'none' for direct connections"))
 parser.add_argument("--repos-dir", help=_("Specify the equivalent of INSECA_DEFAULT_REPOS_DIR"))
 parser.add_argument("--cache-dir", help=_("Specify the equivalent of INSECA_CACHE_DIR"))
 parser.add_argument("-v", "--verbose", help=_("Display more information"), action="store_true")
@@ -2335,8 +2335,11 @@ if args.repos_dir is not None:
 if args.components_dir is not None:
     os.environ["INSECA_EXTRA_COMPONENTS"]=args.components_dir
 if args.http_proxy is not None:
-    os.environ["http_proxy"]=args.http_proxy
-    os.environ["https_proxy"]=args.http_proxy
+    if args.http_proxy=="none":
+        os.environ["INSECA_NO_HTTP_PROXY"]="1"
+    else:
+        os.environ["http_proxy"]=args.http_proxy
+        os.environ["https_proxy"]=args.http_proxy
 if args.cache_dir is not None:
     os.environ["INSECA_CACHE_DIR"]=args.cache_dir
 

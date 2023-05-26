@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -41,6 +41,7 @@ import ResourcesComponent
 import InitComponent
 import AuthnComponent
 import PasswordChangeComponent
+import ProxySettingsComponent
 import Configurations
 import PluggedDevices as pdev
 
@@ -96,15 +97,17 @@ class MainUI:
         self._installer_component=InstallerComponent.Component(self, self._builder)
         self._formatter_component=FormatterComponent.Component(self, self._builder)
         self._support_component=SupportComponent.Component(self, self._builder)
-        self._resources_component=ResourcesComponent.Component(self, self._builder)
+        self._resources_component=ResourcesComponent.Component(self, self._builder, self._bootable_device_context)
         self._init_component=InitComponent.Component(self, self._builder, self._bootable_device_context)
         self._authn_component=AuthnComponent.Component(self, self._builder, self._bootable_device_context)
         self._pass_change_component=PasswordChangeComponent.Component(self, self._builder, self._bootable_device_context)
         self._wipe_component=WipeComponent.Component(self, self._builder)
+        self._proxy_component=ProxySettingsComponent.Component(self, self._builder, self._bootable_device_context)
         self._components=[self._menu_component, self._feedback_component,
                           self._installer_component, self._formatter_component,
                           self._support_component, self._wipe_component, self._resources_component,
-                          self._init_component, self._authn_component, self._pass_change_component]
+                          self._init_component, self._authn_component, self._pass_change_component,
+                          self._proxy_component]
         handlers = {
             "entry_icon_pressed": entry_icon_pressed,
             "entry_icon_released": entry_icon_released
@@ -145,7 +148,7 @@ class MainUI:
                 self.show_fatal_error(str(e))
         else:
             self.show_page("menu")
-            self._builder.get_object("button-password-change").hide()
+            self._builder.get_object("button-settings").hide()
             self._builder.get_object("button-logout").hide()
 
     def _initial_plugged_devices_update(self):
@@ -195,6 +198,12 @@ class MainUI:
 
     def password_change_cb(self, widget):
         self.show_page("pass-change-form")
+
+    def settings_cb(self, widget):
+        self.show_page("settings-menu")
+
+    def proxy_settings_cb(self, widget):
+        self.show_page("proxy-settings")
 
     def handle_device_cb(self, widget):
         self.show_page("infos")
@@ -272,7 +281,9 @@ class MainUI:
             "authn": 7,
             "init": 8,
             "pass-change-form": 9,
-            "fatal-error": 10
+            "fatal-error": 10,
+            "settings-menu": 11,
+            "proxy-settings": 12
         }
         self._main_nb.set_current_page(indexes[page])
         self.main_window.show()

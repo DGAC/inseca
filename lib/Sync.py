@@ -493,6 +493,8 @@ def get_ip():
         s.close()
 
 def find_suitable_proxy(url="http://www.debian.fr"):
+    if os.environ.get("INSECA_NO_HTTP_PROXY")=="1":
+        return None
     if proxy_pac_file is None:
         syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => None: no PAC file")
         return None
@@ -526,8 +528,7 @@ def find_suitable_proxy(url="http://www.debian.fr"):
             res={}
             if "http_proxy" in os.environ:
                 res["http"]=os.environ["http_proxy"]
-            if "https_proxy" in os.environ:
-                res["https"]=os.environ["https_proxy"]
+                res["https"]=os.environ["http_proxy"]
             if len(res)>0:
                 syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => %s from httpX_proxy env. variable"%res)
                 return res
@@ -542,7 +543,7 @@ def internet_accessible(exception_if_false=False):
         import requests
         url=internet_ref_site
         proxies=find_suitable_proxy(url)
-        if proxies is None: # force  no proxy (make sure any http_proxy env. variable is ignored)
+        if proxies is None: # force no proxy (make sure any http_proxy env. variable is ignored)
             proxies = {
                 "http": None,
                 "https": None,

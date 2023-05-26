@@ -39,6 +39,11 @@ import signal
 debug=False
 print_events=False
 
+class ProxyMode(str, enum.Enum):
+    AUTO = "automatic"
+    MANUAL = "manual"
+    NONE = "none"
+
 def create_exec_env_C():
     env=os.environ.copy()
     env["LANG"]="C"

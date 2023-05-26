@@ -32,7 +32,7 @@ util.print_events=True
 #
 class Component:
     """Update (download) resources from the cloud or a local directory or mass storage device"""
-    def __init__(self, ui, builder):
+    def __init__(self, ui, builder, live_context):
         self._ui=ui
         self._builder=builder
         self._page_widget=self._builder.get_object("resources")
@@ -44,6 +44,7 @@ class Component:
         GLib.timeout_add(1000, self._monitor_network_changes)
         self._ui.plugged_devices_obj.connect("changed", self._device_changed_cb)
         self._page_widget.connect("destroy", self._destroy_cb)
+        self._context=live_context
 
     def _destroy_cb(self, dummy):
         self._nm.stop()
@@ -101,7 +102,10 @@ class Component:
         local_button.set_sensitive(False)
 
         gconf=self._get_gconf()
-        self._sync_objects=gconf.get_all_sync_objects(way_out=False)
+        if gconf:
+            self._sync_objects=gconf.get_all_sync_objects(way_out=False)
+        else:
+            self._sync_objects=[]
 
         if gconf.is_master:
             # for master configuration, no download possible at all
@@ -137,7 +141,8 @@ class Component:
             self._ui.show_message("Downloading and extracting resources")
             self._back_button.set_sensitive(False)
 
-            job=jobs.InsecaRunJob(["--verbose", "sync-pull", sync_obj.name], "Mise à jour de la configuration", feedback_component=self._ui.feedback_component)
+            job=jobs.InsecaRunJob(["--verbose", "sync-pull", sync_obj.name], "Mise à jour de la configuration",
+                                  feedback_component=self._ui.feedback_component, live_context=self._context)
             job.start()
             job.wait_with_ui()
             if job.exception is not None:

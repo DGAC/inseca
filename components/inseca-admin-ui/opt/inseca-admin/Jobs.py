@@ -198,12 +198,13 @@ class ComputeInstallElementsJob(Job.Job):
             self.exception=e
 
 class InsecaRunJob(Job.Job):
-    def __init__(self, args, message, out_as_result=False, feedback_component=None):
+    def __init__(self, args, message, out_as_result=False, feedback_component=None, live_context=None):
         Job.Job.__init__(self)
         self._args=args
         self._message=message
         self._add_event_func=None
         self._out_as_result=out_as_result
+        self._context=live_context
         if feedback_component:
             self._add_event_func=feedback_component.add_event    
 
@@ -223,6 +224,13 @@ class InsecaRunJob(Job.Job):
                 args+=["--repos-dir", os.environ["INSECA_DEFAULT_REPOS_DIR"]]
             if "INSECA_CACHE_DIR" in os.environ:
                 args+=["--cache-dir", os.environ["INSECA_CACHE_DIR"]]
+            if self._context:
+                if self._context.http_proxy_mode==util.ProxyMode.AUTO:
+                    pass
+                elif self._context.http_proxy_mode==util.ProxyMode.MANUAL:
+                    args+=["--http-proxy", self._context.http_proxy_mode.value]
+                else:
+                    args+=["--http-proxy", "none"]
             args+=self._args
 
             syslog.syslog(syslog.LOG_INFO, "InsecaRunJob: %s"%" ".join(args))

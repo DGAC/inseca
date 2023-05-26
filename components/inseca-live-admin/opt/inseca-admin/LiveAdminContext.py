@@ -67,6 +67,10 @@ class Context:
         else:
             syslog.syslog(syslog.LOG_WARNING, "No DConf settings defined")
 
+        # HTTP proxy settings
+        self._http_proxy_mode=util.ProxyMode.AUTO
+        self._http_proxy_value=None
+
     @property
     def is_initialized(self):
         """Tells if the device has already been initialized"""
@@ -90,6 +94,23 @@ class Context:
     def is_unlocked(self):
         """Tells if the device is unlocked"""
         return self._live_env.unlocked
+
+    @property
+    def http_proxy_mode(self):
+        return self._http_proxy_mode
+
+    @property
+    def http_proxy_value(self):
+        return self._http_proxy_value
+
+    def set_http_proxy(self, mode, value):
+        self._http_proxy_mode=mode
+        if mode==util.ProxyMode.AUTO:
+            self._http_proxy_value=None
+        elif mode==util.ProxyMode.MANUAL:
+            self._http_proxy_value=value
+        else:
+            self._http_proxy_value=None
 
     def _compute_extra_partitions(self):
         """Analyse the device and determine if the "dummy" and "internal" partitions exist.
