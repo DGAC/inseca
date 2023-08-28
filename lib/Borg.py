@@ -243,6 +243,10 @@ class Repo:
         """Delete the specified archive from the reposiroty"""
         self._borg_run(["delete", "::%s"%arname], _("Could not delete archive"), stdin_data="Y")
 
+    def vacuum(self):
+        """Remove unused data from the repository"""
+        self._borg_run(["compact"], _("Could not compact archive"))
+
     def mount(self, archive_name):
         """Mounts the specified archive somewhere and returns the mount point"""
         if not isinstance(archive_name, str):

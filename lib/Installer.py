@@ -287,13 +287,14 @@ class Installer:
 
         # install GRUB install specific files
         grubresdir=self._get_actual_path(self._config_data["install"]["grub"])
-        for fname in ("splash.png", "term-background.png"):
-            srcpath="%s/%s"%(grubresdir, fname)
-            if not os.path.isfile(srcpath):
-                raise Exception("No '%s' file in installation config"%fname)
-            for dir in grub_install_dirs:
-                destpath="%s/%s"%(dir, fname)
-                shutil.copyfile(srcpath, destpath)
+        for fname in os.listdir(grubresdir):
+            if fname.endswith(".png"):
+                srcpath="%s/%s"%(grubresdir, fname)
+                if not os.path.isfile(srcpath):
+                    raise Exception("No '%s' file in installation config"%fname)
+                for dir in grub_install_dirs:
+                    destpath="%s/%s"%(dir, fname)
+                    shutil.copyfile(srcpath, destpath)
         util.print_event("Sealing device's metadata")
         self._dev.seal_metadata(specs)
         util.print_event("Low level done")

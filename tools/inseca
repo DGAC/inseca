@@ -1133,7 +1133,7 @@ def sync_pull(args):
             rconf.cache_last_archive()
 
 def repo_prune(args):
-    """Remove all obsolete archives in all the repositories"""
+    """Remove obsolete archives in repositories"""
     gconf=confs.GlobalConfiguration()
 
     if not gconf.is_master:
@@ -1144,7 +1144,7 @@ def repo_prune(args):
     else:
         repos=args.repos
 
-    if args.empty:
+    if args.empty: # remove all contents in the repo
         if not args.confirm:
             c=input("Confirm removing all archives in repo (enter YES):")
             if c!="YES":
@@ -1174,6 +1174,9 @@ def repo_prune(args):
                     arname=arlist[ts]
                     print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
                     rconf.borg_repo.delete_archive(arname)
+            print("Repository %s (%s): cleanups"%(ruid, rconf.descr))
+            rconf.borg_repo.vacuum()
+
 
 def _publish_build(bconf):
     files=(bconf.image_iso_file, bconf.image_userdata_specs_file)
@@ -2409,9 +2412,13 @@ try:
                     if toadd:
                         args=[option, options[option]]+args
                 args=["sudo", sys.argv[0]]+args
-                p=util.exec_async(args)
-                p.wait()
-                sys.exit(p.returncode)
+                try:
+                    p=util.exec_async(args)
+                    p.wait()
+                    sys.exit(p.returncode)
+                except KeyboardInterrupt:
+                    print("Cancelled")
+                    sys.exit(0)
             map[args.cmde](args)
         else:
             print("%s"%parser.format_help())

@@ -1,4 +1,4 @@
-Install the flatpak package.
+Install the flatpak package and allows to specify which Flatpak packages to install.
 
 # Build configuration attributes
 
