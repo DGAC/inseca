@@ -1,6 +1,6 @@
 [Plymouth Theme]
 Name=inseca
-Description=INSECA theme
+Description=Port of the original macOS Mojave boot screen for Plymouth, adapted to INSECA
 ModuleName=script
 
 [script]
