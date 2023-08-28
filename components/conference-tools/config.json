@@ -1,9 +1,0 @@
-{
-    "descr": "Conference tools like Teams and Zoom",
-    "provides": [],
-    "requires": [
-        "desktop"
-    ],
-    "builddata": {},
-    "userdata": {}
-}
