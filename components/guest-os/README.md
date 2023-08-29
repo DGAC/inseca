@@ -1,5 +1,7 @@
 Guest OS in a "short lived" virtual machine.
 
+Required package: fairshell-virt-system from https://github.com/VivienMla/fairshell-virt-system
+
 # Build configuration attributes
 
 - **config**: 

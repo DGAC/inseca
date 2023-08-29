@@ -8,7 +8,10 @@ Each component's files are:
 
 - **README.md**: description of the component
 - **prepare.sh** or **prepare.py**: script executed before building the live Linux, with the following environment variables defined:
-  - `COMPONENT_DIR`: directory where all the component's files are
+  - `COMPONENT_DIR`: directory where all the component's source files are
+  - `COMPONENT_BLOBS_DIR`: list of directories (separated by the `|` character) where binary files (.deb packages for example) required or otherwise
+    by the component can be stored. If binary files are associated to a version of the base OS component, they can be stored in the directory associated
+    to that base OS component (e.g. "base-debian-bullseye), or, if the binary is independant of the base OS version, in the "generic" directory
   - `CONF_DIR`: directory containing the configuration file
   - `BUILD_DIR`: build directory (where all the Debian live build files are)
   - `BUILD_DATA_FILE`: file to append build data (if any, like for example the admin password) to

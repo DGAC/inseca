@@ -249,7 +249,7 @@ def _conf_needs_action(gconf, conf):
 
         files_ts=confs.get_last_file_modification_ts(conf.config_dir, conf.build_dir)
         for component in conf.components:
-            component_dir=conf.get_component_src_path(component)
+            component_dir=conf.get_component_src_dir(component)
             component_ts=confs.get_last_file_modification_ts(component_dir)
             if component_ts>files_ts:
                 files_ts=component_ts
@@ -368,7 +368,7 @@ def show_status(args):
 
 def init(args):
     # initialize a new INSECA installation
-    confs.GlobalConfiguration.init_root_config()
+    confs.init_root_config()
 
     # initialize the Git files
     gconf=confs.get_gconf()

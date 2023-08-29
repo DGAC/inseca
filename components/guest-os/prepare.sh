@@ -27,7 +27,7 @@ do
 done
 
 >&2 echo ""
->&2 echo "VeraCrypt needs to be downloaded from https://www.veracrypt.fr/en/Downloads.html or https://github.com/veracrypt/VeraCrypt"
+>&2 echo "fairshell-virt-system needs to be downloaded from https://github.com/VivienMla/fairshell-virt-system"
 >&2 echo "into one of the following directorie:"
 for dir in "${dirs[@]}"
 do

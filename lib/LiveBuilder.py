@@ -106,7 +106,7 @@ class Builder:
         """
         all_params={}
         for component in self._components:
-            cpath=self._bconf.get_component_src_path(component)
+            cpath=self._bconf.get_component_src_dir(component)
             cconf_file="%s/config.json"%cpath
             if os.path.exists(cconf_file):
                 data=json.load(open(cconf_file, "r"))
@@ -182,7 +182,7 @@ Name: %s
         # copy each component
         for component in self._components:
             print("Preparing component '%s'"%component)
-            cpath=self._bconf.get_component_src_path(component)
+            cpath=self._bconf.get_component_src_dir(component)
             component_files=os.listdir(cpath)
             if not os.path.isdir(cpath):
                 raise Exception("Component '%s' is not a directory"%component)
@@ -200,6 +200,14 @@ Name: %s
                     elif fname.endswith(".tar"):
                         shutil.unpack_archive(path, self._livedir, "tar")
 
+            # copy any .deb file associated to that component
+            for path in self._bconf.get_component_blobs_dirs(component):
+                for dfile in os.listdir(path):
+                    if dfile.endswith(".deb"):
+                        # make sur file names end in "_amd64.deb" as this is a requirement of livebuild
+                        target=f"{self._packages_extra_dir}/{dfile[:-4]}_amd64.deb"
+                        shutil.copyfile(f"{path}/{dfile}", target)
+
             # copy all other elements
             for fname in component_files:
                 path="%s/%s"%(cpath, fname)
@@ -209,8 +217,7 @@ Name: %s
                 elif fname=="packages.deb":
                     for dfile in os.listdir(path):
                         if dfile.endswith(".deb"):
-                            # make sur file names end in "_amd64.deb" as this is a requirement
-                            # for livebuild
+                            # make sur file names end in "_amd64.deb" as this is a requirement of livebuild
                             target="%s/%s_amd64.deb"%(self._packages_extra_dir, dfile[:-4])
                             shutil.copyfile("%s/%s"%(path, dfile), target)
 
@@ -246,6 +253,7 @@ Name: %s
             exec_env["BUILD_DIR"]=self._livedir
             exec_env["BUILD_DATA_FILE"]=self._build_data_file
             exec_env["COMPONENT_DIR"]=os.path.realpath(cpath)
+            exec_env["COMPONENT_BLOBS_DIR"]="|".join(self._bconf.get_component_blobs_dirs(component, ignore_missing=True))
             exec_env["CONF_DIR"]=self._confdir
             exec_env["LIVE_DIR"]=self._fs_dir
             exec_env["LIBS_DIR"]=os.path.realpath(self._scriptdir+"/../lib")

@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -141,7 +141,6 @@ class BuildConfig:
         except Exception as e:
             err=str(e)
             raise Exception(_(f"Invalid file '{configfile}' format: {err}"))
-        self._scriptdir=os.path.realpath(os.path.dirname(sys.argv[0]))
 
     @property
     def id(self):
@@ -160,6 +159,10 @@ class BuildConfig:
     @property
     def descr(self):
         return self._descr
+
+    @property
+    def global_conf(self):
+        return self._gconf
 
     @property
     def config_file(self):
@@ -229,6 +232,30 @@ class BuildConfig:
         return self._components
 
     @property
+    def components_builtin_dir(self):
+        return f"{self._gconf.script_dir}/components"
+
+    @property
+    def components_extra_dir(self):
+        components_path_extra=None
+        if "INSECA_EXTRA_COMPONENTS" in os.environ:
+            components_path_extra=os.environ["INSECA_EXTRA_COMPONENTS"]
+            if not os.path.isdir(components_path_extra):
+                components_path_extra=None # ignore thah buggy setting
+        return components_path_extra
+
+    @property
+    def base_os_component(self):
+        components_path_builtin=self.components_builtin_dir
+        for component in self._components:
+            comp_conf=f"{components_path_builtin}/{component}/config.json"
+            if os.path.exists(comp_conf):
+                cdata=json.load(open(comp_conf, "r"))
+                if "base-os" in cdata["provides"]:
+                    return component
+        raise Exception("Missing a 'base-os' component")
+
+    @property
     def image_iso_file(self):
         return "%s/%s/%s"%(self._build_dir, self._id, file_iso)
 
@@ -259,10 +286,8 @@ class BuildConfig:
             }
         }
         """
-        components_path_builtin="%s/../components"%os.path.dirname(os.path.realpath(__file__))
-        components_path_extra=None
-        if "INSECA_EXTRA_COMPONENTS" in os.environ:
-            components_path_extra=os.environ["INSECA_EXTRA_COMPONENTS"]
+        components_path_builtin=self.components_builtin_dir
+        components_path_extra=self.components_extra_dir
         userdata_specs={}
         for component in self.components:
             comp_conf=None
@@ -318,7 +343,7 @@ class BuildConfig:
         # global check
         cdefs={} # key=component ID, value=component's configuration
         for cid in self._components:
-            cfile=self.get_component_src_path(cid)+"/config.json"
+            cfile=self.get_component_src_dir(cid)+"/config.json"
             if not os.path.exists(cfile):
                 raise Exception("Component '%s' does not have any config.json configuration file"%cid)
             try:
@@ -355,15 +380,25 @@ class BuildConfig:
                 if len (cdata["userdata"])>0:
                     raise Exception(_("Build configuration is not 'workstation' but included component '%s' requires some USERDATA")%cid)
 
-    def get_component_src_path(self, component):
-        path="%s/../components/%s"%(self._scriptdir, component)
-        if os.path.exists(path):
-            return path
-        if "INSECA_EXTRA_COMPONENTS" in os.environ:
-            path="%s/%s"%(os.environ["INSECA_EXTRA_COMPONENTS"], component)
-            if os.path.exists(path):
-                return path
+    def get_component_src_dir(self, component):
+        components_path_builtin=self.components_builtin_dir
+        components_path_extra=self.components_extra_dir
+        if components_path_extra is not None and os.path.exists(f"{components_path_extra}/{component}"):
+            return f"{components_path_extra}/{component}"
+        if os.path.exists(f"{components_path_builtin}/{component}"):
+            return f"{components_path_builtin}/{component}"
         raise Exception("Component '%s' not found"%component)
+
+    def get_component_blobs_dirs(self, component, ignore_missing=False):
+        base_os_component=self.base_os_component
+        paths=[]
+        path=f"{self.global_conf.path}/blobs/{base_os_component}/{component}"
+        if ignore_missing or os.path.exists(path):
+            paths.append(path)
+        path=f"{self.global_conf.path}/blobs/generic/{component}"
+        if ignore_missing or os.path.exists(path):
+            paths.append(path)
+        return paths
 
 #
 # Install configurations
@@ -1008,10 +1043,7 @@ class RepoConfig:
 #
 # Global configuration
 #
-class GlobalConfiguration:
-    """Represents a global INSECA configuration.
-    Creating a new object allows one to take into account an updated configuration"""
-    def init_root_config():
+def init_root_config():
         """Creates the initial structure of an INSECA global configuration"""
         if "INSECA_ROOT" not in os.environ:
             raise Exception("No root directory specified (to contain all the INSECA configuration)")
@@ -1021,12 +1053,21 @@ class GlobalConfiguration:
         else:
             os.makedirs(root, exist_ok=True)
 
-        # directories
+        # top directories
         for dir in ("build-configurations", "install-configurations",
                     "format-configurations", "repos", "repo-configurations",
-                    "domain-configurations", "storage-credentials"):
+                    "domain-configurations", "storage-credentials", "blobs", "blobs/generic"):
             path="%s/%s"%(root, dir)
             os.makedirs(path)
+
+        # directories to store blobs per component providing the "base-os" feature
+        script_dir=os.path.dirname(os.path.realpath(os.path.dirname(sys.argv[0])))
+        for component in os.listdir(f"{script_dir}/components"):
+            comp_conf=f"{script_dir}/components/{component}/config.json"
+            if os.path.exists(comp_conf):
+                cdata=json.load(open(comp_conf, "r"))
+                if "base-os" in cdata["provides"]:
+                    os.makedirs(f"{root}/blobs/{component}")
 
         # conf
         conf={"deploy": {
@@ -1035,6 +1076,9 @@ class GlobalConfiguration:
         }}
         util.write_data_to_file(json.dumps(conf, indent=4), "%s/inseca.json"%root)
 
+class GlobalConfiguration:
+    """Represents a global INSECA configuration.
+    Creating a new object allows one to take into account an updated configuration"""
     def __init__(self, path=None):
         if path is None:
             if not "INSECA_ROOT" in os.environ:
@@ -1043,6 +1087,7 @@ class GlobalConfiguration:
             if not os.path.isdir(path):
                 raise Exception(_("Directory '%s' pointed by INSECA_ROOT environment variable does not exist")%path)
         self._path=os.path.realpath(path)
+        self._script_dir=os.path.dirname(os.path.realpath(os.path.dirname(sys.argv[0])))
 
         # Check that the top level directories are present
         for fname in ("install-configurations", "format-configurations", "repo-configurations", "domain-configurations"):
@@ -1079,11 +1124,18 @@ class GlobalConfiguration:
                 self.archives_cache_dir=os.environ["INSECA_CACHE_DIR"]
 
     @property
+    def script_dir(self):
+        return self._script_dir
+
+    @property
     def path(self):
         """Points to the path of the global configuration (i.e. $INSECA_ROOT)"""
         return self._path
 
     def get_relative_path(self, path):
+        """Get the part of @path relative to the directory holding the INSECA configuration,
+        Returns @path itself if it's not a subdir of that directory
+        """
         if path.startswith(self._path):
             return path[len(self._path)+1:]
         return path
