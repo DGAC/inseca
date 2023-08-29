@@ -1,8 +1,8 @@
-#!/bin/sh
+#!/usr/bin/python3
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2023 INSECA authors
+#    Copyright (C) 2022 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -17,12 +17,18 @@
 #    You should have received a copy of the GNU General Public License
 #    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
 
-#
-# Remove the productivity tools installed by default.
-# Un-remove them by removing that file in another component
-#
-for name in gnome-maps gnome-games gnome-weather gnome-contacts gnome-calendar gnome-clocks gnome-todo cheese gnome-music evolution-common simple-scan librhythmbox-core10 rhythmbox-data rhythmbox
-do
-    apt -y remove  --purge "$name"
-done
-apt -y auto-remove
+import os
+import json
+import Utils as util
+
+# create the /etc/docker/daemon.json file in PRIVDATA_DIR
+conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
+if conf:
+    key="docker-bip"
+    if key in conf:
+        data={
+            "bip": conf[key]
+        }
+        destdir="%s/etc/docker"%os.environ["PRIVDATA_DIR"]
+        os.makedirs(destdir, exist_ok=True)
+        util.write_data_to_file(json.dumps(data), "%s/daemon.json"%destdir, perms=0o600)

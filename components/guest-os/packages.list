@@ -1,2 +1,2 @@
-qemu qemu-kvm libvirt-clients libvirt-daemon-system virtinst 
+qemu-system-x86 qemu-system-gui qemu-utils ovmf libvirt-clients libvirt-daemon-system virtinst 
 docker.io

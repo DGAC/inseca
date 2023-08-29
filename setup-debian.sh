@@ -19,6 +19,8 @@
 
 set -e
 
+source /etc/os-release # defines VERSION_CODENAME
+
 echo -e "\n### Install INSECA ###"
 echo -e "\nThis script uses sudo to obtain root privileges when required"
 
@@ -49,7 +51,15 @@ echo -e "\n### Installation of Docker ###"
 sudo apt install -y docker.io
 
 echo -e "\n### Installation of misc. tools ###"
-sudo apt install -y hdparm dosfstools btrfs-progs exfat-utils
+sudo apt install -y hdparm dosfstools btrfs-progs
+
+# see https://sven.stormbind.net/blog/posts/deb_debian_and_exfat/
+if [ "$VERSION_CODENAME" == "bullseye" ]
+then
+    sudo apt install -y exfat-utils
+else
+    sudo apt install -y exfatprogs
+fi
 
 echo -e "\n### Installation of INSECA ###"
 sudo apt install -y wget curl

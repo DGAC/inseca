@@ -1,0 +1,15 @@
+sudo openssh-client net-tools procps htop man-db cryptsetup-bin vim less iw
+exfatprogs xfsprogs
+ntfs-3g dosfstools
+python3-psutil
+dnsutils
+borgbackup rclone
+python3-pacparser
+python3-requests python3-gi python3-dbus
+btrfs-progs
+live-task-non-free-firmware-pc
+sshfs
+opensc-pkcs11
+tpm2-tools
+pciutils
+plymouth

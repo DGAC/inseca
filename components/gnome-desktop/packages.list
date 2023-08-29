@@ -1,5 +1,4 @@
 sudo gnome openssh-client net-tools procps htop man-db cryptsetup-bin vim less iw
-exfat-utils xfsprogs
 ntfs-3g dosfstools
 python3-psutil
 dnsutils

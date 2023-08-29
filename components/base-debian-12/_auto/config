@@ -1,0 +1,28 @@
+#!/bin/sh
+
+set -e
+echo "CONFIG proxy: $http_proxy"
+apt_proxy=""
+[ "$http_proxy" != "" ] && {
+	apt_proxy="--apt-http-proxy $http_proxy"
+	export "http_proxy=$http_proxy"
+	export "https_proxy=$http_proxy"
+}
+
+lb config noauto \
+	--distribution bookworm \
+	--apt-options "--yes -oAPT::Immediate-Configure=0" \
+	--security true --updates true --backports false \
+	$apt_proxy \
+	--bootappend-live "boot=live components lang=fr_FR.UTF-8 locales=fr_FR.UTF-8 keyboard-layouts=fr keyboard-model=pc105 timezone=Europe/Paris username=insecauser hostname=inseca-system noprompt noeject net.ifnames=0 biosdevname=0 nottyautologin noroot loglevel=0 fsck.mode=skip vt.global_cursor_default=0 quiet splash" \
+	--bootloaders "syslinux,grub-efi" \
+	--archive-areas "main contrib non-free non-free-firmware" \
+	--iso-volume "INSECA" \
+	--iso-application "INSECA" \
+	--iso-preparer "INSECA admin" \
+	--iso-publisher "INSECA project" \
+	--debootstrap-options "--include=apt-transport-https,ca-certificates,openssl" \
+	--uefi-secure-boot enable \
+	--debug --verbose \
+	"${@}"
+

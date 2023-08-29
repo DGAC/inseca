@@ -679,3 +679,26 @@ def chown_r(filename, uid, gid):
     if os.path.isdir(filename):
         for fname in os.listdir(filename):
             chown_r(f"{filename}/{fname}", uid, gid)
+
+def get_debian_version():
+    """Get the major version number of the Debian system this script is running on, as a string like "11" or "12"
+    Raise an Exception for non Debian system
+    """
+    res=None
+    isDebian=False
+    for line in load_file_contents("/etc/os-release").splitlines():
+        (key, value)=line.split("=", maxsplit=1)
+        if key=="VERSION_ID":
+            if value[0]=='"':
+                value=value[1:]
+            if value[-1]=='"':
+                value=value[:-1]
+            res=value
+        elif key=="ID":
+            if "debian" in value.lower():
+                isDebian=True
+    if not isDebian:
+        raise Exception("Not a Debian Linux")
+    if res is None:
+        raise Exception("Could not identify Debian version from /etc/os-release") 
+    return res

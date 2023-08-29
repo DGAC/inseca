@@ -22,4 +22,4 @@ set -e
 cd /etc/ssh
 mv ssh_config-TMP ssh_config
 mv sshd_config-TMP sshd_config
-chown -R root.root /etc/ssh
+chown -R root:root /etc/ssh

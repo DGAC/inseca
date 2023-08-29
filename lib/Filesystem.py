@@ -74,7 +74,10 @@ def create_filesystem(partname, fstype, label):
     if fstype==FSType.fat:
         args=["/sbin/mkfs.vfat", "-n", label]
     elif fstype==FSType.exfat:
-        args=["/sbin/mkfs.exfat", "-n", label]
+        if util.get_debian_version()=="11":
+            args=["/sbin/mkfs.exfat", "-n", label]
+        else:
+            args=["/sbin/mkfs.exfat", "-L", label]
     elif fstype==FSType.ntfs:
         args=["/sbin/mkfs.ntfs", "-f", "-L", label]
     elif fstype==FSType.ext4:
