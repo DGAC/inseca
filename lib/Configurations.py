@@ -216,10 +216,12 @@ class BuildConfig:
         (this public key is included in the live build itself).
         Relies on the 'signature' component being included in the live Linux, so this function may return None"""
         if "signature" in self._components:
-            fname="%s/%s"%(self.config_dir, self._components["signature"]["build-skey-pub-file"])
-            if not os.path.exists(fname):
-                raise Exception(_("Missing live Linux signing public key file '%s'")%fname)
-            return fname
+            file=self._components["signature"]["build-skey-pub-file"]
+            if file is not None:
+                fname=f"{self.config_dir}/{file}"
+                if not os.path.exists(fname):
+                    raise Exception(_("Missing live Linux signing public key file '%s'")%fname)
+                return fname
         return None
 
     @property

@@ -623,8 +623,15 @@ def config_create(args):
 
         conf=json.loads(data)
         conf["userdata"]=userdata
-        conf_file="%s/install-configuration.json"%path
         os.makedirs(path)
+
+        # associate the build signing key, if available
+        build_sign_key_pub_file=build_conf.signing_pubkey
+        if build_sign_key_pub_file:
+            shutil.copyfile(build_sign_key_pub_file, "%s/build-sign-key.pub"%path)
+            conf["build-skey-pub-file"]="build-sign-key.pub"
+
+        conf_file="%s/install-configuration.json"%path
         util.write_data_to_file(json.dumps(conf, indent=4, sort_keys=True), conf_file)
 
         device_metadata_sign_key_pub.copy_to("%s/device-metadata-sign-key.pub"%path)
@@ -633,12 +640,6 @@ def config_create(args):
         attestation_sign_key_priv.copy_to("%s/attestation-sign-key.priv"%path)
         if privdata_enc_privkey:
             shutil.copyfile(privdata_enc_privkey, "%s/privdata-encrypt-key.priv"%path)
-
-        # build signing key, if available
-        build_sign_key_pub_file=build_conf.signing_pubkey
-        if build_sign_key_pub_file:
-            shutil.copyfile(build_sign_key_pub_file, "%s/build-sign-key.pub"%path)
-            conf["build-skey-pub-file"]="build-sign-key.pub"
 
         # copy template data
         for fname in ("grub-config", "user-profile"):

@@ -76,21 +76,23 @@ def get_userdata_file_real_path(iconf, component, name, value):
         raise Exception("Missing userdata file '%s'"%value)
     return value
 
-def _verify_live_linux_iso(live_iso_file, signing_pubkey):
-    """Locate a suitable signing public key and verify the signature of the live Linux's ISO file"""
+def _verify_live_file(filename, signing_pubkey):
+    """Verify the signature of a live Linux's ISO file's associated files"""
     if signing_pubkey is None:
+        util.print_event(f"NOT verifying signature of the '{os.path.basename(filename)}' file (not signed)")
+        return
+    if not os.path.exists(signing_pubkey):
+        util.print_event(f"NOT verifying signature of the '{os.path.basename(filename)}' file (no public signing key file)")
         return
 
-    # verify live Linux's ISO signature
-    if os.path.exists(signing_pubkey):
-        util.print_event("Verifying signature of live Linux ISO file")
-        sigfile="%s.sign"%live_iso_file
-        if not os.path.exists(sigfile):
-            raise Exception("Missing expected signature file '%s'"%sigfile)
-        sobj=x509.CryptoKey(None, util.load_file_contents(signing_pubkey))
-        hash=cgen.compute_hash_file(live_iso_file)
-        sig=util.load_file_contents(sigfile)
-        sobj.verify(hash, sig)
+    util.print_event(f"Verifying signature of the '{os.path.basename(filename)}' file")
+    sigfile="%s.sign"%filename
+    if not os.path.exists(sigfile):
+        raise Exception("Missing expected signature file '%s'"%sigfile)
+    sobj=x509.CryptoKey(None, util.load_file_contents(signing_pubkey))
+    hash=cgen.compute_hash_file(filename)
+    sig=util.load_file_contents(sigfile)
+    sobj.verify(hash, sig)
 
 class ParamsSet:
     """Object used to handle the parameters required by an install or format configuration.
@@ -588,7 +590,13 @@ class Installer:
         try:
             self._install_low_level()
             if isinstance(self._conf, confs.InstallConfig):
-                _verify_live_linux_iso(self._live_iso_file, self._conf.signing_pubkey)
+                # files verifications
+                _verify_live_file(self._live_iso_file, self._conf.signing_pubkey)
+                base=os.path.dirname(self._live_iso_file)
+                _verify_live_file(f"{base}/infos.json", self._conf.signing_pubkey)
+                _verify_live_file(f"{base}/live-linux.userdata-specs", self._conf.signing_pubkey)
+
+                # actual install
                 self._install_live_linux()
                 self._install_resources()
                 self._install_build_repo()
@@ -686,8 +694,11 @@ class Updater:
         data=util.load_file_contents("%s/resources/blob1.priv.enc"%self._mp_dummy)
         blob1_priv=eobj0.decrypt(data).decode()
 
-        # try to identify a signing key
-        _verify_live_linux_iso(self._live_iso_file, self._signing_pubkey)
+        # files verifications
+        _verify_live_file(self._live_iso_file, self._signing_pubkey)
+        base=os.path.dirname(self._live_iso_file)
+        _verify_live_file(f"{base}/infos.json", self._signing_pubkey)
+        _verify_live_file(f"{base}/live-linux.userdata-specs", self._signing_pubkey)
 
         # install new live Linux
         self._install_live_linux()
