@@ -19,6 +19,7 @@ import os
 import syslog
 import tarfile
 import datetime
+import tempfile
 import time
 import json
 import Utils as util
@@ -135,7 +136,10 @@ class LiveLinuxUpdatesGetJob(Job.Job):
 
         try:
             # get the ts of the current kernel
-            kernel_ts=int(os.stat("/run/live/medium/live/vmlinuz").st_mtime)
+            if os.path.exists("/run/live/medium/live/valid-from-ts"):
+                kernel_ts=int(util.load_file_contents("/run/live/medium/live/valid-from-ts"))
+            else:
+                kernel_ts=int(os.stat("/run/live/medium/live/vmlinuz").st_mtime)
 
             # looking for updates
             syslog.syslog(syslog.LOG_INFO, "Looking for updates")
@@ -146,7 +150,7 @@ class LiveLinuxUpdatesGetJob(Job.Job):
 
             section=config["storage-sources"]
             for target in section:
-                syslog.syslog(syslog.LOG_INFO, "Trying to update build repository from the '%s' source"%target)
+                syslog.syslog(syslog.LOG_INFO, "Trying to update build repository from '%s'"%target)
                 sync_conf_file="/internal/credentials/storage/%s"%target
                 if os.path.exists(sync_conf_file):
                     try:
@@ -184,8 +188,14 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                             if err_files:
                                 raise Exception("Repository error")
 
+                        # get the archive's information
                         (archive_ts, archive_name)=borg_repo.get_latest_archive()
-                        if archive_ts>kernel_ts:
+                        tmpdir=tempfile.TemporaryDirectory()
+                        borg_repo.extract_archive(archive_name, tmpdir.name, ["infos.json"])
+                        ardata=json.load(open(tmpdir.name+"/infos.json", "r"))
+                        ar_valid_from_ts=int(ardata["valid-from"])
+
+                        if ar_valid_from_ts>kernel_ts:
                             # compare with existing staged archive
                             if archive_name!=staged_archive_name:
                                 syslog.syslog(syslog.LOG_INFO, "Extracting live Linux for next boot")
@@ -202,7 +212,7 @@ class LiveLinuxUpdatesGetJob(Job.Job):
                                 self.result=1
                                 return
                     except Exception as e:
-                        syslog.syslog(syslog.LOG_ERR, "Error analysing fetched data from target '%s': %s"%(target, str(e)))
+                        syslog.syslog(syslog.LOG_ERR, "Error update build repository from '%s': %s"%(target, str(e)))
                         raise e
                 else:
                     # FIXME: future evolution to allow update via a USB stick

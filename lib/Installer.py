@@ -203,9 +203,11 @@ class Installer:
         if isinstance(conf, confs.InstallConfig):
             assert isinstance(build_infos, dict)
             assert "build-type" in build_infos
+            assert "valid-from" in build_infos
             build_type=confs.BuildType(build_infos["build-type"])
             assert build_type in (confs.BuildType.WKS, confs.BuildType.SERVER)
             self._config_data["install"]=valh.replace_variables(self._config_data["install"], params)
+            self._valid_from_ts=int(build_infos["valid-from"])
 
         self._live_iso_file=live_iso_file
         self._params=params
@@ -318,6 +320,7 @@ class Installer:
                 os.makedirs("%s/live1"%mp, mode=0o700)
                 Live.install_live_linux_files_from_iso(mp+"/live0", tmpdirname)
                 os.symlink("live0", mp+"/live")
+                util.write_data_to_file("%s"%self._valid_from_ts, mp+"/live/valid-from-ts")
             finally:
                 (status, out, err)=util.exec_sync(["umount", tmpdirname])
 

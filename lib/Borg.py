@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -218,7 +218,7 @@ class Repo:
                 return True
         return False
 
-    def extract_archive(self, archive_name, destdir):
+    def extract_archive(self, archive_name, destdir, files=None):
         """Extract the whole contents of the specified archive in @destdir (which must already exist)"""
         if not archive_name:
             raise Exception(_("Archive to extract is not specified"))
@@ -230,7 +230,12 @@ class Repo:
         try:
             os.chdir(destdir)
             #util.print_event("Extracting archive %s in %s"%(archive_name, destdir))
-            self._borg_run(["extract", "::%s"%archive_name, "--sparse"], _("Could not extract archive"))
+            if files is None:
+                self._borg_run(["extract", "--sparse", "::%s"%archive_name], _("Could not extract archive"))
+            elif isinstance (files, list):
+                self._borg_run(["extract", "--sparse", "::%s"%archive_name]+files, _("Could not extract files %s from archive")%files)
+            else:
+                raise Exception(f"Invalid @files argument, expected a list, got a {type(files)}")
         finally:
             os.chdir(cwd)
 
