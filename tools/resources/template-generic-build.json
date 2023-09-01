@@ -12,15 +12,11 @@
     "gnome-desktop": {
       "display-type": "wayland"
     },
-    "veracrypt": null,
     "signature": {
       "build-skey-pub-file": "build-sign-key.pub",
       "build-skey-priv-file": "build-sign-key.priv"
     },
-    "onlyoffice": null,
-    "productivity-tools": null,
     "inseca-config": null,
-    "conference-tools": null,
     "sandboxed-programs": null,
     "inseca-live-wks": {
       "userdata-skey-pub-file": "userdata-sign-key.pub",
