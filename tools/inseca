@@ -2036,10 +2036,7 @@ def _dev_verify(dev, decrypt_key=None):
                     pass
             if not verified:
                 raise Exception("Altered device or wrong verification key in configuration")
-    else:
-        raise Exception("Missing configuration's public key to verify signature")
     return (dkey, udata)
-
 
 def dev_ident(args):
     # 1st pass to read the meta data
