@@ -616,8 +616,7 @@ def get_root_live_partition():
             first=False
         else:
             (devfile, dummy)=line.split(" ", 1)
-            # devfile will be like "/dev/vda3"
-            if not devfile.startswith("/dev/vd") and not devfile.startswith("/dev/sd"):
+            if not devfile.startswith("/dev/vd") and not devfile.startswith("/dev/sd") and not devfile.startswith("/dev/nvme"):
                 raise Exception("Invalid boot partition '%s'"%devfile)
             return devfile
     raise Exception("Internal error: boot partition is not mounted, where is the '%s' file ???"%backend)
