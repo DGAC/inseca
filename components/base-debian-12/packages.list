@@ -13,3 +13,4 @@ opensc-pkcs11
 tpm2-tools
 pciutils
 plymouth
+mokutil
