@@ -1300,9 +1300,8 @@ class GlobalConfiguration:
                 util.print_event("WARNING: missing build configuration file '%s', configuration ignored"%self.get_relative_path(cfile))
             else:
                 conf=BuildConfig(self, cfile)
-                if conf.id in self._all_conf_ids:
-                    path=self.get_relative_path(cfile)
-                    raise Exception(_(f"Build configuration '{conf.id}' already exists (from '{path}')"))
+                if conf.id in self._all_conf_ids and conf.config_file!=cfile:
+                    raise Exception(_(f"Build configuration '{conf.id}' already exists (in '{conf.config_file}', loaded from '{cfile}')"))
                 res[conf.id]=conf
                 self._all_conf_ids+=[conf.id]
         self._build_configs=self._sort_configs(res)
@@ -1320,9 +1319,8 @@ class GlobalConfiguration:
                 util.print_event("WARNING: missing install configuration file '%s' configuration ignored"%self.get_relative_path(cfile))
             else:
                 conf=InstallConfig(self, cfile)
-                if conf.id in self._all_conf_ids:
-                    path=self.get_relative_path(cfile)
-                    raise Exception(_(f"Install configuration '{conf.id}' already exists (from '{path}')"))
+                if conf.id in self._all_conf_ids and conf.config_file!=cfile:
+                    raise Exception(_(f"Install configuration '{conf.id}' already exists (in '{conf.config_file}', loaded from '{cfile}')"))
                 res[conf.id]=conf
                 self._all_conf_ids+=[conf.id]
         self._install_configs=self._sort_configs(res)
@@ -1339,9 +1337,8 @@ class GlobalConfiguration:
             if not os.path.exists(cfile):
                 raise Exception(_("Missing format configuration file '%s'")%self.get_relative_path(cfile))
             conf=FormatConfig(self, cfile)
-            if conf.id in self._all_conf_ids:
-                path=self.get_relative_path(cfile)
-                raise Exception(_(f"Format configuration '{conf.id}' already exists (from '{path}')"))
+            if conf.id in self._all_conf_ids and conf.config_file!=cfile:
+                raise Exception(_(f"Format configuration '{conf.id}' already exists (in '{conf.config_file}', loaded from '{cfile}')"))
             res[conf.id]=conf
             self._all_conf_ids+=[conf.id]
         self._format_configs=self._sort_configs(res)
@@ -1355,9 +1352,8 @@ class GlobalConfiguration:
             if cfile[0]=="_" or not os.path.isfile(cpath):
                 continue # ignore this
             conf=DomainConfig(self, cpath)
-            if conf.id in self._all_conf_ids:
-                path=self.get_relative_path(cfile)
-                raise Exception(_(f"Install configuration '{conf.id}' already exists (from '{path}')"))
+            if conf.id in self._all_conf_ids and conf.config_file!=cfile:
+                raise Exception(_(f"Domain configuration '{conf.id}' already exists (in '{conf.config_file}', loaded from '{cfile}')"))
             res[conf.id]=conf
             self._all_conf_ids+=[conf.id]
         self._domain_configs=self._sort_configs(res)
@@ -1379,9 +1375,8 @@ class GlobalConfiguration:
                 self._load_repo_configs(cpath)
             else:
                 conf=RepoConfig(self, cpath)
-                if conf.id in self._all_conf_ids:
-                    path=self.get_relative_path(cpath)
-                    raise Exception(_(f"Repository configuration '{conf.id}' already exists (from '{path}')"))
+                if conf.id in self._all_conf_ids and conf.config_file!=cfile:
+                    raise Exception(_(f"Repository configuration '{conf.id}' already exists (in '{conf.config_file}', loaded from '{cfile}')"))
                 if not os.path.isabs(conf.path):
                     if "INSECA_DEFAULT_REPOS_DIR" in os.environ:
                         conf.path="%s/%s"%(os.environ["INSECA_DEFAULT_REPOS_DIR"], conf.path)
