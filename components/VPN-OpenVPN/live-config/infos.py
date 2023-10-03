@@ -29,8 +29,7 @@ print("VPN") # component 'id' to display to the user
 
 def load_certificates_from_ovpn_file(ovpn_file):
     (status, out, err)=util.exec_sync(["openssl", "storeutl", "-certs", ovpn_file])
-    if status!=0:
-        raise Exception("Could not load certificates from OVPN config file")
+    # ignore OpenSSL's return code
     certs=[]
     cert=None
     incert=False
