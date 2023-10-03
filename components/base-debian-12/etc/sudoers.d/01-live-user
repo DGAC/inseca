@@ -1,2 +1,2 @@
 # allow control of system time and date
-insecauser ALL=(root) NOPASSWD: /usr/bin/timedatectl
+insecauser ALL=(root) NOPASSWD: /usr/bin/timedatectl, ! /usr/bin/timedatectl list-timezones
