@@ -32,8 +32,12 @@ if conf:
     if dtype not in ("wayland", "x11"):
         raise Exception("Invalid '%s' attribute in the build configuration"%"display-type")
 
-    util.write_data_to_file(dtype, "%s/etc/inseca-display-type"%os.environ["LIVE_DIR"])
+    live_root=os.environ["LIVE_DIR"]
+    util.write_data_to_file(dtype, "%s/etc/inseca-display-type"%live_root)
     util.write_data_to_file("Display type: %s\n"%dtype, os.environ["BUILD_DATA_FILE"], append=True)
+    if dtype=="wayland":
+        os.makedirs(f"{live_root}/etc/environment.d", exist_ok=True)
+        util.write_data_to_file("QT_QPA_PLATFORM=xcb", f"{live_root}/etc/environment.d/90qt-wayland-shadows.conf")
 
     # DConf spec.
     if "dconf-file" in conf:
