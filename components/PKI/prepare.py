@@ -27,7 +27,7 @@ for key in ["ca-certs-dir"]:
     if key not in conf:
         raise Exception("No '%s' attribute in the build configuration"%key)
 
-# copy all specified certificates
+# copy all specified certificates, this directory is where some of the system's trusted certificates are located
 destdir="%s/usr/local/share/ca-certificates"%os.environ["PRIVDATA_DIR"]
 os.makedirs(destdir, exist_ok=True)
 

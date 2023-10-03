@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -20,18 +20,19 @@
 import os
 import syslog
 import tarfile
+import json
 import Utils as util
 
 # extract the empty NSSDB in the user's directory, used by Chromium
 tarobj=tarfile.open("/opt/init_pki_nssdb.tar", "r")
 tarobj.extractall("/home/insecauser")
 
-# import the certificate in firefox's DB
-def handle_dir(dir, certs_dir):
+def configure_db_in_dir(dir, certs_dir):
+    """Import the certificate in (firefox's) DB wherever it finds it under @dir"""
     for fname in os.listdir(dir):
         path="%s/%s"%(dir, fname)
         if os.path.isdir(path):
-            handle_dir(path, certs_dir)
+            configure_db_in_dir(path, certs_dir)
         elif fname.startswith("cert") and fname.endswith(".db"):
             # add OpenSC's PKCS#11 library to the browsers
             (status, out, err)=util.exec_sync(["modutil", "-force", "-dbdir", "sql:"+dir, "-add", "Smartcard token", "-libfile", "/usr/lib/x86_64-linux-gnu/pkcs11/opensc-pkcs11.so"])
@@ -56,4 +57,34 @@ def handle_dir(dir, certs_dir):
             if status!=0:
                 syslog.syslog(syslog.LOG_ERR, "Could not change ownership of '%s' file to insecauser"%(dir, err))
 
-handle_dir("/home", "/usr/local/share/ca-certificates")
+def add_certs_to_firefox_policies(certs_dir):
+    """Modify or create the Firefox policies file to import the certificates present in @certs_dir"""
+    # cf. https://mozilla.github.io/policy-templates/
+    policies_file="lib/firefox-esr/distribution/policies.json"
+    if os.path.exists(policies_file):
+        policies=json.load(open(policies_file, "r"))
+    else:
+        policies={
+            "policies": {}
+        }
+    if "Certificates" not in policies["policies"]:
+        policies["policies"]["Certificates"]={}
+    if "Install" not in policies["policies"]["Certificates"]:
+        policies["policies"]["Certificates"]["Install"]=[]
+
+    for certfile in os.listdir(certs_dir):
+        certpath="%s/%s"%(certs_dir, certfile)
+        policies["policies"]["Certificates"]["Install"].append(certpath)
+
+    with open(policies_file, "w") as fd:
+        json.dump(policies, fd)
+
+def update_system_certs():
+    (status, out, err)=util.exec_sync(["/usr/sbin/update-ca-certificates"])
+    if status!=0:
+        syslog.syslog(syslog.LOG_ERR, f"Could not update system's trusted certificates: {err}")
+
+extra_certs_dir="/usr/local/share/ca-certificates"
+update_system_certs()
+configure_db_in_dir("/home", extra_certs_dir)
+add_certs_to_firefox_policies(extra_certs_dir)
