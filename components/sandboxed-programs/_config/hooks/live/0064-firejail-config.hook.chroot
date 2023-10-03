@@ -21,3 +21,7 @@ set -e
 
 # allow browsers to use U2F tokens (incl. WebAuthn authenticators)
 sed -i 's/^.*browser-disable-u2f yes/browser-disable-u2f no/' etc/firejail/firejail.config
+
+# allow browsers to use smartcards
+echo "whitelist /run/pcscd/" >> /etc/firejail/firefox-common.profile
+echo "whitelist /run/pcscd/" >> /etc/firejail/chromium-common.profile
