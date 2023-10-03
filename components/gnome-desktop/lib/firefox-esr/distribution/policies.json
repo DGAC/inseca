@@ -1,0 +1,31 @@
+{
+	"policies":  {
+		"SecurityDevices": {
+			"Add": {
+				"Smartcard token": "/usr/lib/x86_64-linux-gnu/pkcs11/opensc-pkcs11.so"
+			}
+		},
+		"DisableFirefoxAccounts": true,
+		"DisabledCiphers": {
+			"TLS_RSA_WITH_3DES_EDE_CBC_SHA": true,
+			"TLS_RSA_WITH_AES_128_CBC_SHA": true,
+			"TLS_RSA_WITH_AES_256_CBC_SHA": true
+		},
+		"DisableFirefoxStudies": true,
+		"DisablePocket": true,
+		"DisableSecurityBypass": {
+			"InvalidCertificate": true,
+			"SafeBrowsing": true
+		},
+		"DontCheckDefaultBrowser": true,
+		"ExtensionSettings": {
+			"*": {
+				"blocked_install_message": "Extensions are bad!",
+				"installation_mode": "blocked"
+			},
+			"uBlock0@raymondhill.net": {
+				"installation_mode": "allowed"
+			}
+		}
+	}
+}
