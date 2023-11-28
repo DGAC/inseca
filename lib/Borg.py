@@ -35,6 +35,8 @@ class BorgRepoIncomplete(Exception):
     pass
 class BorgMemoryError(Exception):
     pass
+class BorgRepoLocked(Exception):
+    pass
 
 class Repo:
     def __init__(self, repo_dir, password, config_dir=None, cache_dir=None):
@@ -94,6 +96,9 @@ class Repo:
             raise BorgRepoIncomplete("%s: %s"%(context, _("Incomplete synchronisation, retry later")))
         elif "MemoryError" in err:
             raise BorgMemoryError("%s: %s"%(context, _("Not enough memory(?)")))
+        elif "Failed to create/acquire the lock" in err:
+            raise BorgRepoLocked(f"{context}: {_('Unable to acquire lock on repository, may already be used')}")
+
         raise Exception("%s: %s"%(context, err))
 
     def _borg_run(self, args, context, stdin_data=None, cwd=None):
