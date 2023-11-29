@@ -1,0 +1,2 @@
+# logged in user needs to be able to run VeraCrypt
+insecauser ALL=(root) NOPASSWD: /usr/bin/veracrypt
