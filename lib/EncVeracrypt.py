@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,6 +16,9 @@
 
 import os
 import Utils as util
+
+_new_hash_algo="SHA-256"
+
 
 class Encrypted():
     # NB: password can be passed via stdin using the --stdin argument. This seems undocumented, see:
@@ -54,17 +57,32 @@ class Encrypted():
                 raise Exception("Unable to find free slot")
         return index
 
-    def open(self):
-        """Open a Veracrypt "container" and returns the mapper device to use to mount or format"""
+    def _validate_hash_algo(self, hash_algo):
+        if hash_algo not in ("RIPEMD-160", "SHA-256", "SHA-512", "WHIRLPOOL", "STREEBOG"):
+            raise Exception(f"Unknown hash algorithm {hash_algo}")
+
+    def _open(self, hash_algo):
         slot=self._find_free_slot()
         if not self._password:
             raise Exception("No password provided")
-        args=self._binary_args+["--stdin", "--protect-hidden=no", "-k", "", "--filesystem=none", "--slot=%d"%slot, self._part_name]
+        self._validate_hash_algo(hash_algo)
+        args=self._binary_args+["--stdin", "--protect-hidden=no", "-k", "", "--filesystem=none", "--hash", hash_algo, "--slot=%d"%slot, self._part_name]
         (status, out, err)=util.exec_sync(args, stdin_data=self._password) # no newline!
-        if status != 0:
-            raise Exception("Unable to open Veracrypt volume '%s': %s" % (self._part_name, err))
+        if status!=0:
+            raise Exception(f"Unable to open Veracrypt volume '{self._part_name}': {err}")
         (mapped, mp)=util.get_encrypted_partition_mapped_elements(self._part_name)
         return mapped
+
+    def open(self):
+        """Open a Veracrypt "container" and returns the mapper device to use to mount or format"""
+        try:
+            return self._open(_new_hash_algo)
+        except Exception as e:
+            try:
+                self.change_hash_algo(_new_hash_algo)
+            except Exception:
+                raise e
+            return self._open(_new_hash_algo)
 
     def close(self):
         # Close "container"
@@ -75,11 +93,11 @@ class Encrypted():
         if status != 0:
             raise Exception("Unable to close Veracrypt volume '%s': %s" % (self._part_name, err))
 
-    def create(self):
+    def create(self, hash_algo=_new_hash_algo):
         # Veracrypt format
         if not self._password:
             raise Exception("No password specified")
-        args=self._binary_args+["-c", "--quick", "--stdin", "--volume-type=normal", "--encryption=AES", "--hash=RIPEMD-160", "--filesystem=none", "-k", "", "--random-source=/dev/urandom", self._part_name]
+        args=self._binary_args+["-c", "--quick", "--stdin", "--volume-type=normal", "--encryption=AES", "--hash", hash_algo, "--filesystem=none", "-k", "", "--random-source=/dev/urandom", self._part_name]
         (status, out, err)=util.exec_sync(args, stdin_data=self._password)
         if status != 0:
             raise Exception("Unable to format '%s' as Veracrypt: %s" % (self._part_name, err))
@@ -137,11 +155,21 @@ Yes
         except Exception as e:
             raise Exception ("Could not finish erasing Veracrypt headers of '%s': %s" % (self._part_name, str(e)))
 
-    def change_password(self, new_password): # NEEDS TO BE TESTED
+    def change_hash_algo(self, new_hash_algo):
+        if not self._password:
+            raise Exception("No password provided")
+        self._validate_hash_algo(new_hash_algo)
+
+        args=self._binary_args+["-C", "--random-source=/dev/urandom", "-p", self._password, "--new-password", self._password, "--new-hash", new_hash_algo, self._part_name]
+        (status, out, err)=util.exec_sync(args)
+        if status != 0:
+            raise Exception(f"Unable to change Veracrypt hash algo of '{self._part_name}' to {new_hash_algo}: {err}")
+
+    def change_password(self, new_password):
         if not self._password:
             raise Exception("No password provided")
 
-        args=self._binary_args+["-C", "-p", self._password, "--new-password=%s"%new_password, self._part_name]
+        args=self._binary_args+["-C", "-p", self._password, "--new-password", new_password, self._part_name]
         (status, out, err)=util.exec_sync(args)
         if status != 0:
             raise Exception("Unable to change Veracrypt password of '%s': %s" % (self._part_name, err))
