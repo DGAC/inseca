@@ -146,7 +146,7 @@ class Params(GObject.Object):
         # blob0
         res["blob0"]=cgen.generate_password(50)
         # filesystel-sizes
-        res["live-size"]=int(self._linux_iso_size/1024/1024*2.7) # allow 30% growth of live Linux
+        res["live-size"]=int(self._linux_iso_size/1024/1024*2*(1+0.5)) # allow 50% growth of live Linux
         res["internal-size"]=46080 # FIXME: don't hard code
         return res
 
