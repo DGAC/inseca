@@ -48,7 +48,8 @@ class Builder:
         self._confdir=os.path.realpath(bconf.config_dir)
         self._bconf=bconf
         self._name=namesgenerator.get_random_name()
-        self._scriptdir=os.path.realpath(os.path.dirname(sys.argv[0]))
+        self._bindir=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))+"/tools"
+        self._libdir=os.path.dirname(os.path.realpath(__file__))
         self._privdata_pubkey=None
         privdata_pubkey=bconf.privdata_pubkey
         if privdata_pubkey:
@@ -256,7 +257,7 @@ Name: %s
             exec_env["COMPONENT_BLOBS_DIR"]="|".join(self._bconf.get_component_blobs_dirs(component, ignore_missing=True))
             exec_env["CONF_DIR"]=self._confdir
             exec_env["LIVE_DIR"]=self._fs_dir
-            exec_env["LIBS_DIR"]=os.path.realpath(self._scriptdir+"/../lib")
+            exec_env["LIBS_DIR"]=os.path.realpath(self._libdir)
             exec_env["PYTHONPATH"]=":".join(sys.path)
             for fname in component_files:
                 if fname in ["prepare.sh", "prepare.py"]:
@@ -391,6 +392,7 @@ Name: %s
             iso_dir=os.path.dirname(self.image_file)
             os.chown(iso_dir, uid, gid)
             os.chown(self.image_file, uid, gid)
+            os.chown(self.userdata_specs_file, uid, gid)
 
         # log info
         now=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -405,11 +407,8 @@ Name: %s
             iso_contents_dir=None
             initrd_contents_dir=None
 
-            cenv=os.environ.copy()
-            cenv["TMPDIR"]=self._builddir
-
             # extract ISO file's contents            
-            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "iso-extract", built_iso], exec_env=cenv)
+            (status, out, err)=util.exec_sync([self._bindir+"/iso-utils.sh", "iso-extract", built_iso])
             os.remove(built_iso)
             if status!=0:
                 raise Exception("Could not extract ISO's contents: %s"%err)
@@ -417,19 +416,19 @@ Name: %s
             
             # extract the initrd's contents
             initrd_file="%s/live/initrd.img"%iso_contents_dir
-            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "initramfs-extract", initrd_file], exec_env=cenv)
+            (status, out, err)=util.exec_sync([self._bindir+"/iso-utils.sh", "initramfs-extract", initrd_file])
             if status!=0:
                 raise Exception("Could not extract initrd's contents: %s"%err)
             initrd_contents_dir=out
 
             # patch initrd's code
-            patch_file=self._scriptdir+"/resources/initrd.patch"
-            (status, out, err)=util.exec_sync(["patch", "-p", "0"], stdin_data=util.load_file_contents(patch_file), cwd=initrd_contents_dir+"/main", exec_env=cenv)
+            patch_file=self._bindir+"/resources/initrd.patch"
+            (status, out, err)=util.exec_sync(["patch", "-p", "0"], stdin_data=util.load_file_contents(patch_file), cwd=initrd_contents_dir+"/main")
             if status!=0:
                 raise Exception("Could not patch initrd's contents: %s"%err)
 
             # rebuild the initrd file
-            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "initramfs-create", initrd_contents_dir, initrd_file], exec_env=cenv)
+            (status, out, err)=util.exec_sync([self._bindir+"/iso-utils.sh", "initramfs-create", initrd_contents_dir, initrd_file])
             if status!=0:
                 raise Exception("Could not create new initrd file: %s"%err)
 
@@ -459,7 +458,7 @@ Name: %s
                 confs.BuildType.SERVER: "INSECA",
                 confs.BuildType.SIMPLE: "INSECA-LIVE",
             }
-            (status, out, err)=util.exec_sync([self._scriptdir+"/iso-utils.sh", "iso-create", iso_contents_dir, map[conf_type], self.image_file], exec_env=cenv)
+            (status, out, err)=util.exec_sync([self._bindir+"/iso-utils.sh", "iso-create", iso_contents_dir, map[conf_type], self.image_file])
             if status!=0:
                 raise Exception("Could not create new ISO file: %s"%err)
 

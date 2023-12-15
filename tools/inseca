@@ -702,7 +702,7 @@ def config_create(args):
         raise Exception("Unknown config. type '%s'"%args.type)
 
     # print result
-    (status, out, err)=util.exec_sync([sys.argv[0], "config-infos", created_conf])
+    (status, out, err)=util.exec_sync([prog_path, "config-infos", created_conf])
     if status==0:
         print("%s"%out)
     else:
@@ -1265,7 +1265,7 @@ def _publish_domain(dconf):
     """
     # create temp directory where all the files which will be pushed to the repo will be
     builddir=tempfile.TemporaryDirectory()
-    (status, out, err)=util.exec_sync([sys.argv[0], "--root", builddir.name, "init"])
+    (status, out, err)=util.exec_sync([prog_path, "--root", builddir.name, "init"])
     if status!=0:
         raise Exception("Could not initialize empty global configuration structure: %s"%err)
 
@@ -1830,7 +1830,6 @@ def _prepare_config_data(domain_confs, bconf):
     # prepare template
     confdir="%s/configurations"%tmpdir.name
     os.makedirs(confdir, mode=0o700)
-    prog_path=sys.argv[0]
     (status, out, err)=util.exec_sync([prog_path, "--root", confdir, "init"])
     if status!=0:
         raise Exception("Could not initialize empty global configuration structure: %s"%err)
@@ -2387,9 +2386,6 @@ try:
             if args.cmde in root_required_commands and os.getuid()!=0:
                 # execute the same command with sudo
                 print(_("This command needs root privileges"))
-                args=[]
-                for arg in sys.argv[1:]:
-                    pass
                 args=sys.argv[1:]
                 options={
                     "--root": os.environ["INSECA_ROOT"]
@@ -2409,7 +2405,7 @@ try:
                         toadd=False
                     if toadd:
                         args=[option, options[option]]+args
-                args=["sudo", sys.argv[0]]+args
+                args=["sudo", prog_path]+args
                 try:
                     p=util.exec_async(args)
                     p.wait()

@@ -1063,7 +1063,7 @@ def init_root_config():
             os.makedirs(path)
 
         # directories to store blobs per component providing the "base-os" feature
-        script_dir=os.path.dirname(os.path.realpath(os.path.dirname(sys.argv[0])))
+        script_dir=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
         for component in os.listdir(f"{script_dir}/components"):
             comp_conf=f"{script_dir}/components/{component}/config.json"
             if os.path.exists(comp_conf):
@@ -1089,7 +1089,7 @@ class GlobalConfiguration:
             if not os.path.isdir(path):
                 raise Exception(_("Directory '%s' pointed by INSECA_ROOT environment variable does not exist")%path)
         self._path=os.path.realpath(path)
-        self._script_dir=os.path.dirname(os.path.realpath(os.path.dirname(sys.argv[0])))
+        self._script_dir=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
         # Check that the top level directories are present
         for fname in ("install-configurations", "format-configurations", "repo-configurations", "domain-configurations"):
