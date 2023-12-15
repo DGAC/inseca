@@ -170,7 +170,7 @@ sparser=subparsers.add_parser("dev-wipe", help=_("Remove everything on a device"
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
 sparser.add_argument("--confirm", help=_("Confirm the removal without any confirmation asked"), action="store_true")
 
-sparser=subparsers.add_parser("dev-copy", help=_("Makes a byte for byte copy of a device to a file (like dd) or vide-versa"))
+sparser=subparsers.add_parser("dev-copy", help=_("Makes a byte for byte copy of a device to a file (like dd) or vice-versa"))
 sparser.add_argument("infile", help=_("Input file (e.g. /dev/sda)"))
 sparser.add_argument("outfile", help=_("File to copy data to"))
 
