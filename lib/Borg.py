@@ -50,6 +50,17 @@ class Repo:
         if self._borg_prog is None:
             raise Exception("Could not find the 'borg' program, make sure Borg Backup is installed")
 
+        # determine Borg version
+        (status, out, err)=util.exec_sync([self._borg_prog, "-V"])
+        if status!=0:
+            raise Exception(f"Could not determine borg's version: {err}")
+        (_, version_s)=out.split()
+        (maj, min, *_)=version_s.split(".")
+        version=int(maj)*10+int(min)
+
+        # determine available features
+        self._has_compact=version>=12
+
     def __del__(self):
         self.umount_all()
 
@@ -255,7 +266,8 @@ class Repo:
 
     def vacuum(self):
         """Remove unused data from the repository"""
-        self._borg_run(["compact"], _("Could not compact archive"))
+        if self._has_compact:
+            self._borg_run(["compact"], _("Could not compact archive"))
 
     def mount(self, archive_name):
         """Mounts the specified archive somewhere and returns the mount point"""
