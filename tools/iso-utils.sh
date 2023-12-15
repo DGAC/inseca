@@ -63,7 +63,18 @@ initramfs_extract ()
     initrd_file="$1"
     dest_dir=$(mktemp -d)
 
-    unmkinitramfs "$initrd_file" "$dest_dir"
+    set +e
+    which unmkinitramfs > /dev/null 2>&1
+    res=$?
+    set -e
+    if [ $res == 0 ]
+    then
+        unmkinitramfs "$initrd_file" "$dest_dir"
+    else
+        # unmkinitramfs is not present: fall back to local copy
+        prog_path=$(dirname "${BASH_SOURCE[0]}")
+        prog_path/unmkinitramfs "$initrd_file" "$dest_dir"
+    fi
     echo "$dest_dir"
 }
 

@@ -51,7 +51,7 @@ sudo dnf config-manager --add-repo https://download.docker.com/linux/fedora/dock
 sudo dnf install -y docker-ce docker-ce-cli containerd.io
 
 echo -e "\n### Installation of misc. tools ###"
-sudo dnf -y install hdparm dosfstools btrfs-progs exfatprogs
+sudo dnf -y install hdparm dosfstools btrfs-progs exfatprogs genisoimage xorriso
 
 echo -e "\n### Installation of INSECA ###"
 sudo dnf install -y wget curl openssl
