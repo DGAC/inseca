@@ -21,7 +21,7 @@
 		"ExtensionSettings": {
 			"*": {
 				"blocked_install_message": "Extensions are bad!",
-				"installation_mode": "blocked"
+				"allowed_types": ["dictionary", "locale"] 
 			},
 			"uBlock0@raymondhill.net": {
 				"installation_mode": "allowed"
