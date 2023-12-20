@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,7 +18,25 @@
 #    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
 
 #
-# This script always return the proxy.pac file
+# If the /opt/share/proxy-pac-url file exists, then:
+#  - if the URL specified in that file exists (and returns a WPAD file), then a
+#    web server listening on port 8088 is started using that WPAD file.
+#  - if the URL can't be reached, then no web server is started (it is stopped it it was)
+#    running
+#
+# Else, a web server listening on port 8088 is started:
+#   If the /opt/share/proxy.pac file exists, then it is used by the Web server, otherwise a
+#   dummy WPAD which always return a DIRECT "route" is used
+# 
+#
+# When started, the Web server answers the following:
+# - GET /current-proxy/<destination>: the web proxy to use to reach <destination> (if specified), like for example:
+#    - "DIRECT" => don't use a proxy (make a direct connection to the target server)
+#    - "PROXY proxy.example:3200" => use http://proxy.example:3200
+#    - "PROXY proxy1.example:3200; PROXY proxy2.example:8080" => use either http://proxy.example:3200 or http://proxy2.example:8080
+# - GET /* => the WPAD data otherwise
+#
+# See also: https://developer.mozilla.org/en-US/docs/Web/HTTP/Proxy_servers_and_tunneling/Proxy_Auto-Configuration_PAC_file
 #
 
 import sys
@@ -28,30 +46,46 @@ import time
 import errno
 import requests
 import http.server
+import urllib.parse
+import socket
 import socketserver
 import threading
 import syslog
+import signal
+import subprocess
 
+port=8088
+prefix="/opt/share"
+
+def get_ip():
+    s=socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("1.1.1.1", 53)) # we don't care if not reacheable
+        #print("IP: %s"%s.getsockname()[0])
+        return s.getsockname()[0]
+    except:
+        return "127.0.0.1"
+    finally:
+        s.close()
 
 # determine URL of the remote proxy PAC server to use
 remote_url=None
-userdata_file="/opt/share/proxy-pac-url"
+userdata_file=f"{prefix}/proxy-pac-url"
 if os.path.exists(userdata_file):
     try:
         userdata=json.load(open(userdata_file, "r"))
         remote_url=userdata["pac-url"].strip()
         if remote_url=="":
             remote_url=None
+        syslog.syslog(syslog.LOG_INFO, f"proxy WPAD will be fetched using '{remote_url}'")
     except Exception as e:
         syslog.syslog(syslog.LOG_ERR, "Error loading USERDATA file '%s': %s"%(userdata_file, str(e)))
         remote_url=None
-syslog.syslog(syslog.LOG_INFO, "Proxy.pac remote_url: %s"%remote_url)
 
 def _fetch_remote():
     """Download the data from the remote proxy PAC server"""
     if not remote_url:
         return None
-
     counter=0
     while counter<3:
         try:
@@ -72,10 +106,13 @@ def HandlerClassFactory(data):
         def __init__(self, *args, **kwargs):
             self._pac_data=data
             if not self._pac_data:
-                path="/opt/share/proxy.pac"
+                path=f"{prefix}/proxy.pac"
                 if os.path.exists(path):
                     self._pac_data=open(path, "r").read()
-                if not self._pac_data:
+                if self._pac_data:
+                    syslog.syslog(syslog.LOG_INFO, f"proxy WPAD is from the '{path}' file")
+                else:
+                    syslog.syslog(syslog.LOG_INFO, f"proxy WPAD is the dummy DIRECT one")
                     self._pac_data="""function FindProxyForURL(url, host) {return "DIRECT";}"""
             if isinstance(self._pac_data, bytes):
                 self._pac_data=self._pac_data.decode()
@@ -83,13 +120,27 @@ def HandlerClassFactory(data):
 
         def do_GET(self):
             # send back response
-            time.sleep(3) # wait for the server to have time to stop in case the network config. has changed
-                          # and for example a web browser wants to know the new proxy settings. Otherwise
-                          # we might still give the previous (now invalid) proxy settings
-            self.send_response(200)
-            self.send_header("Content-type", "application/x-ns-proxy-autoconfig")
-            self.end_headers()
-            self.wfile.write(bytes(self._pac_data, "utf8"))
+            if self.path.startswith("/current-proxy"):
+                import pacparser
+                pacparser.init()
+                pacparser.parse_pac_string(self._pac_data)
+                pacparser.setmyip(get_ip())
+                where=self.path[14:]
+                if where in ("", "/"):
+                    where="www.microsoft.com"
+                else:
+                    parts=urllib.parse.urlparse(f"http://{where[1:]}")
+                    where=parts.netloc
+                proxy=pacparser.find_proxy(f"http://{where}")
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(proxy, "utf8"))
+            else:
+                self.send_response(200)
+                self.send_header("Content-type", "application/x-ns-proxy-autoconfig")
+                self.end_headers()
+                self.wfile.write(bytes(self._pac_data, "utf8"))
     return HttpRequestHandler
 
 class PacServer(threading.Thread):
@@ -105,8 +156,8 @@ class PacServer(threading.Thread):
         counter=0
         while True:
             try:
-                self._server=socketserver.TCPServer(("127.0.0.1", 8088), handler_class)
-                #self._server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+                self._server=socketserver.TCPServer(("127.0.0.1", port), handler_class)
+                self._server.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
                 self._server.serve_forever(poll_interval=1)
                 return
             except OSError as e:
@@ -126,31 +177,22 @@ class PacServer(threading.Thread):
 
 
 if remote_url:
-    # monitor NetworkManager through its DBus interfaces
-    from gi.repository import GLib
-    import dbus
-    import dbus.mainloop.glib
-
-    NM_DBUS_NAME = "org.freedesktop.NetworkManager"
-    NM_DBUS_PATH = "/org/freedesktop/NetworkManager"
-    NM_DBUS_INTERFACE = "org.freedesktop.NetworkManager"
-
+    # use NetworkManager's monitor program
     # handling of network events
     server=None
     def update_server_state():
         global server
-        print("Timed out")
         data=_fetch_remote()
         if data:
-            # remote proxy.pac data fetched
-            syslog.syslog(syslog.LOG_INFO, "fetched remote proxy.pac data")
+            # remote proxy WPAD data fetched
+            syslog.syslog(syslog.LOG_INFO, "fetched remote proxy WPAD data")
             if not server:
                 syslog.syslog(syslog.LOG_INFO, "creating new PacServer")
                 server=PacServer(data)
                 server.start()
         else:
-            # no fetched proxy.pac data
-            syslog.syslog(syslog.LOG_INFO, "could not fetch remote proxy.pac data")
+            # no fetched proxy WPAD data
+            syslog.syslog(syslog.LOG_INFO, "could not fetch remote proxy WPAD data (no local server will run)")
             if server:
                 syslog.syslog(syslog.LOG_INFO, "requesting PAC server stop")
                 server.stop()
@@ -158,31 +200,25 @@ if remote_url:
                 syslog.syslog(syslog.LOG_INFO, "PAC server is now stopped")
                 server=None
 
-        net_state_changed_cb.tid=None
-        return False # don't keep the timer
+    def handler(signum, frame):
+        update_server_state()
+    signal.signal(signal.SIGALRM, handler)
 
-    def net_state_changed_cb(dummy):
-        """Function called when the NM's properties change, it can be called several times in a short amount of
-        time => use a timer to run the update_server_state() function"""
-        if net_state_changed_cb.tid is None:
-            print("Properties Changed, running timer")
-            net_state_changed_cb.tid=GLib.timeout_add(500, update_server_state) # "aggregate" several property notifications in
-                                                                                # one call to update_server_state()
-    net_state_changed_cb.tid=None
+    update_server_state()
+    p=subprocess.Popen(["ip", "monitor", "route"], stdout=subprocess.PIPE, bufsize=1, text=True)
+    while True:
+        out=p.stdout.read(1)
+        if out=="" and p.poll() is not None:
+            break
+        if out!="":
+            signal.alarm(3)
+    p.stdout.close()
+    p.wait()
 
-    # set up NetworkManager monitoring
-    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-    sessionBus = dbus.SystemBus()
-    nm_proxy=sessionBus.get_object(NM_DBUS_NAME, NM_DBUS_PATH)
-    nm_proxy.connect_to_signal("PropertiesChanged", net_state_changed_cb, dbus_interface=NM_DBUS_INTERFACE)
-
-    loop=GLib.MainLoop()
-    net_state_changed_cb(None)
-    loop.run()
 else:
     syslog.syslog(syslog.LOG_INFO, "Starting very simple Proxy PAC server")
     handler_class=HandlerClassFactory(None)
-    server=socketserver.TCPServer(("127.0.0.1", 8088), handler_class)
+    server=socketserver.TCPServer(("127.0.0.1", port), handler_class)
     server.serve_forever(poll_interval=3600)
 
 sys.exit(0)

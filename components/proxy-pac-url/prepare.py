@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2023 INSECA authors
+#    Copyright (C) 2023 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -21,14 +21,15 @@ import os
 import json
 import shutil
 
-# copy any provided proxy.pac file to /opt/share/proxy.pac
+# create the /opt/share/proxy-pac-url file
 conf=json.load(open(os.environ["CONF_DATA_FILE"], "r"))
-for key in ["pac-file"]:
-    if key not in conf:
-        raise Exception("No '%s' attribute in the build configuration"%key)
-
-destdir="%s/opt/share"%os.environ["PRIVDATA_DIR"]
+destdir=f"{os.environ['PRIVDATA_DIR']}/opt/share"
 os.makedirs(destdir, exist_ok=True)
 
-pacfile=conf["pac-file"]
-shutil.copyfile("%s/%s"%(os.environ["CONF_DIR"], pacfile), "%s/proxy.pac"%destdir)
+pacurl=conf["pac-url"]
+with open(f"{destdir}/proxy-pac-url", "w") as fd:
+    data={
+        "pac-url": pacurl
+    }
+    fd.write(json.dumps(data))
+
