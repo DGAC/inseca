@@ -392,7 +392,8 @@ Name: %s
             iso_dir=os.path.dirname(self.image_file)
             os.chown(iso_dir, uid, gid)
             os.chown(self.image_file, uid, gid)
-            os.chown(self.userdata_specs_file, uid, gid)
+            if os.path.exists(self.userdata_specs_file):
+                os.chown(self.userdata_specs_file, uid, gid)
 
         # log info
         now=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')

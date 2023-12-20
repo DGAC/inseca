@@ -8,7 +8,7 @@ ExecStart=/opt/inseca/manager
 TimeoutSec=5
 RestartSec=5
 Restart=always
-TimeoutStopSec=300
+TimeoutStopSec=30
 
 [Install]
 WantedBy=default.target
