@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2023 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -445,7 +445,7 @@ def get_encrypted_partition_mapped_elements(part_name):
                         return (parts[0], None)
     return (None, None)
 
-def get_timestamp(as_str=False, utc=True):
+def get_timestamp(as_str=False, utc=True) -> int:
     """Get the current UTC timestamp, in Unix time format, as an integer or a
     string if @as_str is True."""
     if utc:
@@ -457,6 +457,9 @@ def get_timestamp(as_str=False, utc=True):
         return "{:012d}".format(ts)
     else:
         return ts
+
+def format_timestamp(ts:int) -> str:
+    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
 
 def get_disks():
     disks={}

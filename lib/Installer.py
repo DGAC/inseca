@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2023 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -395,7 +395,7 @@ class Installer:
 
         # prepare key configuration
         key_id=str(uuid.uuid4())
-        gconf=self._conf.gconf
+        gconf=self._conf.global_conf
         rconf=gconf.get_repo_conf(self._conf.build_repo_id)
         kc={
             "device-id": key_id,
@@ -539,7 +539,7 @@ class Installer:
         # NB: the build repo's definition is already present in the devices's config file (config.json)
         mp=self._dev.mount(Live.partid_internal)
         util.print_event("Copying live Linux repository...")
-        gconf=self._conf.gconf
+        gconf=self._conf.global_conf
         rconf=gconf.get_repo_conf(self._conf.build_repo_id)
         targetdir="%s/build-repo"%mp
         shutil.copytree(rconf.path, targetdir, symlinks=True)
@@ -602,7 +602,7 @@ class Installer:
                 self._install_build_repo()
                 self._install_userdata()
         finally:
-            self._conf.gconf.umount_all_repos()
+            self._conf.global_conf.umount_all_repos()
             self._dev.umount_all()
 
 class DeviceInstaller(Installer):

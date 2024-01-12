@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2023 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -52,6 +52,7 @@ import gettext
 gettext.bindtextdomain("inseca", prog_dir+"/../locales")
 gettext.textdomain("inseca")
 _ = gettext.gettext
+_indent="  "
 
 def _get_single_useable_device():
     devices=util.get_disks()
@@ -89,9 +90,14 @@ sparser=subparsers.add_parser("config-infos", help=_("Show information about a s
 sparser.add_argument("config", help=_("Configuration ID"))
 
 sparser=subparsers.add_parser("config-create", help=_("Create a new configuration"))
-sparser.add_argument("type", help=_("Config type: admin-build | build | install | format | domain | repo | userdata"))
+sparser.add_argument("type", help=_("Config type: admin-build | build | install | format | domain | userdata"))
 sparser.add_argument("--build", help=_("Referenced Build ID if config type is 'install' (ignored otherwise)"))
 sparser.add_argument("description", help=_("Configuration's description"))
+
+sparser=subparsers.add_parser("config-clone", help=_("Clone a configuration"))
+sparser.add_argument("config", help=_("ID of the configuration to clone"))
+sparser.add_argument("--other-root", help=_("Path to another INSECA global configuration"))
+sparser.add_argument("description", help=_("Cloned configuration's description"))
 
 sparser=subparsers.add_parser("config-publish", help=_("Publish a configuration's contents to its specified repository"))
 sparser.add_argument("config", nargs=argparse.REMAINDER, help=_("Configuration(s) ID(s), or empty to specify all the configurations"))
@@ -217,94 +223,16 @@ root_required_commands=["build", "dev-install", "gen-admin-iso",
                         "dev-wipe", "dev-run-in-vm", "dev-mount", "dev-umount",
                         "dev-users", "dev-user-add", "dev-user-del", "dev-user-password", "dev-check"]
 
-def _format_ts(ts):
-    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+def _print_status(conf:confs.ConfigInterface, prefix:str=_indent) -> None:
+    for txt in conf.status.warnings:
+        print(f"{prefix}W: {txt}")
+    for txt in conf.status.errors:
+        print(f"{prefix}E: {txt}")
+    for txt in conf.status.todo:
+        print(f"{prefix}T: {txt}")
 
-def _get_build_conf_pending_iso(bconf):
-    builder=LiveBuilder.Builder(bconf.id)
-    iso_img_file=builder.image_file
-    if os.path.exists(iso_img_file):
-        ts=os.path.getctime(iso_img_file)
-        return (iso_img_file, ts, _format_ts(ts))
-    else:
-        return (None, None, None)
-
-def _conf_needs_action(gconf, conf):
-    """Tells if the specified configuration should be published or rebuilt.
-    Returns: (rebuild needed, publish needed)"""
-    if isinstance(conf, confs.RepoConfig):
-        return (False, False)
-
-    # get timestamp of the last published archive
-    if conf.repo_id:
-        rconf=gconf.get_repo_conf(conf.repo_id)
-        (archive_ts, dummy)=rconf.get_latest_archive()
-    else:
-        archive_ts=0
-
-    # build config
-    if isinstance(conf, confs.BuildConfig):
-        rebuild_needed=False
-        publish_needed=False
-
-        files_ts=confs.get_last_file_modification_ts(conf.config_dir, conf.build_dir)
-        for component in conf.components:
-            component_dir=conf.get_component_src_dir(component)
-            component_ts=confs.get_last_file_modification_ts(component_dir)
-            if component_ts>files_ts:
-                files_ts=component_ts
-
-        (iso_file, iso_ts, iso_strts)=_get_build_conf_pending_iso(conf)
-        if iso_file:
-            if conf.repo_id:
-                publish_needed=True
-        if files_ts>archive_ts:
-            if iso_file:
-                if files_ts>iso_ts:
-                    rebuild_needed=True
-            else:
-                rebuild_needed=True
-        return (rebuild_needed, publish_needed)
-
-
-    # other config types    
-    if isinstance(conf, confs.InstallConfig) or isinstance(conf, confs.FormatConfig):
-        # install or format config
-        files_ts=confs.get_last_file_modification_ts(conf.config_dir)
-    elif isinstance(conf, confs.DomainConfig):
-        # domain config
-        files_ts=confs.get_last_file_modification_ts(conf.config_file)
-        pac_file=gconf.proxy_pac_file
-        if pac_file:
-            pts=confs.get_last_file_modification_ts(pac_file)
-            if pts>files_ts:
-                files_ts=pts
-    else:
-        raise Exception("CODEBUG: invalid @conf argument")
-
-    if archive_ts<files_ts:
-        return (False, True)
-    return (False, False)
-
-def _get_config_status(gconf, conf, verbose):
-    if isinstance(conf, confs.BuildConfig):
-        (iso_file, build_ts, build_strts)=_get_build_conf_pending_iso(conf)
-        (rebuild_needed, publish_needed)=_conf_needs_action(gconf, conf) if verbose else (False, False)
-        if rebuild_needed:
-            if iso_file:
-                return _("needs to be rebuilt (and existing build @ %s)")%build_strts
-            else:
-                return _("needs to be rebuilt")
-        elif iso_file:
-            if publish_needed:
-                return _("needs to be published")
-            else:
-                return _("existing build @ %s")%build_strts
-    elif isinstance(conf, confs.InstallConfig) or isinstance(conf, confs.FormatConfig) or isinstance(conf, confs.DomainConfig):
-        (rebuild_needed, publish_needed)=_conf_needs_action(gconf, conf) if verbose else (False, False)
-        if publish_needed:
-            return _("needs to be published")
-    return None
+def _format_conf_oneline(conf:confs.ConfigInterface) -> str:
+    return f"{conf.id} ({conf.descr if conf.descr is not None else '--no description--'}){', NON VALID' if not conf.status.valid else ''}"
 
 def show_status(args):
     if not "INSECA_ROOT" in os.environ:
@@ -316,37 +244,38 @@ def show_status(args):
     print(_("Global configuration Ok (%s)")%(_("master") if gconf.is_master else _("not master")))
     print(_("Configuration directory: %s")%gconf.path)
     print(_("Proxy PAC file: %s")%(gconf.proxy_pac_file if gconf.proxy_pac_file else "--"))
+
     conf_list=gconf.build_configs
-    print(_("%s build configuration(s)")%len(conf_list))
+    print(_(f"{len(conf_list)} build configuration(s)"))
     for uid in conf_list:
-        bconf=gconf.get_build_conf(uid)
-        status=_get_config_status(gconf, bconf, args.verbose)
-        if status:
-            print("    Config '%s' (%s): %s"%(bconf.id, bconf.descr, status))
+        conf=gconf.get_build_conf(uid)
+        print(f"{_indent}{_format_conf_oneline(conf)}")
+        if args.verbose:
+            _print_status(conf, _indent*2)
 
     conf_list=gconf.install_configs
-    print("%s install configuration(s)"%len(conf_list))
+    print(f"{len(conf_list)} install configuration(s)")
     for uid in conf_list:
-        iconf=gconf.get_install_conf(uid)
-        status=_get_config_status(gconf, iconf, args.verbose)
-        if status:
-            print("    Config '%s' (%s): %s"%(iconf.id, iconf.descr, status))
+        conf=gconf.get_install_conf(uid)
+        print(f"{_indent}{_format_conf_oneline(conf)}")
+        if args.verbose:
+            _print_status(conf, _indent*2)
 
     conf_list=gconf.format_configs
-    print("%s format configuration(s)"%len(conf_list))
+    print(f"{len(conf_list)} format configuration(s)")
     for uid in conf_list:
-        fconf=gconf.get_format_conf(uid)
-        status=_get_config_status(gconf, fconf, args.verbose)
-        if status:
-            print("    Config '%s' (%s): %s"%(fconf.id, fconf.descr, status))
+        conf=gconf.get_format_conf(uid)
+        print(f"{_indent}{_format_conf_oneline(conf)}")
+        if args.verbose:
+            _print_status(conf, _indent*2)
 
     conf_list=gconf.domain_configs
-    print("%s domain configuration(s)"%len(conf_list))
+    print(f"{len(conf_list)} domain configuration(s)")
     for uid in conf_list:
-        dconf=gconf.get_domain_conf(uid)
-        status=_get_config_status(gconf, dconf, args.verbose)
-        if status:
-            print("    Config '%s' (%s): %s"%(dconf.id, dconf.descr, status))
+        conf=gconf.get_domain_conf(uid)
+        print(f"{_indent}{_format_conf_oneline(conf)}")
+        if args.verbose:
+            _print_status(conf, _indent*2)
 
     conf_list=gconf.repo_configs
     nb=0
@@ -354,7 +283,13 @@ def show_status(args):
         rconf=gconf.get_repo_conf(ruid)
         if rconf.type==confs.RepoType.USERDATA:
             nb+=1
-    print("%s USERDATA repository configuration(s)"%nb)
+    print(f"{nb} USERDATA configuration(s)")
+    for ruid in conf_list:
+        conf=gconf.get_repo_conf(ruid)
+        if conf.type==confs.RepoType.USERDATA:
+            print(f"{_indent}{_format_conf_oneline(conf)}")
+            if args.verbose:
+                _print_status(conf, _indent*2)
 
     Sync.proxy_pac_file=gconf.proxy_pac_file
     sobjects=gconf.get_all_sync_objects(gconf.is_master)
@@ -364,7 +299,7 @@ def show_status(args):
         print("%s configurations:"%("Upload (sync-push)" if gconf.is_master else "Download (sync-pull)"))
         for sobj in sobjects:
             local_st=sobj.root_conf if sobj.is_local else "cloud"
-            print("    %s ('%s', %savailable)"%(sobj.name, local_st, "" if sobj.is_available else "NOT "))
+            print(f"{_indent}{sobj.name} ('{local_st}',{'' if sobj.is_available else 'NOT'} available)")
 
 def init(args):
     # initialize a new INSECA installation
@@ -379,40 +314,6 @@ def init(args):
             util.print_event("Error initializing Git: %s"%err)
         util.write_data_to_file(".borg\nBUILD\nrepos\n*.iso\n*.userdata-specs\n*~\n*#\n", "%s/.gitignore"%gconf.path)
 
-def _repo_get_associated_conf(gconf, rconf):
-    """Get the associated config of a repository config, if any"""
-    if rconf.type==confs.RepoType.USERDATA:
-        return None
-    if rconf.type==confs.RepoType.BUILD:
-        configs=gconf.build_configs
-        for uid in configs:
-            conf=gconf.get_build_conf(uid)
-            if conf.repo_id==rconf.id:
-                return conf
-        raise Exception("BUILD repository '%s' has no associated build configuration"%rconf.id)
-    if rconf.type==confs.RepoType.INSTALL:
-        configs=gconf.install_configs
-        for uid in configs:
-            conf=gconf.get_install_conf(uid)
-            if conf.repo_id==rconf.id:
-                return conf
-        raise Exception("INSTALL repository '%s' has no associated build configuration"%rconf.id)
-    if rconf.type==confs.RepoType.FORMAT:
-        configs=gconf.format_configs
-        for uid in configs:
-            conf=gconf.get_format_conf(uid)
-            if conf.repo_id==rconf.id:
-                return conf
-        raise Exception("FORMAT repository '%s' has no associated build configuration"%rconf.id)
-    if rconf.type==confs.RepoType.DOMAIN:
-        configs=gconf.domain_configs
-        for uid in configs:
-            conf=gconf.get_domain_conf(uid)
-            if conf.repo_id==rconf.id:
-                return conf
-        raise Exception("DOMAIN repository '%s' has no associated build configuration"%rconf.id)
-    raise Exception("CODEBUG, unknown repo type '%s'"%rconf.type)
-
 def list_configs(args):
     ctype=args.type
     gconf=confs.GlobalConfiguration()
@@ -420,40 +321,38 @@ def list_configs(args):
         configs=gconf.build_configs
         for uid in configs:
             conf=gconf.get_build_conf(uid)
-            print("%s: %s"%(conf.id, conf.descr))
-            status=_get_config_status(gconf, conf, args.verbose)
-            if status:
-                print("    %s"%status)
+            print(_format_conf_oneline(conf))
+            if args.verbose:
+                _print_status(conf)
     elif ctype=="install":
         configs=gconf.install_configs
         for uid in configs:
             conf=gconf.get_install_conf(uid)
-            print("%s: %s"%(conf.id, conf.descr))
-            status=_get_config_status(gconf, conf, args.verbose)
-            if status:
-                print("    %s"%status)
+            print(_format_conf_oneline(conf))
+            if args.verbose:
+                _print_status(conf)
     elif ctype=="format":
         configs=gconf.format_configs
         for uid in configs:
             conf=gconf.get_format_conf(uid)
-            print("%s: %s"%(conf.id, conf.descr))
-            status=_get_config_status(gconf, conf, args.verbose)
-            if status:
-                print("    %s"%status)
+            print(_format_conf_oneline(conf))
+            if args.verbose:
+                _print_status(conf)
     elif ctype=="domain":
         configs=gconf.domain_configs
         for uid in configs:
             conf=gconf.get_domain_conf(uid)
-            print("%s: %s"%(conf.id, conf.descr))
-            status=_get_config_status(gconf, conf, args.verbose)
-            if status:
-                print("    %s"%status)
+            print(_format_conf_oneline(conf))
+            if args.verbose:
+                _print_status(conf)
     elif ctype=="userdata":
         configs=gconf.repo_configs
         for uid in configs:
             conf=gconf.get_repo_conf(uid)
             if conf.type==confs.RepoType.USERDATA:
-                print("%s: %s"%(conf.id, conf.descr if conf.descr is not None else "--no description--"))
+                print(_format_conf_oneline(conf))
+                if args.verbose:
+                    _print_status(conf)
     elif ctype=="repo":
         configs=gconf.repo_configs
         for type in confs.RepoType:
@@ -461,243 +360,46 @@ def list_configs(args):
             for uid in configs:
                 rconf=gconf.get_repo_conf(uid)
                 if rconf.type==type:
-                    try:
-                        aconf=_repo_get_associated_conf(gconf, rconf)
-                        if aconf:
-                            print("    %s: %s (for configuration '%s', '%s')"%(rconf.id, rconf.descr if rconf.descr is not None else "--no description--", aconf.id, aconf.descr))
-                        else:
-                            print("    %s: %s"%(rconf.id, rconf.descr if rconf.descr is not None else "--no description--"))
-                    except Exception as e:
-                        print("    %s: %s (WARNING: %s)"%(rconf.id, rconf.descr if rconf.descr is not None else "--no description--", str(e)))
+                    refs=rconf.get_referenced_by_configurations()
+                    if len(refs)==0:
+                        print(f"{_indent}{_format_conf_oneline(rconf)}: orphaned")
+                    elif len(refs)==1:
+                        print(f"{_indent}{_format_conf_oneline(rconf)}, used by {_format_conf_oneline(refs[0])}")
+                    else:
+                        print(f"{_indent}{_format_conf_oneline(rconf)}, used by:")
+                        for ref in refs:
+                            print(f"{_indent*2}{_format_conf_oneline(ref)}")
+                if args.verbose:
+                    _print_status(rconf)
     else:
         raise Exception("Unknown config type '%s"%ctype)
-
-def _repo_create(gconf, repo_type, descr):
-    """Creates a new repository"""
-    if not isinstance(repo_type, confs.RepoType):
-        repo_type=confs.RepoType(repo_type)
-
-    # identify an available repo name and its data path
-    if "INSECA_DEFAULT_REPOS_DIR" in os.environ: 
-        base_repo_data_path=os.environ["INSECA_DEFAULT_REPOS_DIR"]
-    else:
-        base_repo_data_path="%s/repos"%gconf.path
-    index=0
-    while True:
-        path1="%s/repo-configurations/repo.%s"%(gconf.path, index)
-        path2="%s/repo.%s"%(base_repo_data_path, index)
-        if not os.path.exists(path1) and not os.path.exists(path2):
-            name="repo.%s"%index
-            repo_data_path=path2
-            break
-        index+=1
-
-    # preparations
-    repo_conf_path="%s/repo-configurations/%s.json"%(gconf.path, name)
-    if os.path.exists(repo_conf_path):
-        raise Exception("Repo configuration path '%s' already exists"%repo_conf_path)
-
-    # create Borg repo
-    borg_repo=Borg.Repo(repo_data_path, None)
-    password=borg_repo.init()
-    
-    # generate config template
-    ruid="repo-%s"%str(uuid.uuid4())
-    conf={
-        "id": ruid,
-        "type": repo_type.value,
-        "descr": descr,
-        "path": os.path.realpath(repo_data_path),
-        "password": password,
-        "compress": repo_type!=confs.RepoType.BUILD
-    }
-    util.write_data_to_file(json.dumps(conf, indent=4), repo_conf_path)
-    return ruid
-
-def _identify_free_filename(base_dir, prefix, ext=None):
-    """Identify a 'free' (inexistant) directory/file name like $base_dir/$prefix.<index>.
-    Returns the full path"""
-    index=0
-    while True:
-        path="%s/%s.%s"%(base_dir, prefix, index)
-        if ext:
-            path=path+ext
-        if not os.path.exists(path):
-            return path
-        index+=1
 
 def config_create(args):
     # common name and description arguments
     gconf=confs.GlobalConfiguration()
-    res_path="%s/resources"%prog_dir
     descr=args.description
 
     created_conf=None
     if args.type=="admin-build":
-        # create an ADMIN build configuration (no associated repo)
-        (privdata_encrypt_key_priv, privdata_encrypt_key_pub)=x509.gen_rsa_key_pair()
-
-        path=_identify_free_filename(gconf.path+"/build-configurations", "build-adm")
-        buid="build-%s"%str(uuid.uuid4())
-        repl={
-            "dir": path,
-            "descr": descr,
-            "build": buid
-        }
-        data=util.load_file_contents("%s/template-admin-build.json"%(res_path))
-        data=ValueHolder.replace_variables(data, repl)
-        os.makedirs(path)
-        conf_file="%s/build-configuration.json"%path
-        util.write_data_to_file(data, conf_file)
-
-        privdata_encrypt_key_pub.copy_to("%s/privdata-encrypt-key.pub"%path)
-        privdata_encrypt_key_priv.copy_to("%s/privdata-encrypt-key.priv"%path)
-
-        created_conf=buid
+        created_conf=confs.BuildConfig.create_new(gconf, descr, confs.BuildType.ADMIN)
 
     elif args.type=="build":
-        # create a generic build config and its repo
-        (build_sign_key_priv, build_sign_key_pub)=x509.gen_rsa_key_pair()
-        (userdata_sign_key_priv, userdata_sign_key_pub)=x509.gen_rsa_key_pair()
-        (privdata_encrypt_key_priv, privdata_encrypt_key_pub)=x509.gen_rsa_key_pair()
-        
-        path=_identify_free_filename(gconf.path+"/build-configurations", "build")
-        buid="build-%s"%str(uuid.uuid4())
-        ruid=_repo_create(gconf, confs.RepoType.BUILD, "Repository for build '%s'"%descr)
-
-        repl={
-            "dir": path,
-            "descr": descr,
-            "build": buid,
-            "repo": ruid
-        }
-        data=util.load_file_contents("%s/template-generic-build.json"%(res_path))
-        data=ValueHolder.replace_variables(data, repl)
-        os.makedirs(path)
-        conf_file="%s/build-configuration.json"%path
-        util.write_data_to_file(data, conf_file)
-
-        privdata_encrypt_key_pub.copy_to("%s/privdata-encrypt-key.pub"%path)
-        privdata_encrypt_key_priv.copy_to("%s/privdata-encrypt-key.priv"%path)
-        build_sign_key_pub.copy_to("%s/build-sign-key.pub"%path)
-        build_sign_key_priv.copy_to("%s/build-sign-key.priv"%path)
-        userdata_sign_key_pub.copy_to("%s/userdata-sign-key.pub"%path)
-        userdata_sign_key_priv.copy_to("%s/userdata-sign-key.priv"%path)
-
-        created_conf=buid
+        created_conf=confs.BuildConfig.create_new(gconf, descr)
 
     elif args.type=="install":
-        # create an install config and its repo
         if args.build is None:
             raise Exception("Build configuration must be specified")
         build_conf=gconf.get_build_conf(args.build)
-        build_repo=build_conf.repo_id
-        if build_repo is None:
-            raise Exception("Build configuration '%s' does not have any associated repository"%args.build)
-        privdata_enc_privkey=build_conf.privdata_privkey
-
-        userdata_specs=build_conf.userdata_specs
-        userdata={}
-        for component in userdata_specs:
-            userdata[component]={}
-            for entry in userdata_specs[component]:
-                userdata[component][entry]=None
-    
-        (device_metadata_sign_key_priv, device_metadata_sign_key_pub)=x509.gen_rsa_key_pair()
-        (attestation_sign_key_priv, attestation_sign_key_pub)=x509.gen_rsa_key_pair()
-        
-        path=_identify_free_filename(gconf.path+"/install-configurations", "install")
-        iuid="install-%s"%str(uuid.uuid4())
-        created_conf=iuid
-        ruid=_repo_create(gconf, confs.RepoType.INSTALL, "Repository for install '%s'"%descr)
-        password=cgen.generate_password()
-        repl={
-            "descr": descr,
-            "install": iuid,
-            "repo": ruid,
-            "build": build_repo,
-            "rescue": json.dumps(password)[1:-1] # properly encore password as JSON string
-        }
-        data=util.load_file_contents("%s/template-install.json"%(res_path))
-        data=ValueHolder.replace_variables(data, repl, ignore_missing=True)
-
-        conf=json.loads(data)
-        conf["userdata"]=userdata
-        os.makedirs(path)
-
-        # associate the build signing key, if available
-        build_sign_key_pub_file=build_conf.signing_pubkey
-        if build_sign_key_pub_file:
-            shutil.copyfile(build_sign_key_pub_file, "%s/build-sign-key.pub"%path)
-            conf["build-skey-pub-file"]="build-sign-key.pub"
-
-        conf_file="%s/install-configuration.json"%path
-        util.write_data_to_file(json.dumps(conf, indent=4, sort_keys=True), conf_file)
-
-        device_metadata_sign_key_pub.copy_to("%s/device-metadata-sign-key.pub"%path)
-        device_metadata_sign_key_priv.copy_to("%s/device-metadata-sign-key.priv"%path) # will be used by the install config
-        attestation_sign_key_pub.copy_to("%s/attestation-sign-key.pub"%path)
-        attestation_sign_key_priv.copy_to("%s/attestation-sign-key.priv"%path)
-        if privdata_enc_privkey:
-            shutil.copyfile(privdata_enc_privkey, "%s/privdata-encrypt-key.priv"%path)
-
-        # copy template data
-        for fname in ("grub-config", "user-profile"):
-            tmptar=tempfile.NamedTemporaryFile()
-            tarobj=tarfile.open(tmptar.name, mode='w')
-            tarobj.add("%s/%s"%(res_path, fname), arcname=".", recursive=True)
-            tarobj.close()
-            tarobj=tarfile.open(tmptar.name, mode='r')
-            tarobj.extractall("%s/%s"%(path, fname))
-        os.makedirs("%s/user-documents"%path)
-        shutil.copyfile("%s/default-wallpaper.jpg"%res_path, "%s/default-wallpaper.jpg"%path)
+        created_conf=confs.InstallConfig.create_new(gconf, descr, extra=build_conf)
 
     elif args.type=="format":
-        # create a format config and its repo
-        (device_metadata_sign_key_priv, device_metadata_sign_key_pub)=x509.gen_rsa_key_pair()
-        
-        path=_identify_free_filename(gconf.path+"/format-configurations", "format")
-        iuid="format-%s"%str(uuid.uuid4())
-        created_conf=iuid
-        ruid=_repo_create(gconf, confs.RepoType.FORMAT, "Repository for format '%s'"%descr)
-        password=cgen.generate_password()
-        repl={
-            "descr": descr,
-            "install": iuid,
-            "repo": ruid,
-            "rescue": json.dumps(password)[1:-1] # properly encore password as JSON string
-        }
-        data=util.load_file_contents("%s/template-format.json"%(res_path))
-        data=ValueHolder.replace_variables(data, repl, ignore_missing=True)
-        conf_file="%s/format-configuration.json"%path
-        os.makedirs(path)
-        util.write_data_to_file(data, conf_file)
-
-        device_metadata_sign_key_pub.copy_to("%s/device-metadata-sign-key.pub"%path)
-        device_metadata_sign_key_priv.copy_to("%s/device-metadata-sign-key.priv"%path)
+        created_conf=confs.FormatConfig.create_new(gconf, descr)
 
     elif args.type=="domain":
-        # create a new domain configuration and its associated repo
-        conf_file=_identify_free_filename(gconf.path+"/domain-configurations", "domain", ".json")
-        duid="domain-%s"%str(uuid.uuid4())
-        ruid=_repo_create(gconf, confs.RepoType.DOMAIN, "Repository for domain '%s'"%descr)
-        repl={
-            "descr": descr,
-            "domain": duid,
-            "repo": ruid
-        }
-        data=util.load_file_contents("%s/template-domain.json"%(res_path))
-        data=ValueHolder.replace_variables(data, repl)
-        os.makedirs(os.path.dirname(conf_file), exist_ok=True)
-
-        util.write_data_to_file(data, conf_file)
-        created_conf=duid
+        created_conf=confs.DomainConfig.create_new(gconf, descr, confs.RepoType.DOMAIN)
 
     elif args.type=="userdata":
-        # create a new userdata repo
-        path=_identify_free_filename(gconf.path+"/repo-configurations", "repo", ".json")
-        ruid=_repo_create(gconf, confs.RepoType.USERDATA, descr)
-        created_conf=ruid
+        created_conf=confs.RepoConfig.create_new(gconf, descr, confs.RepoType.USERDATA)
     else:
         raise Exception("Unknown config. type '%s'"%args.type)
 
@@ -708,97 +410,42 @@ def config_create(args):
     else:
         raise Exception(err)
 
-def _config_remove_one(gconf, uid, confirmation_required):
-    """Remove a single config specified by its UID"""
-    def _assert_confirmation(conf, confirmation_required):
-        if confirmation_required:
-            if isinstance(conf, confs.BuildConfig):
-                if conf.repo_id:
-                    c=input("Confirm removal of build configuration '%s' and its repository (enter YES):"%conf.descr)
-                else:
-                    c=input("Confirm removal of build configuration '%s' (enter YES):"%conf.descr)
-            elif isinstance(conf, confs.InstallConfig):
-                c=input("Confirm removal of install configuration '%s' (enter YES):"%conf.descr)
-            elif isinstance(conf, confs.FormatConfig):
-                c=input("Confirm removal of format configuration '%s' (enter YES):"%conf.descr)
-            elif isinstance(conf, confs.RepoConfig):
-                if conf.type==confs.RepoType.USERDATA:
-                    c=input("Confirm removal of USERDATA repository configuration '%s' (enter YES):"%conf.descr)
-                else:
-                    raise Exception("Can't remove individual repository")
-            elif isinstance(conf, confs.DomainConfig):
-                c=input("Confirm removal of domain configuration '%s' (enter YES):"%conf.descr)
-            if c!="YES":
-                print("Cancelled")
-                return
+def config_clone(args):
+    uid=args.config
+    descr=args.description
+    target_root=args.other_root
+    gconf=confs.GlobalConfiguration()
+    conf=gconf.get_any_conf(uid, exception_if_not_found=True)
 
-    # build configuration ?    
-    conf=gconf.get_build_conf(uid, exception_if_not_found=False)
-    if conf:
-        _assert_confirmation(conf, confirmation_required)
-        # ensure no install config uses the associated build repo
-        for iuid in gconf.install_configs:
-            iconf=gconf.get_install_conf(iuid)
-            if iconf.build_id==uid:
-                raise Exception("Build config is referenced by install config '%s'"%iconf.descr)
+    map={}
+    if target_root is None:
+        target_gconf=None
+    else:
+        target_gconf=confs.GlobalConfiguration(target_root)
+        if isinstance(conf, confs.InstallConfig):
+            # we need to also clone the associated build configuration
+            print(f"=> cloning {conf.build_id}")
+            bconf=conf.global_conf.get_build_conf(conf.build_id)
+            nbuid=bconf.clone(target_gconf, bconf.descr, map)
+            print(f"=> {conf.build_id} cloned as {nbuid}")
+            for c, m in map.items():
+                print(f"MAP: {c.id} --> {m}")
+    
+    if target_gconf is None:
+        print(f"Cloning {uid} as '{descr}'")
+    else:
+        print(f"Cloning {uid} to {target_gconf.path} as '{descr}'")
+    cloned_conf=conf.clone(target_gconf, descr, map)
 
-        # # ensure the associated repository is empty
-        if conf.repo_id:
-            rconf=gconf.get_repo_conf(conf.repo_id)
-            if len(rconf.get_all_archives())!=0:
-                raise Exception("Build config's associated repository is not empty")
-
-            _config_remove_one(gconf, conf.repo_id, False)
-        print("To remove BUILD %s: %s"%(uid, conf.descr))
-        #print("rm -rf %s"%conf.config_dir)
-        shutil.rmtree(conf.config_dir)
-        return
-
-    # install configuration ?    
-    conf=gconf.get_install_conf(uid, exception_if_not_found=False)
-    if conf:
-        # ensure no domain config uses this configuration
-        for duid in gconf.domain_configs:
-            dconf=gconf.get_domain_conf(duid)
-            if uid in dconf.install_ids:
-                raise Exception("Install config is referenced by domain config '%s'"%dconf.descr)
-        _config_remove_one(gconf, conf.repo_id, False)
-        print("To remove INSTALL %s: %s"%(uid, conf.descr))
-        #print("rm -rf %s"%conf.config_dir)
-        shutil.rmtree(conf.config_dir)
-        return
-
-    # format configuration ?    
-    conf=gconf.get_format_conf(uid, exception_if_not_found=False)
-    if conf:
-        # ensure no domain config uses this configuration
-        for duid in gconf.domain_configs:
-            dconf=gconf.get_domain_conf(duid)
-            if uid in dconf.format_ids:
-                raise Exception("Format config is referenced by domain config '%s'"%dconf.descr)
-        _config_remove_one(gconf, conf.repo_id, False)
-        print("To remove FORMAT %s: %s"%(uid, conf.descr))
-        #print("rm -rf %s"%conf.config_dir)
-        shutil.rmtree(conf.config_dir)
-        return
-
-    # domain configuration ?    
-    conf=gconf.get_domain_conf(uid, exception_if_not_found=False)
-    if conf:
-        print("To remove DOMAIN %s: %s"%(uid, conf.descr))
-        print("rm -f %s"%conf.config_file)
-        #os.remove(conf.config_file)
-        return
-
-    # repo configuration ?    
-    conf=gconf.get_repo_conf(uid, exception_if_not_found=False)
-    if conf:
-        print("To remove REPO %s: %s"%(uid, conf.descr))
-        print("rm -f %s"%conf.config_file)
-        #os.remove(conf.config_file)
-        return
-
-    raise Exception("Configuration '%s' can't be removed"%uid)
+    # print result
+    if target_gconf is None:
+        (status, out, err)=util.exec_sync([prog_path, "config-infos", cloned_conf])
+        if status==0:
+            print("%s"%out)
+        else:
+            raise Exception(err)
+    else:
+        print(f"Created configuration {cloned_conf}")
 
 def config_remove(args):
     if args.verbose:
@@ -811,25 +458,83 @@ def config_remove(args):
     if len(args.config)==0:
         raise Exception("No configuration to remove has been specified")
 
+    def _request_confirmation(conf:confs.ConfigInterface):
+        if isinstance(conf, confs.BuildConfig):
+            c=input("Confirm removal of build configuration '%s' (enter YES):"%conf.descr)
+        elif isinstance(conf, confs.InstallConfig):
+            c=input("Confirm removal of install configuration '%s' (enter YES):"%conf.descr)
+        elif isinstance(conf, confs.FormatConfig):
+            c=input("Confirm removal of format configuration '%s' (enter YES):"%conf.descr)
+        elif isinstance(conf, confs.RepoConfig):
+            if conf.type==confs.RepoType.USERDATA:
+                c=input("Confirm removal of USERDATA repository configuration '%s' (enter YES):"%conf.descr)
+            return True
+        elif isinstance(conf, confs.DomainConfig):
+            c=input("Confirm removal of domain configuration '%s' (enter YES):"%conf.descr)
+        return c=="YES"
+
     # remove the specified configs
     for uid in args.config:
-        util.print_event("Removing config '%s'"%uid)
-        _config_remove_one(gconf, uid, not args.confirm)
+        conf=gconf.get_any_conf(uid)
+        to_be_removed=[]
+        to_keep=[]
+
+        # check if the configuration is currently needed by another configuration
+        byrefs=conf.get_referenced_by_configurations()
+        if len(byrefs)>0:
+            for ref in byrefs:
+                print(f"Configuration needed by {ref.id}: {ref.descr}")
+            raise Exception("Configuration can't be removed")
+
+        # one can't remove a non USERDATA repo directly
+        if isinstance(conf, confs.RepoConfig) and conf.type!=confs.RepoType.USERDATA:
+            raise Exception("Directly removing a repository is not allowed")
+
+        # check if any of the referenced configuration is currently needed by another configuration
+        refs=conf.get_referenced_configurations()
+        for ref in refs:
+            keep=True
+            byrefs=ref.get_referenced_by_configurations()
+            if byrefs==[] or byrefs==[conf]:
+                if isinstance(ref, confs.RepoConfig):
+                    if ref.type==confs.RepoType.USERDATA:
+                        print(f"NB: Configuration {ref.id} ({ref.descr}) will be kept as it is a USERDATA repo. configuration")
+                    else:
+                        keep=False
+                else:
+                    print(f"NB: Configuration {ref.id} ({ref.descr}) will be kept as it is not a repos. configuration")
+            else:
+                for bref in byrefs:
+                    if bref!=conf:
+                        print(f"NB: Configuration {ref.id} ({ref.descr}) will be kept as it is used by {bref.id} ({bref.descr})")
+            if keep:
+                to_keep.append(ref)
+            else:
+                to_be_removed.append(ref)
+
+        if not args.confirm and not _request_confirmation(conf):
+            raise Exception("Cancelled")
+        to_be_removed.append(conf)
+
+        # actual removal of configurations
+        for conf in to_be_removed:
+            print(f"Removing configuration {conf.id}: {conf.descr}")
+            conf.remove(to_keep)
 
 def _print_repo_archives(rconf, indent=""):
     arlist=rconf.get_all_archives()
     tslist=list(arlist.keys())
     tslist.sort(reverse=True)
     for ts in tslist:
-        print("%s@%s: %s"%(indent, _format_ts(ts), arlist[ts]))
+        print("%s@%s: %s"%(indent, util.format_timestamp(ts), arlist[ts]))
 
 def config_infos(args):
     uid=args.config
     gconf=confs.GlobalConfiguration()
+    conf=gconf.get_any_conf(uid, exception_if_not_found=False)
 
     # build configuration ?
-    conf=gconf.get_build_conf(uid, exception_if_not_found=False)
-    if conf:
+    if isinstance(conf, confs.BuildConfig):
         print("Build configuration ID: %s"%conf.id)
         print("Build type: %s"%conf.build_type.value)
         print("Description: %s"%conf.descr)
@@ -838,172 +543,130 @@ def config_infos(args):
         print("Repo ID: %s"%conf.repo_id)
         if "signature" not in conf.components:
             print("Builds are not signed (the 'signature' component is not present)")
-        status=_get_config_status(gconf, conf, args.verbose)
-        if status:
-            print("Status: %s"%status)
-        try:
-            conf.validate()
-        except Exception as e:
-            print("ERROR: %s"%str(e))
         if conf.repo_id:
             print("Live Linux archives:")
             rconf=gconf.get_repo_conf(conf.repo_id)
-            _print_repo_archives(rconf, "    ")
+            _print_repo_archives(rconf, _indent)
 
             iconfs=gconf.install_configs
             print("Referenced by installation configurations:")
             for iuid in iconfs:
                 iconf=gconf.get_install_conf(iuid)
                 if iconf.build_id==uid:
-                    print("    %s (%s)"%(iconf.id, iconf.descr))
+                    print(f"{_indent}{iconf.id} ({iconf.descr})")
+
+        if conf.status.valid:
+            print("Configuration is valid")
+        else:
+            print("Configuration needs to be corrected")
+        _print_status(conf)
         return
 
     # install configuration ?
-    conf=gconf.get_install_conf(uid, exception_if_not_found=False)
-    if conf:
+    if isinstance(conf, confs.InstallConfig):
         print("Install configuration ID: %s"%conf.id)
         print("Description: %s"%conf.descr)
         print("Configuration file: %s"%conf.config_file)
         print("Repo ID: %s"%conf.repo_id)
-        status=_get_config_status(gconf, conf, args.verbose)
-        if status:
-            print("Status: %s"%status)
-        try:
-            conf.validate()
-        except Exception as e:
-            print("ERROR: %s"%str(e))
         print("Install archives:")
         rconf=gconf.get_repo_conf(conf.repo_id)
-        _print_repo_archives(rconf, indent="    ")
+        _print_repo_archives(rconf, indent=_indent)
         print("Build configuration ID: %s"%conf.build_id)
         print("Build repository ID: %s"%conf.build_repo_id)
+        bruid=gconf.get_repo_conf(conf.build_repo_id)
 
-        errors=[]
-
-        # checking match with associated build's USERDATA specifications
-        bconf=gconf.get_build_conf(conf.build_id)
-        userdata_specs=bconf.userdata_specs
-        userdata=conf.userdata
-        for component in userdata_specs:
-            if component not in userdata:
-                errors+=["Missing USERDATA specification for component '%s'"%component]
-            else:
-                for entry in userdata_specs[component]:
-                    edata=userdata_specs[component][entry]
-                    if edata["type"]=="file":
-                        if entry not in userdata[component]:
-                            errors+=["Missing USERDATA attribute '%s' for component '%s'"%(entry, component)]
-                        else:
-                            ruid=userdata[component][entry]
-                            if ruid:
-                                userdataconf=gconf.get_repo_conf(ruid, exception_if_not_found=False)
-                                if userdataconf is None:
-                                    errors+=["Referenced USERDATA repository '%s' for attribute '%s' of component '%s' does not exist"%(ruid, entry, component)]
-                                elif userdataconf.type!=confs.RepoType.USERDATA:
-                                    errors+=["Referenced repository '%s' for attribute '%s' of component '%s' is not a USERDATA repository"%(ruid, entry, component)]
-                            else:
-                                errors+=["Unspecified USERDATA repository for attribute '%s' of component '%s'"%(entry, component)]
-
-                for entry in userdata[component]:
-                    if entry not in userdata_specs[component]:
-                        errors+=["Invalid USERDATA attribute '%s' for component '%s'"%(entry, component)]
-        for component in userdata:
-            if component not in userdata_specs:
-                errors+=["USERDATA specified but not used for component '%s'"%component]
-
-        # checking match of keys
-        path=conf.config_dir
-        i_privkey="%s/privdata-encrypt-key.priv"%path
-        b_privkey=bconf.privdata_privkey
-        if b_privkey is None:
-            if os.path.exists(i_privkey):
-                errors+=["PRIVDATA decrypt key is defined but useless ('%s')"%i_privkey]
+        if conf.status.valid:
+            print("Configuration is valid")
         else:
-            if not os.path.exists(i_privkey):
-                errors+=["PRIVDATA decrypt key is missing ('%s')"%i_privkey]
-            else:
-                idata=util.load_file_contents(i_privkey, binary=True)
-                bdata=util.load_file_contents(b_privkey, binary=True)
-                if idata!=bdata:
-                    errors+=["PRIVDATA decrypt key does not match associated build's key"]
-
-        # report errors, if any
-        if len(errors)>0:
-            print("Errors:")
-            for line in errors:
-                print("    %s"%line)
+            print("Configuration needs to be corrected")
+        _print_status(conf)
         return
 
     # format configuration ?
-    conf=gconf.get_format_conf(uid, exception_if_not_found=False)
-    if conf:
+    if isinstance(conf, confs.FormatConfig):
         print("Format configuration ID: %s"%conf.id)
         print("Description: %s"%conf.descr)
         print("Configuration file: %s"%conf.config_file)
         print("Repo ID: %s"%conf.repo_id)
-        status=_get_config_status(gconf, conf, args.verbose)
-        if status:
-            print("Status: %s"%status if status else "--")
         print("Archives of this format config:")
         rconf=gconf.get_repo_conf(conf.repo_id)
-        _print_repo_archives(rconf, indent="    ")
+        _print_repo_archives(rconf, indent=_indent)
+
+        if conf.status.valid:
+            print("Configuration is valid")
+        else:
+            print("Configuration needs to be corrected")
+        _print_status(conf)
         return
 
     # domain configuration ?
-    conf=gconf.get_domain_conf(uid, exception_if_not_found=False)
-    if conf:
+    if isinstance(conf, confs.DomainConfig):
         print("Domain configuration ID: %s"%conf.id)
         print("Description: %s"%conf.descr)
         print("Configuration file: %s"%conf.config_file)
         print("Repo ID: %s"%conf.repo_id)
-        status=_get_config_status(gconf, conf, args.verbose)
-        if status:
-            print("Status: %s"%status)
         for iuid in conf.install_ids:
             print("Available installation")
             iconf=gconf.get_install_conf(iuid, exception_if_not_found=False)
             if iconf is not None:
-                print("    Install configuration: %s"%iconf.id)
-                print("    Description: %s"%iconf.descr)
+                print(f"{_indent}Install configuration: %s"%iconf.id)
+                print(f"{_indent}Description: %s"%iconf.descr)
             else:
-                print("    ERROR: corresponding installation configuration not found")
+                print(f"{_indent}ERROR: corresponding installation configuration not found")
         for iuid in conf.format_ids:
             print("Available format configurations")
             iconf=gconf.get_format_conf(iuid, exception_if_not_found=False)
             if iconf is not None:
-                print("    Format configuration: %s"%iconf.id)
-                print("    Description: %s"%iconf.descr)
+                print(f"{_indent}Format configuration: %s"%iconf.id)
+                print(f"{_indent}Description: %s"%iconf.descr)
             else:
-                print("    ERROR: corresponding format configuration not found")
+                print(f"{_indent}ERROR: corresponding format configuration not found")
         print("Archives of this domain config:")
         rconf=gconf.get_repo_conf(conf.repo_id)
-        _print_repo_archives(rconf, indent="    ")
+        _print_repo_archives(rconf, indent=_indent)
+
+        if conf.status.valid:
+            print("Configuration is valid")
+        else:
+            print("Configuration needs to be corrected")
+        _print_status(conf)
         return
 
     # repo configuration ?
-    conf=gconf.get_repo_conf(uid, exception_if_not_found=False)
-    if conf:
+    if isinstance(conf, confs.RepoConfig):
         print("Repository configuration ID: %s"%conf.id)
         print("Description: %s"%conf.descr if conf.descr is not None else "--no description--")
         print("Configuration file: %s"%conf.config_file)
         print("Repository type: %s"%str(conf.type))
         print("Data path: %s"%conf.path)
         print("Size: %s"%conf.used_space)
-        try:
-            aconf=_repo_get_associated_conf(gconf, conf)
-            if aconf:
-                print("Used by configuration: %s (%s)"%(aconf.id, aconf.descr))
-        except Exception as e:
-            print("WARNING: %s"%str(e))
+
+        refs=conf.get_referenced_by_configurations()
+        if len(refs)==0:
+            print(f"Not used by any configuration (orphaned)")
+        elif len(refs)==1:
+            print(f"Used by: {_format_conf_oneline(refs[0])}")
+        else:
+            print(f"Used by:")
+            for ref in refs:
+                print(f"{_indent}{_format_conf_oneline(ref)}")
+
         env=conf.get_borg_exec_env()
         if args.verbose:
             print("Usage environment:")
             for name in env:
                 if name.startswith("BORG_"):
-                    print("    export %s=%s"%(name, shlex.quote(env[name])))
+                    print(f"{_indent}export {name}={shlex.quote(env[name])}")
         print("Archives in repository:")
-        _print_repo_archives(conf, indent="    ")
+        _print_repo_archives(conf, indent=_indent)
+
+        if conf.status.valid:
+            print("Configuration is valid")
+        else:
+            print("Configuration needs to be corrected")
+        _print_status(conf)
         return
+
     raise Exception("Config '%s' not found"%uid)
 
 def repo_ls(args):
@@ -1031,6 +694,7 @@ def _sync_pull(rconf, sync_obj):
     util.print_event("Downloading '%s'"%rconf.descr)
     so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
     so.sync()
+    util.print_event("Checking downloaded data's validity")
     rconf.borg_repo.check() # ensure repo is useable
 
 def sync_push(args):
@@ -1049,10 +713,16 @@ def sync_push(args):
     else:
         repos=args.repos
 
-    for repo in repos:
-        rconf=gconf.get_repo_conf(repo)
-        print("Pushing '%s' (%s): %s"%(repo, rconf.type.value.upper(), rconf.descr))
-        _sync_push(rconf, sync)
+    for uid in repos:
+        conf=gconf.get_any_conf(uid)
+        if isinstance(conf, confs.RepoConfig):
+            print(f"Pushing {_format_conf_oneline(conf)}, {conf.type.value.upper()}")
+            _sync_push(conf, sync)
+        else:
+            for cref in conf.get_referenced_configurations():
+                if isinstance(cref, confs.RepoConfig):
+                    print(f"Pushing {_format_conf_oneline(cref)}, {cref.type.value.upper()}")
+                    _sync_push(cref, sync)
 
 def sync_pull(args):
     """Using the defined domain configuration(s), update the whole local configuration"""
@@ -1070,13 +740,17 @@ def sync_pull(args):
     newconfdir=gconf.create_update_dir()
 
     # update and extract all DOMAIN repos present in the config dir
-    for ruid in gconf.repo_configs:
-        rconf=gconf.get_repo_conf(ruid)
-        if rconf.type==confs.RepoType.DOMAIN:
-            _sync_pull(rconf, sync)
-            (ts, lastarname)=rconf.get_latest_archive()
-            if lastarname:
-                rconf.extract_archive(lastarname, newconfdir)
+    try:
+        for ruid in gconf.repo_configs:
+            rconf=gconf.get_repo_conf(ruid)
+            if rconf.type==confs.RepoType.DOMAIN:
+                _sync_pull(rconf, sync)
+                (ts, lastarname)=rconf.get_latest_archive()
+                if lastarname:
+                    rconf.extract_archive(lastarname, newconfdir)
+    except Exception:
+        # ignore error, do as best as we can
+        pass
 
     # create new GlobalConfiguration from the extracted data
     ngconf=confs.GlobalConfiguration(path=newconfdir)
@@ -1090,7 +764,7 @@ def sync_pull(args):
             updated_repos+=[rconf.id]
         ngconf=confs.GlobalConfiguration(path=newconfdir)
     except Exception:
-        # we need to continue and extract the last archives + perform cleanups
+        # ignore error, do as best as we can
         pass
 
     # for each INSTALL and FORMAT repo: extract the corresponding data from the last archive
@@ -1438,6 +1112,8 @@ def userdata_add(args):
     rconf=gconf.get_repo_conf(args.repo)
     if rconf.type!=confs.RepoType.USERDATA:
         raise Exception("Invalid non USERDATA repository")
+    if not rconf.status.valid:
+            raise Exception(f"Configuration {rconf.id} is invalid")
     (ts, last_arname)=rconf.borg_repo.get_latest_archive()
 
     # check that the file to add actually exist
@@ -1519,7 +1195,9 @@ def build(args):
     gconf=confs.GlobalConfiguration()
     for buid in args.build:
         bconf=gconf.get_build_conf(buid)
-        print("Building configuration '%s': %s"%(bconf.id, bconf.descr))
+        if not bconf.status.valid:
+            raise Exception(f"Configuration {buid} is invalid")
+        print(f"Building configuration {_format_conf_oneline(bconf)}")
         builder=LiveBuilder.Builder(buid, args.dry)
         builder.prepare_build_dir()
         builder.copy_resources()
@@ -1547,21 +1225,20 @@ def build(args):
 
 def gen_params(args):
     gconf=confs.GlobalConfiguration()
-    iconf=gconf.get_install_conf(args.config, exception_if_not_found=False)
-    fconf=None
-    if not iconf:
-        fconf=gconf.get_format_conf(args.config, exception_if_not_found=False)
-        if not fconf:
-            raise Exception("Unknown install/format configuration '%s'"%args.config)
+    conf=gconf.get_any_conf(args.config)
+    if not conf.status.valid:
+        raise Exception(f"Configuration {conf.id} is invalid")
     try:
-        if iconf:
+        if isinstance(conf, confs.InstallConfig):
             (linuximage, linuxuserdata, infos)=gconf.get_install_elements(iconf)
             pset=Installer.ParamsSet(iconf, linuxuserdata)
             templ={"_components": {}}
-        else:
+        elif isinstance(conf, confs.FormatConfig):
             fconf=gconf.get_format_conf(args.config)
             pset=Installer.ParamsSet(fconf)
             templ={}
+        else:
+            raise Exception(_(f"Configuration {_format_conf_oneline(conf)} is not an install or a format configuration"))
 
         params=pset.params
         print("Required parameters: %s"%json.dumps(params, indent=4, sort_keys=True))
@@ -1582,8 +1259,9 @@ def gen_params(args):
                     default=entry["default"]
                 templ[key]=default
         print("\nTemplate: %s"%json.dumps(templ, indent=4, sort_keys=True))
+
     finally:
-        if iconf:
+        if isinstance(conf, confs.InstallConfig):
             gconf.release_install_elements(iconf)
 
 def dev_install(args):
@@ -1594,7 +1272,9 @@ def dev_install(args):
 
     # install config specified?
     iconf=gconf.get_install_conf(args.config, exception_if_not_found=False)
-    if iconf:
+    if iconf is not None:
+        if not iconf.status.valid:
+            raise Exception(f"Configuration {iconf.id} is invalid")
         try:
             (linuximage, linuxuserdata, infos)=gconf.get_install_elements(iconf, args.archive)
 
@@ -1626,7 +1306,9 @@ def dev_install(args):
 
     # build config specified?
     bconf=gconf.get_build_conf(args.config, exception_if_not_found=False)
-    if bconf:
+    if bconf is not None:
+        if not bconf.status.valid:
+            raise Exception(f"Configuration {bconf.id} is invalid")
         if bconf.build_type in (confs.BuildType.WKS, confs.BuildType.SERVER):
             raise Exception("Workstation or server builds must be installed using an install. configuration")
         if args.archive: # use specified archive
@@ -1749,6 +1431,8 @@ def dev_update_linux(args):
         confid=udata["confid"]
         iconf=gconf.get_install_conf(confid)
         util.print_event("Device's installation configuration is: %s"%confid)
+        if not iconf.status.valid:
+            raise Exception(f"Configuration {iconf.id} is invalid")
     except Exception:
         raise Exception("Could not identify device's configuration")
 
@@ -1797,6 +1481,8 @@ def dev_format(args):
 
     gconf=confs.GlobalConfiguration()
     fconf=gconf.get_format_conf(args.format)
+    if not fconf.status.valid:
+        raise Exception(f"Configuration {fconf.id} is invalid")
 
     # analyse parameter's values
     paramsf=os.path.realpath(paramsf)
@@ -1866,6 +1552,8 @@ def _prepare_config_data(domain_confs, bconf):
 
     # include PRIVDATA's private key, if any
     if bconf and bconf.privdata_privkey:
+        if not bconf.status.valid:
+            raise Exception(f"Configuration {bconf.id} is invalid")
         credsdir="%s/credentials"%tmpdir.name
         os.makedirs(credsdir, mode=0o700)
         shutil.copyfile(bconf.privdata_privkey, "%s/privdata-ekey.priv"%credsdir)
@@ -2353,6 +2041,7 @@ try:
             "configs": list_configs,
             "config-infos": config_infos,
             "config-create": config_create,
+            "config-clone": config_clone,
             "config-remove": config_remove,
             "config-publish": config_publish,
             "repo-ls": repo_ls,
@@ -2417,6 +2106,5 @@ try:
         else:
             print("%s"%parser.format_help())
 except Exception as e:
-    #raise e
     print("Error: %s"%str(e), file=sys.stderr)
     sys.exit(1)

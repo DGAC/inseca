@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2023 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -112,9 +112,12 @@ class Repo:
 
         raise Exception("%s: %s"%(context, err))
 
-    def _borg_run(self, args, context, stdin_data=None, cwd=None):
+    def _borg_run(self, args:list[str], context:str, stdin_data:str=None, cwd:str=None, env_variables:dict[str, str]=None):
         """Execute Borg, handle errors and return the execution's output"""
-        (status, out, err)=util.exec_sync([self._borg_prog]+args, exec_env=self.get_exec_env(),
+        cenv=self.get_exec_env()
+        if env_variables is not None:
+            cenv.update(env_variables)
+        (status, out, err)=util.exec_sync([self._borg_prog]+args, exec_env=cenv,
                                           stdin_data=stdin_data, cwd=cwd)
         if status!=0:
             self._borg_err_to_exception(context, err)
@@ -142,12 +145,18 @@ class Repo:
 
         return self._password
 
+    def change_password(self, new_password:str):
+        """Change the password of the repository"""
+        util.print_event(_("Changing repository's password"))
+        self._borg_run(["key", "change-passphrase"],
+                        _("Could not change password"), env_variables={"BORG_NEW_PASSPHRASE": new_password})
+
     def create_archive(self, datadir, compress=False):
         """Create a new archive containing the data in @datadir.
         Returns: the new archive's name"""
         # create archive
         arname=str(uuid.uuid4())
-        util.print_event(("Creating archive '%s'")%arname)
+        util.print_event(_("Creating archive '%s'")%arname)
         self._borg_run(["create", "-C", "lzma,9" if compress else "none", "::%s"%arname, "."],
                         _("Could not create archive"), stdin_data="Y", cwd=datadir)
 
