@@ -175,10 +175,11 @@ sparser.add_argument("--decrypt_key", metavar="decrypt-key", help=_("Force a spe
 sparser=subparsers.add_parser("dev-wipe", help=_("Remove everything on a device"))
 sparser.add_argument("devfile", help=_("Device's associated file (e.g. /dev/sda)"))
 sparser.add_argument("--confirm", help=_("Confirm the removal without any confirmation asked"), action="store_true")
+sparser.add_argument("--metadata-only", help=_("Only wipe the metadata and not the whole device"), action="store_true")
 
 sparser=subparsers.add_parser("dev-copy", help=_("Makes a byte for byte copy of a device to a file (like dd) or vice-versa"))
-sparser.add_argument("infile", help=_("Input file (e.g. /dev/sda)"))
-sparser.add_argument("outfile", help=_("File to copy data to"))
+sparser.add_argument("infile", help=_("Input file (or device) or admin build configuration"))
+sparser.add_argument("outfile", help=_("File (or device) to copy data to"))
 
 sparser=subparsers.add_parser("dev-run-in-vm", help=_("Starts an INSECA device in a VM"))
 sparser.add_argument("devfile", nargs='?', default=None, help=_("Device's associated file (e.g. /dev/sda)"))
@@ -423,13 +424,12 @@ def config_clone(args):
     else:
         target_gconf=confs.GlobalConfiguration(target_root)
         if isinstance(conf, confs.InstallConfig):
+            if conf.build_id is not None:
             # we need to also clone the associated build configuration
-            print(f"=> cloning {conf.build_id}")
-            bconf=conf.global_conf.get_build_conf(conf.build_id)
-            nbuid=bconf.clone(target_gconf, bconf.descr, map)
-            print(f"=> {conf.build_id} cloned as {nbuid}")
-            for c, m in map.items():
-                print(f"MAP: {c.id} --> {m}")
+                print(f"Cloning {conf.build_id}")
+                bconf=conf.global_conf.get_build_conf(conf.build_id)
+                nbuid=bconf.clone(target_gconf, bconf.descr, map)
+                print(f"{conf.build_id} cloned as {nbuid}")
     
     if target_gconf is None:
         print(f"Cloning {uid} as '{descr}'")
@@ -522,11 +522,14 @@ def config_remove(args):
             conf.remove(to_keep)
 
 def _print_repo_archives(rconf, indent=""):
-    arlist=rconf.get_all_archives()
-    tslist=list(arlist.keys())
-    tslist.sort(reverse=True)
-    for ts in tslist:
-        print("%s@%s: %s"%(indent, util.format_timestamp(ts), arlist[ts]))
+    try:
+        arlist=rconf.get_all_archives()
+        tslist=list(arlist.keys())
+        tslist.sort(reverse=True)
+        for ts in tslist:
+            print("%s@%s: %s"%(indent, util.format_timestamp(ts), arlist[ts]))
+    except Exception:
+        pass
 
 def config_infos(args):
     uid=args.config
@@ -544,9 +547,10 @@ def config_infos(args):
         if "signature" not in conf.components:
             print("Builds are not signed (the 'signature' component is not present)")
         if conf.repo_id:
-            print("Live Linux archives:")
-            rconf=gconf.get_repo_conf(conf.repo_id)
-            _print_repo_archives(rconf, _indent)
+            rconf=gconf.get_repo_conf(conf.repo_id, exception_if_not_found=False)
+            if rconf is not None:
+                print("Live Linux archives:")
+                _print_repo_archives(rconf, _indent)
 
             iconfs=gconf.install_configs
             print("Referenced by installation configurations:")
@@ -568,12 +572,13 @@ def config_infos(args):
         print("Description: %s"%conf.descr)
         print("Configuration file: %s"%conf.config_file)
         print("Repo ID: %s"%conf.repo_id)
-        print("Install archives:")
-        rconf=gconf.get_repo_conf(conf.repo_id)
-        _print_repo_archives(rconf, indent=_indent)
+        rconf=gconf.get_repo_conf(conf.repo_id, exception_if_not_found=False)
+        if rconf is not None:
+            print("Install archives:")
+            _print_repo_archives(rconf, indent=_indent)
+
         print("Build configuration ID: %s"%conf.build_id)
         print("Build repository ID: %s"%conf.build_repo_id)
-        bruid=gconf.get_repo_conf(conf.build_repo_id)
 
         if conf.status.valid:
             print("Configuration is valid")
@@ -588,9 +593,10 @@ def config_infos(args):
         print("Description: %s"%conf.descr)
         print("Configuration file: %s"%conf.config_file)
         print("Repo ID: %s"%conf.repo_id)
-        print("Archives of this format config:")
-        rconf=gconf.get_repo_conf(conf.repo_id)
-        _print_repo_archives(rconf, indent=_indent)
+        rconf=gconf.get_repo_conf(conf.repo_id, exception_if_not_found=False)
+        if rconf is not None:
+            print("Archives of this format config:")
+            _print_repo_archives(rconf, indent=_indent)
 
         if conf.status.valid:
             print("Configuration is valid")
@@ -621,9 +627,10 @@ def config_infos(args):
                 print(f"{_indent}Description: %s"%iconf.descr)
             else:
                 print(f"{_indent}ERROR: corresponding format configuration not found")
-        print("Archives of this domain config:")
-        rconf=gconf.get_repo_conf(conf.repo_id)
-        _print_repo_archives(rconf, indent=_indent)
+        rconf=gconf.get_repo_conf(conf.repo_id, exception_if_not_found=False)
+        if rconf is not None:
+            print("Archives of this domain config:")
+            _print_repo_archives(rconf, indent=_indent)
 
         if conf.status.valid:
             print("Configuration is valid")
@@ -697,11 +704,29 @@ def _sync_pull(rconf, sync_obj):
     util.print_event("Checking downloaded data's validity")
     rconf.borg_repo.check() # ensure repo is useable
 
+def _get_associated_repo_configurations(uid:str) -> list[confs.RepoConfig]:
+    """Get a list of repositorie configurations associated to the
+    @uid configuration:
+    - if the @uid configuration is a RepoConfig, then return it
+    - otherwise return all the RepoConfig referenced by the @uid configuration
+    """
+    gconf=confs.GlobalConfiguration()
+    conf=gconf.get_any_conf(uid)
+    if isinstance(conf, confs.RepoConfig):
+        return [conf]
+    else:
+        res=[]
+        for cref in conf.get_referenced_configurations():
+            if isinstance(cref, confs.RepoConfig):
+                res.append(cref)
+        return res
+
 def sync_push(args):
     """Push a repository (or all repositories if not specified) to a target location"""
     if args.verbose:
         util.print_events=True
     gconf=confs.GlobalConfiguration()
+    Sync.proxy_pac_file=gconf.proxy_pac_file
 
     if not gconf.is_master:
         raise Exception("Installation is not a master configuration, cannot push repository's contents")
@@ -714,15 +739,9 @@ def sync_push(args):
         repos=args.repos
 
     for uid in repos:
-        conf=gconf.get_any_conf(uid)
-        if isinstance(conf, confs.RepoConfig):
-            print(f"Pushing {_format_conf_oneline(conf)}, {conf.type.value.upper()}")
-            _sync_push(conf, sync)
-        else:
-            for cref in conf.get_referenced_configurations():
-                if isinstance(cref, confs.RepoConfig):
-                    print(f"Pushing {_format_conf_oneline(cref)}, {cref.type.value.upper()}")
-                    _sync_push(cref, sync)
+        for rconf in _get_associated_repo_configurations(uid):
+            print(f"Pushing {_format_conf_oneline(rconf)}, {rconf.type.value.upper()}")
+            _sync_push(rconf, sync)
 
 def sync_pull(args):
     """Using the defined domain configuration(s), update the whole local configuration"""
@@ -826,31 +845,29 @@ def repo_prune(args):
                 print("Cancelled")
                 return
 
-
     # handle all repos
     for ruid in repos:
-        if len(repos)>1:
-            print("Analysing repository '%s'"%ruid)
-        rconf=gconf.get_repo_conf(ruid)
-        arlist=rconf.get_all_archives()
-        if len(arlist)>0:
-            if args.empty:
-                # remove all archives
-                tslist=list(arlist.keys())
-                for ts in tslist:
-                    arname=arlist[ts]
-                    print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
-                    rconf.borg_repo.delete_archive(arname)
-            else:
-                # keep only the latest and greatest archive in the repo
-                tslist=list(arlist.keys())
-                tslist.sort(reverse=True)
-                for ts in tslist[1:]:
-                    arname=arlist[ts]
-                    print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
-                    rconf.borg_repo.delete_archive(arname)
-            print("Repository %s (%s): cleanups"%(ruid, rconf.descr))
-            rconf.borg_repo.vacuum()
+        for rconf in _get_associated_repo_configurations(ruid):
+            print("Analysing repository '%s'"%rconf.id)
+            arlist=rconf.get_all_archives()
+            if len(arlist)>0:
+                if args.empty:
+                    # remove all archives
+                    tslist=list(arlist.keys())
+                    for ts in tslist:
+                        arname=arlist[ts]
+                        print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
+                        rconf.borg_repo.delete_archive(arname)
+                else:
+                    # keep only the latest and greatest archive in the repo
+                    tslist=list(arlist.keys())
+                    tslist.sort(reverse=True)
+                    for ts in tslist[1:]:
+                        arname=arlist[ts]
+                        print("Repository %s (%s): removing archive %s"%(ruid, rconf.descr, arname))
+                        rconf.borg_repo.delete_archive(arname)
+                print("Repository %s (%s): cleanups"%(ruid, rconf.descr))
+                rconf.borg_repo.vacuum()
 
 
 def _publish_build(bconf):
@@ -1362,6 +1379,19 @@ def dev_copy(args):
     if args.verbose:
         util.print_events=True
 
+    # if infile is not a file, it may be an admin build configuration, and in
+    # this case, we use the built ISO if it exists
+    if not os.path.exists(infile):
+        gconf=confs.GlobalConfiguration()
+        bconf=gconf.get_build_conf(infile, exception_if_not_found=False)
+        if bconf is not None:
+            if os.path.exists(bconf.image_iso_file):
+                infile=bconf.image_iso_file
+            else:
+                raise Exception("Configuration needs to be built")
+        else:
+            raise Exception(f"No {infile} file")
+
     # check we've got enough free space
     size=os.stat(infile).st_size
     outfile=os.path.realpath(outfile)
@@ -1530,6 +1560,7 @@ def _prepare_config_data(domain_confs, bconf):
         (ts, lastarname)=rconf.get_latest_archive()
         if lastarname is None:
             raise Exception("Domain '%s' has no published version"%duid)
+        util.print_event(f"Preparing to use domain configuration {_format_conf_oneline(rconf)}")
         if ref_ts<ts:
             ref_ts=ts
             ref_rconf=rconf
@@ -1645,6 +1676,8 @@ def _generate_admin_iso_file(iso_file, new_iso_file, extra_conf_file):
 def gen_admin_iso(args):
     if len(args.domains)==0:
         raise Exception("At least one domain configuration must be specified")
+    if args.verbose:
+        util.print_events=True
     iso_img_file=None
     bconf=None
     if args.build!="-":
@@ -1798,7 +1831,7 @@ def dev_wipe(args):
     if args.verbose:
         util.print_events=True
     dev=Device.Device(args.devfile)
-    dev.wipe()
+    dev.wipe(only_metadata=args.metadata_only)
 
 def _vm_stop(vm_name):
     args=["virsh", "-q", "list", "--all"]

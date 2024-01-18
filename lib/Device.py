@@ -366,7 +366,7 @@ class Device:
         self._meta=meta
         return meta.get_data()
 
-    def wipe(self):
+    def wipe(self, only_metadata=False):
         """Removes any information from the device"""
         self._meta=None
         self._cached_layout=None # invalidate any cached layout
@@ -411,6 +411,9 @@ class Device:
                 return
             except:
                 pass
+
+        if only_metadata:
+            return
 
         # raw wiping
         written=0

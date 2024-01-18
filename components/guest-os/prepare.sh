@@ -28,7 +28,7 @@ done
 
 >&2 echo ""
 >&2 echo "fairshell-virt-system needs to be downloaded from https://github.com/VivienMla/fairshell-virt-system"
->&2 echo "into one of the following directorie:"
+>&2 echo "into one of the following directories:"
 for dir in "${dirs[@]}"
 do
     >&2 echo "  $dir"

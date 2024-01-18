@@ -151,6 +151,23 @@ class Repo:
         self._borg_run(["key", "change-passphrase"],
                         _("Could not change password"), env_variables={"BORG_NEW_PASSPHRASE": new_password})
 
+    def generate_new_id(self):
+        """Generate a new ID and define it as the new ID of the repository"""
+        id=cgen.generate_password(64, "abcdef0123456789")
+        configfile=f"{self._repo_dir}/config"
+        nlines=[]
+        with open(configfile, "r") as fd:
+            replaced=False
+            for line in fd.read().splitlines():
+                if line.startswith("id ="):
+                    nlines.append(f"id = {id}")
+                    replaced=True
+                else:
+                    nlines.append(line)
+            if not replaced:
+                raise Exception(f"Could not identify the repository's ID in '{configfile}', Borg's file format changed?")
+        util.write_data_to_file("\n".join(nlines), configfile)
+
     def create_archive(self, datadir, compress=False):
         """Create a new archive containing the data in @datadir.
         Returns: the new archive's name"""

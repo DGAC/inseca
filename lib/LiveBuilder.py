@@ -112,9 +112,10 @@ class Builder:
             if os.path.exists(cconf_file):
                 data=json.load(open(cconf_file, "r"))
                 for param in data["userdata"]:
-                    if component not in all_params:
-                        all_params[component]={}
-                    all_params[component][param]=data["userdata"][param]
+                    if data["userdata"][param]["type"]=="file":
+                        if component not in all_params:
+                            all_params[component]={}
+                        all_params[component][param]=data["userdata"][param]
         return all_params
 
     def _encrypt_privdata(self):

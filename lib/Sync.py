@@ -209,69 +209,58 @@ def _parse_rclone_stats(text):
         "Bytes": 1,
         "kBytes": 1000,
         "MBytes": 1000*1000,
-        "GBytes": 1000*1000*1000
+        "GBytes": 1000*1000*1000,
+        "B": 1,
+        "kiB": 1024,
+        "MiB": 1024*1024,
+        "GiB": 1024*1024*1024
     }
-    stats=None
-    for line in text.splitlines():
-        if line.startswith("Transferred:"):
-            try:
-                # like: Transferred:   1.230 GBytes (5.068 MBytes/s)
-                # like \x1b....Transferred:    \t 0 / 0 Bytes
-                line=line.split("Transferred:")[1].strip()
-                parts=line.split()
-                if len(parts)>=9:
-                    if stats is None:
-                        stats={}
-                    try:
-                        stats["percent"]=int(float(parts[4][:-2]))
-                    except:
-                        stats["percent"]=0
 
-                    rate=float(parts[5])
-                    (unit, dummy)=parts[6].split("/", 1)
-                    if unit not in units:
-                        raise Exception()
-                    value=(float(rate))*units[unit]
-                    stats["rate_bps"]=int(value)
-                    stats["remain"]=parts[8]
-            except:
-                pass
-        elif line.startswith("Checks:"):
-            try:
-                # like: Checks:               292 / 350, 83%
-                line=line.split("Checks:")[1].strip()
-                parts=line.split()
-                if stats is None:
-                    stats={}
-                stats["checks"]=int(parts[3][:-1])
-            except:
-                pass
+    def _to_bytes(string):
+        (value, unit)=string.split()
+        return int(float(value)*units.get(unit, 0))
 
-    return stats
+    # stat text will be like: 7.516 MiB / 2.606 GiB, 0%, 0 B/s, ETA - (xfr#1/87)
+    parts=text.replace(",", "/").split("/")
+    if len(parts)==5:
+        transferred=_to_bytes(parts[0])
+        total=_to_bytes(parts[1])
+        (_, eta, *_)=parts[5].split()
+        return {
+            "rate_bps": _to_bytes(parts[3]),
+            "percent": int(parts[2][:-1]),
+            "remain": total-transferred,
+            "transferred": transferred,
+            "total": total,
+            "delay": None if eta=="-" else eta
+        }
+    else:
+        return None
 
 def _rclone_stats_to_string(stats):
     """Update the UI with a job running rclone"""
-    if stats:
-        if "rate_bps" in stats:
-            rate=stats["rate_bps"]
-            if rate>=10**6:
-                rs="%.2f Mb/s"%(rate/10**6)
-            elif rate>=10**3:
-                rs="%.2f Kb/s"%(rate/10**3)
-            else:
-                rs="%.2f b/s"%rate
-            if stats["remain"]!="-":
-                if stats["percent"]==100 or stats["percent"]<2:
-                    # sometimes the RClone stats are wrong => only display reliable tx rate
-                    details=rs
-                else:
-                    details="%s%% transferred (%s)"%(stats["percent"], rs)
-                return details
-            else:
-                return None
-        elif "checks" in stats:
-            return "%s%% done checking"%stats["checks"]
-    else:
+    try:
+        rate=stats["rate_bps"]
+        if rate>=10**6:
+            rs=f"{rate/10**6:.2f} Mb/s"
+        elif rate>=10**3:
+            rs=f"{rate/10**3:.2f} Kb/s"
+        else:
+            rs=f"{rate:.2f} b/s"
+
+        percent=stats["percent"]
+        if percent==100 or percent<2:
+            # sometimes the RClone stats are wrong => only display reliable tx rate
+            details=rs
+        else:
+            details=f"{percent}% transferred ({rs})"
+
+        delay=stats["delay"]
+        if delay is None:
+            return details
+        else:
+            return f"{details}, {delay} remaining"
+    except Exception:
         return None
 
 def _extract_rclone_err_message_for_user(err):
@@ -349,7 +338,7 @@ class RcloneSync:
             args=["rclone", "--config", conf_file]
         else:
             args=["rclone"]
-        args+=["--progress", "--stats=1s","sync", self._src.path, self._dest.path]
+        args+=["--progress", "--stats=1s", "--stats-one-line", "sync", self._src.path, self._dest.path]
 
         # network monitoring
         nm=NetworkMonitor()
@@ -423,15 +412,14 @@ class RcloneSync:
                     if out:
                         try:
                             stats=_parse_rclone_stats(out.decode())
-                            if stats:
-                                msg=_rclone_stats_to_string(stats)
-                                if msg is not None:
-                                    if add_event_func:
-                                        add_event_func(msg)
-                                    else:
-                                        util.print_event(msg)
+                            msg=_rclone_stats_to_string(stats)
+                            if msg is not None:
+                                if add_event_func:
+                                    add_event_func(msg)
+                                else:
+                                    util.print_event(msg)
                         except:
-                            # could not parse rclone stats
+                            # could not parse RClone stats
                             pass
                     err=_read_stderr(process)
                     if err:
@@ -471,11 +459,15 @@ class RcloneSync:
         nm.stop()
 
         # final statement
-        if status!=None and status!=0:
-            if err:
-                raise Exception("Data synchronisation error: %s"%_extract_rclone_err_message_for_user(err))
+        if status!=None:
+            if status==0:
+                if self._dest.is_local and not os.path.exists(self._dest.path):
+                    raise Exception("Data synchronisation error: the repository to synchronise from does not exist")
             else:
-                raise Exception("Data synchronisation error")
+                if err:
+                    raise Exception("Data synchronisation error: %s"%_extract_rclone_err_message_for_user(err))
+                else:
+                    raise Exception("Data synchronisation error")
 
 #
 # Internet access
@@ -495,6 +487,16 @@ def get_ip():
 def find_suitable_proxy(url="http://www.debian.fr"):
     if os.environ.get("INSECA_NO_HTTP_PROXY")=="1":
         return None
+
+    res={}
+    if "http_proxy" in os.environ:
+        res["http"]=os.environ["http_proxy"]
+        res["https"]=os.environ["http_proxy"]
+    if len(res)>0:
+        syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => %s from httpX_proxy env. variable"%res)
+        return res
+    syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => None from no httpX_proxy env. variable")
+
     if proxy_pac_file is None:
         syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => None: no PAC file")
         return None
@@ -525,14 +527,6 @@ def find_suitable_proxy(url="http://www.debian.fr"):
                 "https": "http://"+proxy,
             }
         except Exception:
-            res={}
-            if "http_proxy" in os.environ:
-                res["http"]=os.environ["http_proxy"]
-                res["https"]=os.environ["http_proxy"]
-            if len(res)>0:
-                syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => %s from httpX_proxy env. variable"%res)
-                return res
-            syslog.syslog(syslog.LOG_INFO, "find_suitable_proxy() => None from no httpX_proxy env. variable")
             return None
     except Exception as e:
         syslog.syslog(syslog.LOG_ERR, "Could not find a proxy to use: %s"%str(e))

@@ -28,7 +28,7 @@ done
 
 >&2 echo ""
 >&2 echo "VeraCrypt needs to be downloaded from https://www.veracrypt.fr/en/Downloads.html or https://github.com/veracrypt/VeraCrypt"
->&2 echo "into one of the following directorie:"
+>&2 echo "into one of the following directories:"
 for dir in "${dirs[@]}"
 do
     >&2 echo "  $dir"

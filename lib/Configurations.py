@@ -472,15 +472,17 @@ class GlobalConfiguration:
                 self._load_repo_configs(cpath)
             else:
                 conf=RepoConfig(self, cpath)
-                if conf.id in self._all_conf_ids and conf.config_file!=cfile:
-                    raise Exception(_(f"Repository configuration '{conf.id}' already exists (in '{conf.config_file}', loaded from '{cfile}')"))
-                if not os.path.isabs(conf.path):
-                    if "INSECA_DEFAULT_REPOS_DIR" in os.environ:
-                        conf.path="%s/%s"%(os.environ["INSECA_DEFAULT_REPOS_DIR"], conf.path)
-                    else:
-                        conf.path="%s/repos/%s"%(self.path, conf.path)
-                self._repo_configs[conf.id]=conf
-                self._all_conf_ids+=[conf.id]
+                if conf.id in self._all_conf_ids:
+                    if conf.config_file!=cpath:
+                        raise Exception(_(f"Duplicate repository configuration '{conf.id}' already exists (in '{conf.config_file}', loaded from '{cpath}')"))
+                else:
+                    if not os.path.isabs(conf.path):
+                        if "INSECA_DEFAULT_REPOS_DIR" in os.environ:
+                            conf.path="%s/%s"%(os.environ["INSECA_DEFAULT_REPOS_DIR"], conf.path)
+                        else:
+                            conf.path="%s/repos/%s"%(self.path, conf.path)
+                    self._repo_configs[conf.id]=conf
+                    self._all_conf_ids+=[conf.id]
 
     def get_any_conf(self, conf:str, exception_if_not_found=True) -> ConfigInterface:
         """Get a ConfigInterface object from its ID, or actual config file path,
@@ -513,27 +515,6 @@ class GlobalConfiguration:
             raise Exception("Configuration has not yet been fully loaded")
         if build_conf in self._build_configs:
             return self._build_configs[build_conf]
-
-        # interpret @build_conf as a path
-        rpath=os.path.realpath(build_conf)
-        if os.path.exists(rpath):
-            for uid in self._build_configs:
-                if self._build_configs[uid].config_file==rpath:
-                    return self._build_configs[uid]
-
-        # interpret @build conf as description
-        lc=build_conf.lower()
-        res=None
-        for uid in self._build_configs:
-            conf=self._build_configs[uid]
-            if lc in conf.descr.lower():
-                if res:
-                    raise Exception(_("More than one matching configuration"))
-                else:
-                    res=conf
-        if res:
-            return res
-
         if exception_if_not_found:
             raise Exception(_("Unknown build configuration '%s'")%build_conf)
         return None
@@ -545,27 +526,6 @@ class GlobalConfiguration:
             raise Exception("Configuration has not yet been fully loaded")
         if install_conf in self._install_configs:
             return self._install_configs[install_conf]
-
-        # interpret @install_conf as a path
-        rpath=os.path.realpath(install_conf)
-        if os.path.exists(rpath):
-            for uid in self._install_configs:
-                if self._install_configs[uid].config_file==rpath:
-                    return self._install_configs[uid]
-    
-        # interpret @install_conf as description
-        lc=install_conf.lower()
-        res=None
-        for uid in self._install_configs:
-            conf=self._install_configs[uid]
-            if lc in conf.descr.lower():
-                if res:
-                    raise Exception(_("More than one matching configuration"))
-                else:
-                    res=conf
-        if res:
-            return res
-
         if exception_if_not_found:
             raise Exception(_("Unknown install configuration '%s'")%install_conf)
         return None
@@ -577,27 +537,6 @@ class GlobalConfiguration:
             raise Exception("Configuration has not yet been fully loaded")
         if format_conf in self._format_configs:
             return self._format_configs[format_conf]
-
-        # interpret @format_conf as a path
-        rpath=os.path.realpath(format_conf)
-        if os.path.exists(rpath):
-            for uid in self._format_configs:
-                if self._format_configs[uid].config_file==rpath:
-                    return self._format_configs[uid]
-
-        # interpret @format_conf as description
-        lc=format_conf.lower()
-        res=None
-        for uid in self._format_configs:
-            conf=self._format_configs[uid]
-            if lc in conf.descr.lower():
-                if res:
-                    raise Exception(_("More than one matching configuration"))
-                else:
-                    res=conf
-        if res:
-            return res
-
         if exception_if_not_found:
             raise Exception(_("Unknown format configuration '%s'")%format_conf)
         return None
@@ -609,27 +548,6 @@ class GlobalConfiguration:
             raise Exception("Configuration has not yet been fully loaded")
         if domain_conf in self._domain_configs:
             return self._domain_configs[domain_conf]
-
-        # interpret @domain_conf as a path
-        rpath=os.path.realpath(domain_conf)
-        if os.path.exists(rpath):
-            for uid in self._domain_configs:
-                if self._domain_configs[uid].config_file==rpath:
-                    return self._domain_configs[uid]
-
-        # interpret @domain_conf as description
-        lc=domain_conf.lower()
-        res=None
-        for uid in self._domain_configs:
-            conf=self._domain_configs[uid]
-            if lc in conf.descr.lower():
-                if res:
-                    raise Exception(_("More than one matching configuration"))
-                else:
-                    res=conf
-        if res:
-            return res
-
         if exception_if_not_found:
             raise Exception(_("Unknown domain configuration '%s'")%domain_conf)
         return None
@@ -1251,7 +1169,11 @@ class BuildConfig(ConfigInterface):
                     errors.append(_("Associated repo is not of type BUILD"))
                 else:
                     # get timestamp of the last published archive
-                    (archive_ts, dummy)=rconf.get_latest_archive()
+                    try:
+                        (archive_ts, dummy)=rconf.get_latest_archive()
+                    except Exception as e:
+                        archive_ts=None
+                        errors.append(str(e))
 
         # todo
         rebuild_needed=False
@@ -1269,7 +1191,7 @@ class BuildConfig(ConfigInterface):
         if iso_file:
             if self.repo_id:
                 publish_needed=True
-        if files_ts>archive_ts:
+        if archive_ts is not None and files_ts>archive_ts:
             if iso_file:
                 if files_ts>iso_ts:
                     rebuild_needed=True
@@ -1352,17 +1274,24 @@ class InstallConfig(ConfigInterface):
                     res+=_search_for_repos(global_conf, value)
                 elif isinstance(value, str):
                     conf=global_conf.get_any_conf(value, exception_if_not_found=False)
-                    if conf is not None:
+                    if conf is not None and conf not in res:
                         res.append(conf)
             return res
 
         # NB: we don't list the build configuration itself because it is only its repo config which is a dependency
-        rbconf=self.global_conf.get_repo_conf(self.build_repo_id)
-        rconf=self.global_conf.get_repo_conf(self.repo_id)
-        return [rbconf, rconf] + _search_for_repos(self.global_conf, self.userdata)
+        res=[]
+        rbconf=self.global_conf.get_repo_conf(self.build_repo_id, exception_if_not_found=False)
+        if rbconf is not None:
+            res.append(rbconf)
+        rconf=self.global_conf.get_repo_conf(self.repo_id, exception_if_not_found=False)
+        if rconf is not None:
+            res.append(rconf)
+        return res + _search_for_repos(self.global_conf, self.userdata)
 
     def _create_new(global_conf:GlobalConfiguration, descr:str, path:str, bconf:BuildConfig, ruid:str) -> str:
         # create an install config and its repo
+        if bconf is None:
+            raise Exception(f"Install configuration has no associated build configuration")
         build_repo=bconf.repo_id
         if build_repo is None:
             raise Exception(f"Build configuration '{bconf.id}' does not have any associated repository")
@@ -1371,9 +1300,11 @@ class InstallConfig(ConfigInterface):
         userdata_specs=bconf.userdata_specs
         userdata={}
         for component in userdata_specs:
-            userdata[component]={}
             for entry in userdata_specs[component]:
-                userdata[component][entry]=None
+                if userdata_specs[component][entry]["type"]=="file":
+                    if component not in userdata:
+                        userdata[component]={}
+                    userdata[component][entry]=None
     
         (device_metadata_sign_key_priv, device_metadata_sign_key_pub)=x509.gen_rsa_key_pair()
         (attestation_sign_key_priv, attestation_sign_key_pub)=x509.gen_rsa_key_pair()
@@ -1457,10 +1388,8 @@ class InstallConfig(ConfigInterface):
                 if isinstance(ref, BuildConfig):
                     bconf=ref
                     break
-            if bconf is None:
-                raise Exception("Could not identify build configuration used by install configuration")
 
-            if other_global_conf is not None:
+            if bconf is not None and other_global_conf is not None:
                 # when cloning to another INSECA root, the referenced build config must also have been cloned
                 # first (which is done for example by the inseca program)
                 cid=map.get(bconf)
@@ -1679,7 +1608,11 @@ class InstallConfig(ConfigInterface):
                     errors.append(_("Referenced repository is not of type INSTALL"))
                 else:
                     # get timestamp of the last published archive
-                    (archive_ts, dummy)=rconf.get_latest_archive()
+                    try:
+                        (archive_ts, dummy)=rconf.get_latest_archive()
+                    except Exception as e:
+                        archive_ts=None
+                        errors.append(str(e))
 
         # associated build repo
         rconf=self.global_conf.get_repo_conf(self.build_repo_id, exception_if_not_found=False)
@@ -1749,9 +1682,10 @@ class InstallConfig(ConfigInterface):
                             errors.append("PRIVDATA decrypt key does not match associated build's key")
 
         # todo
-        files_ts=get_last_file_modification_ts(self.config_dir)
-        if archive_ts<files_ts:
-            todo.append(_("needs to be published"))
+        if archive_ts is not None:
+            files_ts=get_last_file_modification_ts(self.config_dir)
+            if archive_ts<files_ts:
+                todo.append(_("needs to be published"))
 
         self._status=ConfigStatus(len(errors)==0, warnings, errors, todo)
 
@@ -2276,7 +2210,7 @@ class RepoConfig(ConfigInterface):
         index=0
         while True:
             name=f"repo.{index}"
-            path1=f"{global_conf.path}/repo-configurations/{name}"
+            path1=f"{global_conf.path}/repo-configurations/{name}.json"
             path2=f"{base_repo_data_path}/{name}"
             if not os.path.exists(path1) and not os.path.exists(path2):
                 return (path2, name)
@@ -2343,6 +2277,7 @@ class RepoConfig(ConfigInterface):
             # change password
             borg_repo=borg.Repo(repo_data_path, self.password)
             borg_repo.change_password(password)
+            borg_repo.generate_new_id()
 
             # record new repo. configuration
             util.write_data_to_file(json.dumps(conf, indent=4), repo_conf_path)
@@ -2423,7 +2358,13 @@ class RepoConfig(ConfigInterface):
         except Exception as e:
             raise Exception(_(f"Invalid repo configuration '{self.config_file}': {str(e)}"))
         self._id=data["id"]
-        if os.path.isabs(data["path"]) and not os.path.exists(data["path"]):
+        datapath=data["path"]
+        if not os.path.isabs(datapath):
+            if "INSECA_DEFAULT_REPOS_DIR" in os.environ:
+                datapath=f"{os.environ['INSECA_DEFAULT_REPOS_DIR']}/{datapath}"
+            else:
+                datapath=f"{self.global_conf.path}/{datapath}"
+        if not os.path.exists(datapath):
             raise Exception(_(f"Invalid repo configuration '{self.config_file}': path '{data['path']}' does not exist"))
         try:
             self._type=RepoType(data["type"])
@@ -2431,7 +2372,7 @@ class RepoConfig(ConfigInterface):
             raise Exception(_(f"Invalid repo configuration '{self.config_file}': invalid type '{self._type}'"))
         self._password=data["password"]
         self._compress=data["compress"]
-        self._path=data["path"]
+        self._path=datapath
         self._descr=data["descr"]
 
     def get_borg_exec_env(self):
@@ -2554,7 +2495,8 @@ def init_root_config():
         # top directories
         for dir in ("build-configurations", "install-configurations",
                     "format-configurations", "repos", "repo-configurations",
-                    "domain-configurations", "storage-credentials", "blobs", "blobs/generic"):
+                    "domain-configurations", "storage-credentials",
+                    "blobs", "blobs/generic", "components"):
             path="%s/%s"%(root, dir)
             os.makedirs(path)
 
