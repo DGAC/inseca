@@ -38,8 +38,6 @@ def generate_password(length=25, alphabet=None):
         raise Exception(_("Password is too short (%d characters)")%length)
     if not alphabet:
         alphabet = string.ascii_letters + string.digits + string.punctuation
-    elif len(alphabet)<26:
-        raise Exception(_("Alphabet to generate password from is too small: %d long")%len(alphabet))
     return ''.join(secrets.choice(alphabet) for i in range(length))
 
 def validate_password(password, min_entropy=75):
