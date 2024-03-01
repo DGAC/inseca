@@ -2124,8 +2124,11 @@ class DomainConfig(ConfigInterface):
                 if rconf.type!=RepoType.DOMAIN:
                     errors.append(_("Referenced repository is not of type DOMAIN"))
                 else:
-                    # get timestamp of the last published archive
-                    (archive_ts, dummy)=rconf.get_latest_archive()
+                    try:
+                        # get timestamp of the last published archive
+                        (archive_ts, dummy)=rconf.get_latest_archive()
+                    except Exception as e:
+                        errors.append(_(f"Could not get last archive: {str(e)}"))
 
         # referenced install configs.
         for uid in self.install_ids:
@@ -2364,8 +2367,7 @@ class RepoConfig(ConfigInterface):
                 datapath=f"{os.environ['INSECA_DEFAULT_REPOS_DIR']}/{datapath}"
             else:
                 datapath=f"{self.global_conf.path}/{datapath}"
-        if not os.path.exists(datapath):
-            raise Exception(_(f"Invalid repo configuration '{self.config_file}': path '{data['path']}' does not exist"))
+
         try:
             self._type=RepoType(data["type"])
         except Exception:

@@ -37,6 +37,8 @@ class BorgMemoryError(Exception):
     pass
 class BorgRepoLocked(Exception):
     pass
+class BorgPermissionDenied(Exception):
+    pass
 
 class Repo:
     def __init__(self, repo_dir, password, config_dir=None, cache_dir=None):
@@ -109,7 +111,10 @@ class Repo:
             raise BorgMemoryError("%s: %s"%(context, _("Not enough memory(?)")))
         elif "Failed to create/acquire the lock" in err:
             raise BorgRepoLocked(f"{context}: {_('Unable to acquire lock on repository, may already be used')}")
-
+        elif "PermissionError" in err:
+            for line in err.splitlines():
+                if line.startswith("PermissionError"):
+                    raise BorgPermissionDenied(line)
         raise Exception("%s: %s"%(context, err))
 
     def _borg_run(self, args:list[str], context:str, stdin_data:str=None, cwd:str=None, env_variables:dict[str, str]=None):
@@ -240,14 +245,18 @@ class Repo:
 
     def get_latest_archive(self):
         """Get the most recent archive in the specified repository
-        Returns a (ts, archive name) tuple"""
-        arlist=self.get_all_archives()
-        if len(arlist)>0:
-            tslist=list(arlist.keys())
-            tslist.sort(reverse=True)
-            ts=tslist[0]
-            return (ts, arlist[ts])
-        else:
+        Returns a (ts, archive name) tuple, or (0, None) if there is None or
+        if there was an error when trying to get the list of archives"""
+        try:
+            arlist=self.get_all_archives()
+            if len(arlist)>0:
+                tslist=list(arlist.keys())
+                tslist.sort(reverse=True)
+                ts=tslist[0]
+                return (ts, arlist[ts])
+            else:
+                return (0, None)
+        except Exception:
             return (0, None)
 
     def archive_exists(self, archive_name):

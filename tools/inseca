@@ -557,7 +557,7 @@ def config_infos(args):
             for iuid in iconfs:
                 iconf=gconf.get_install_conf(iuid)
                 if iconf.build_id==uid:
-                    print(f"{_indent}{iconf.id} ({iconf.descr})")
+                    print(f"{_indent}{_format_conf_oneline(iconf)}")
 
         if conf.status.valid:
             print("Configuration is valid")
@@ -577,8 +577,8 @@ def config_infos(args):
             print("Install archives:")
             _print_repo_archives(rconf, indent=_indent)
 
-        print("Build configuration ID: %s"%conf.build_id)
-        print("Build repository ID: %s"%conf.build_repo_id)
+        print(f"Build configuration ID: {conf.build_id}")
+        print(f"Build repository ID: {conf.build_repo_id}")
 
         if conf.status.valid:
             print("Configuration is valid")
@@ -611,22 +611,20 @@ def config_infos(args):
         print("Description: %s"%conf.descr)
         print("Configuration file: %s"%conf.config_file)
         print("Repo ID: %s"%conf.repo_id)
+        print(f"Referenced installation configurations: {'---' if len(conf.install_ids)==0 else ''}")
         for iuid in conf.install_ids:
-            print("Available installation")
             iconf=gconf.get_install_conf(iuid, exception_if_not_found=False)
             if iconf is not None:
-                print(f"{_indent}Install configuration: %s"%iconf.id)
-                print(f"{_indent}Description: %s"%iconf.descr)
+                print(f"{_indent}{_format_conf_oneline(iconf)}")
             else:
-                print(f"{_indent}ERROR: corresponding installation configuration not found")
+                print(f"{_indent}ERROR: referenced installation configuration '{iuid}' not found")
+        print(f"Referenced format configurations: {'---' if len(conf.format_ids)==0 else ''}")
         for iuid in conf.format_ids:
-            print("Available format configurations")
             iconf=gconf.get_format_conf(iuid, exception_if_not_found=False)
             if iconf is not None:
-                print(f"{_indent}Format configuration: %s"%iconf.id)
-                print(f"{_indent}Description: %s"%iconf.descr)
+                print(f"{_indent}{_format_conf_oneline(iconf)}")
             else:
-                print(f"{_indent}ERROR: corresponding format configuration not found")
+                print(f"{_indent}ERROR: corresponding format configuration '{iuid}' not found")
         rconf=gconf.get_repo_conf(conf.repo_id, exception_if_not_found=False)
         if rconf is not None:
             print("Archives of this domain config:")
@@ -698,11 +696,22 @@ def _sync_pull(rconf, sync_obj):
     assert isinstance(rconf, confs.RepoConfig)
     src=Sync.SyncLocation(rconf.id, sync_obj)
     dest=Sync.SyncLocation(rconf.path, None)
-    util.print_event("Downloading '%s'"%rconf.descr)
-    so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
-    so.sync()
-    util.print_event("Checking downloaded data's validity")
-    rconf.borg_repo.check() # ensure repo is useable
+    counter=5
+    while True:
+        try:
+            util.print_event("Downloading '%s'"%rconf.descr)
+            so=Sync.RcloneSync(src, dest, rconf.get_borg_exec_env())
+            so.sync()
+            util.print_event("Checking downloaded data's validity")
+            rconf.borg_repo.check() # ensure repo is useable
+            break
+        except Sync.ResourceNotAvailable as e:
+            if counter>0:
+                util.print_event("Resource currently not available")
+                counter-=1
+                time.sleep(2)
+            else:
+                raise e
 
 def _get_associated_repo_configurations(uid:str) -> list[confs.RepoConfig]:
     """Get a list of repositorie configurations associated to the
@@ -759,32 +768,32 @@ def sync_pull(args):
     newconfdir=gconf.create_update_dir()
 
     # update and extract all DOMAIN repos present in the config dir
-    try:
-        for ruid in gconf.repo_configs:
+    for ruid in gconf.repo_configs:
+        try:
             rconf=gconf.get_repo_conf(ruid)
             if rconf.type==confs.RepoType.DOMAIN:
                 _sync_pull(rconf, sync)
                 (ts, lastarname)=rconf.get_latest_archive()
                 if lastarname:
                     rconf.extract_archive(lastarname, newconfdir)
-    except Exception:
-        # ignore error, do as best as we can
-        pass
+        except Exception as e:
+            # ignore error, do as best as we can
+            util.print_event(f"Could not download resource: {str(e)}")
 
     # create new GlobalConfiguration from the extracted data
     ngconf=confs.GlobalConfiguration(path=newconfdir)
 
     # update all repo's contents
-    try:
-        updated_repos=[]
-        for ruid in ngconf.repo_configs:
+    updated_repos=[]
+    for ruid in ngconf.repo_configs:
+        try:
             rconf=ngconf.get_repo_conf(ruid)
             _sync_pull(rconf, sync)
             updated_repos+=[rconf.id]
-        ngconf=confs.GlobalConfiguration(path=newconfdir)
-    except Exception:
-        # ignore error, do as best as we can
-        pass
+        except Exception as e:
+            # ignore error, do as best as we can
+            util.print_event(f"Could not download resource: {str(e)}")
+    ngconf=confs.GlobalConfiguration(path=newconfdir)
 
     # for each INSTALL and FORMAT repo: extract the corresponding data from the last archive
     util.print_event("Extracting INSTALL and FORMAT archives")

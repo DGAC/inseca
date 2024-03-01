@@ -317,6 +317,9 @@ def _read_stderr(process):
     except:
         return ""
 
+class ResourceNotAvailable(Exception):
+    pass
+
 class RcloneSync:
     def __init__(self, src, dest, exec_env=None):
         if not isinstance(src, SyncLocation):
@@ -350,13 +353,14 @@ class RcloneSync:
         err=None
         status=None
         index=0
+
         while restart: # loop to (re)start the rclone process
             if not self._dest.is_available:
                 nm.stop()
-                raise Exception("Resource's destination is not available")
+                raise ResourceNotAvailable("Destination resource is not available")
             if not self._src.is_available:
                 nm.stop()
-                raise Exception("Resource's origin is not available")
+                raise ResourceNotAvailable("Origin resource is not available")
 
             # prepare proxy, if any
             proxies=find_suitable_proxy(url=internet_ref_site)
@@ -394,7 +398,8 @@ class RcloneSync:
             while True:
                 # if network has changed, we restart the rclone process
                 if nm.changed:
-                    syslog.syslog(syslog.LOG_WARNING, "Network config changed => restart RClone")
+                    syslog.syslog(syslog.LOG_WARNING, "Network config changed => wait a bit and restart RClone")
+                    time.sleep(5)
                     restart=True
                     break
 
