@@ -1911,8 +1911,10 @@ def _get_blob0(dev):
     conf=gconf.get_install_conf(confid, exception_if_not_found=False)
     if not conf:
         conf=gconf.get_format_conf(confid, exception_if_not_found=False)
-    if conf:
-        dkey=conf.password_rescue
+    if conf is None:
+        raise Exception(f"Unknown configuration '{confid}'")
+
+    dkey=conf.password_rescue
     pdata=_get_protected_data(dev, dkey)
     try:
         return pdata["blob0"]
@@ -2004,23 +2006,34 @@ class CheckEnviron(Live.Environ):
     def unlocked(self):
         return False
 
-def _log_compare(expected_log, computed_log):
+def _log_compare(expected_log:list[dict], computed_log:list[dict]):
     """Returns a list of differences between the expected log and the computed one"""
+    if not isinstance(expected_log, list):
+        raise Exception(f"Invalid expected_log type '{type(expected_log)}'")
+    if not isinstance(computed_log, list):
+        raise Exception(f"Invalid expected_log type '{type(computed_log)}'")
+
     diffs=[]
     try:
         for (edata, cdata) in zip(expected_log, computed_log, strict=True):
+            # edata and cdata are dictionaries
             if edata!=cdata:
                 if type(edata)!=type(cdata):
                     diffs.append("Error: type difference between '%s' and '%s"%(edata, cdata))
-                elif isinstance(edata, str):
-                    diffs.append("Expected '%s', got '%s'"%(edata, cdata))
-                elif isinstance(edata, dict):
-                    d2=_log_compare(edata, cdata)
-                    diffs+=d2
+                else:
+                    for (ekey, evalue) in edata.items():
+                        for (ckey, cvalue) in cdata.items():
+                            if ekey!=ckey:
+                                diffs.append(f"Error: expected key '{ekey}', got key '{ckey}'")
+                            if evalue!=cvalue:
+                                if isinstance(evalue, list) and isinstance(cvalue, list):
+                                    diffs+=_log_compare(evalue, cvalue)
+                                else:
+                                    diffs.append(f"Error: for key '{ekey}', expected '{evalue}' but got '{cvalue}'")
     except ValueError:
         diffs.append("Incomplete or too long integrity log")
     except Exception as e:
-        diffs.append("Error: %s"%str(e))
+        diffs.append(f"Error: {str(e)}")
     return diffs
 
 def dev_check(args):
@@ -2029,26 +2042,30 @@ def dev_check(args):
     try:
         dev=Device.Device(args.devfile)
         _dev_verify(dev)
+    except Exception as e:
+        raise Exception("Error: failed to verify device")
 
+    try:
         dummy_env=CheckEnviron(dev)
         bp=Live.BootProcessWKS(dummy_env, dev)
         blob0=_get_blob0(dev)
     except Exception as e:
-        print("Error: could not decrypt blob0 (%s)"%err)
+        raise Exception("Error: could not decrypt blob0")
 
     try:
         bp.check_integrity(blob0)
         print("Ok")
     except Exception as e:
         (err, log)=e.args
-        print("Error: %s"%err)
+        print(f"Error checking integrity: {err}")
         if log:
             mp=_dev_mount(dev, "internal")
-            oklog=json.load(open("%s/resources/integrity-fingerprint-log.json"%mp, "r"))
+            oklog=json.load(open(f"{mp}/resources/integrity-fingerprint-log.json", "r"))
             diffs=_log_compare(oklog, log)
-            if diffs:
+            if len(diffs)>0:
+                print("Integrity fingerprint logs analysis:")
                 for item in diffs:
-                    print(item)
+                    print(f"   - {item}")
             else:
                 print("Integrity logs is Ok")
         sys.exit(1)

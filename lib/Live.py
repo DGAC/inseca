@@ -310,13 +310,18 @@ class BootProcessWKS:
             raise Exception("Could not compute the integrity fingerprint (%s)"%str(e), None)
 
         try:
-            # decrypt internal partition's password
+            # load internal partition's password
             eobj=cpass.CryptoPassword(ifp)
             data=util.load_file_contents("%s/resources/internal-pass.enc"%dummy_mountpoint)
+        except Exception as e:
+            raise Exception(f"Could not load the 'internal-pass.enc' file: {str(e)}", log)
+
+        try:
+            # decrypt internal partition's password
             int_password=eobj.decrypt(data).decode()
             return (eobj, int_password)
         except Exception as e:
-            raise Exception("Could not load 'internal-pass.enc' or decrypt it from the integrity hash", log)
+            raise Exception("Could not decrypt the 'internal-pass.enc' file from the integrity hash", log)
 
     def check_integrity(self, blob0):
         """Check the integrity of the device using @blob0
