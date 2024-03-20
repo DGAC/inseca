@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 import os
 import tempfile
 import time
+import syslog
 import hashlib
 import Utils as util
 
@@ -95,7 +96,7 @@ def compute_partition_hash(partfile):
     h=compute_file_hash(partfile)
     return "%s|%s"%("sha256", h)
 
-windows_crap_directories=["$RECYCLE.BIN", "System Volume Information", "ClientRecoveryPasswordRotation", "AadRecoveryPasswordDelete"]
+_windows_crap_directories=["$RECYCLE.BIN", "System Volume Information", "ClientRecoveryPasswordRotation", "AadRecoveryPasswordDelete"]
 def _update_windows_crap_directories_hash(filename, hash_obj):
     """
     This function gets called when @filename is a specific Windows crappy directory,
@@ -104,28 +105,75 @@ def _update_windows_crap_directories_hash(filename, hash_obj):
     fail.
     """
     base=os.path.basename(filename)
-    if base not in windows_crap_directories:
-        print("** Windows CRAP again: unexpected file or directory '%s'"%filename)
+    if base not in _windows_crap_directories:
+        syslog.syslog(syslog.LOG_ERR, f"Unexpected Windows file or directory '{filename}'")
         hash_obj.update(b'FAILED')
         return
 
     try:
         for subfile in os.listdir(filename):
-            if subfile in windows_crap_directories:
-                _update_windows_crap_directories_hash("%s/%s"%(filename, subfile), hash_obj)
+            subpath=f"{filename}/{subfile}"
+            if subfile in _windows_crap_directories:
+                _update_windows_crap_directories_hash(subpath, hash_obj)
             else:
                 if subfile not in ["IndexerVolumeGuid", "WPSettings.dat", "desktop.ini"]:
-                    print("** Windows CRAP again in '%s': unexpected file '%s'"%(filename, subfile))
+                    syslog.syslog(syslog.LOG_ERR, f"Unexpected Windows file or directory '{subpath}'")
                     hash_obj.update(b'FAILED')
                     continue
 
                 csubfile="%s/%s"%(filename, subfile)
                 if not os.path.isfile(csubfile) or os.path.getsize(csubfile)>150: # file size limit from experience
-                    print("** Windows CRAP again in '%s': file '%s' too big or wrong type"%(filename, subfile))
+                    syslog.syslog(syslog.LOG_ERR, f"Unexpected Windows file or directory '{subpath}'")
                     hash_obj.update(b'FAILED')
     except OSError as e:
         if not "Input/output error" in str(e):
-            raise
+            raise e
+
+_manufacturers_crap_directories={
+    "Dell": {
+        "logs": {
+            "diags_current.xml": 2000,
+            "diags_previous.xml": 2000
+        }
+    }
+}
+def _update_manufacturers_crap_directories_hash(filename:str, hash_obj:hashlib._hashlib.HASH, dir_entry=None):
+    """
+    This function gets called when @filename is a PC manufacturer crappy directory,
+    It does the same as the _update_windows_crap_directories_hash() function
+    """
+    if dir_entry is None:
+        dir_entry=_manufacturers_crap_directories.get(os.path.basename(filename))
+        if dir_entry is None:
+            syslog.syslog(syslog.LOG_ERR, f"Unexpected manufacturer file or directory '{filename}'")
+            hash_obj.update(b'FAILED')
+            return
+
+    try:
+        for subfile in os.listdir(filename):
+            subpath=f"{filename}/{subfile}"
+            if os.path.isdir(subpath):
+                # we have a directory
+                if subfile in dir_entry:
+                    _update_manufacturers_crap_directories_hash(subpath, hash_obj, dir_entry[subfile])
+                else:
+                    syslog.syslog(syslog.LOG_ERR, f"Unexpected manufacturer file or directory '{subpath}'")
+                    hash_obj.update(b'FAILED')
+            else:
+                # we have a regular file, a link, or other
+                sdata=dir_entry.get(subfile)
+                if sdata is None:
+                    syslog.syslog(syslog.LOG_ERR, f"Unexpected manufacturer file or directory '{subpath}'")
+                    hash_obj.update(b'FAILED')
+                    continue
+
+                # check file size limit
+                if os.path.getsize(subpath)>sdata:
+                    syslog.syslog(syslog.LOG_ERR, f"Unexpected size for manufacturer file '{subpath}'")
+                    hash_obj.update(b'FAILED')
+    except OSError as e:
+        if not "Input/output error" in str(e):
+            raise e
 
 def _compute_efi_image_hash(filename, hash_obj):
     """Mount an EFI image to compute its hash as Windows likes to modify those files"""
@@ -147,10 +195,10 @@ def _update_directory_hash(root, hash_obj, subfile, ignore_func=None):
     filename="%s/%s"%(root, subfile)
     basename=os.path.basename(subfile)
 
-    if basename in windows_crap_directories:
-        # specific handling
-        #print("CRAP [%s]"%subfile)
+    if basename in _windows_crap_directories:
         _update_windows_crap_directories_hash(filename, hash_obj)
+    elif basename in _manufacturers_crap_directories:
+        _update_manufacturers_crap_directories_hash(filename, hash_obj)
     elif ignore_func is None or not ignore_func(root, subfile):
         if os.path.isdir(filename):
             #print("Directory [%s]"%subfile)
