@@ -801,7 +801,16 @@ class Environ:
         os.environ["DBUS_SESSION_BUS_ADDRESS"]="unix:path=/run/user/%d/bus"%self.uid
         os.environ["WAYLAND_DISPLAY"]="wayland-0"
         os.environ["DISPLAY"]=":0"
-        os.environ["XAUTHORITY"]="/run/user/%d/gdm/Xauthority"%self.uid
+        # look for the XAuthority file which can be /run/user/<uid>/gdm/Xauthority if Gnome runs over X11, or
+        # /run/user/<uid>/.mutter-Xwaylandauth.* if Gnome runs over Wayland
+        xauthset=False
+        for fname in os.listdir(f"/run/user/{self.uid}"):
+            if fname.startswith(".mutter-Xwaylandauth"):
+                os.environ["XAUTHORITY"]=f"/run/user/{self.uid}/{fname}"
+                xauthset=True
+                break
+        if not xauthset:
+            os.environ["XAUTHORITY"]=f"/run/user/{self.uid}/gdm/Xauthority"
         return True
 
     #
