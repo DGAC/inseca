@@ -80,16 +80,25 @@ class InsecaUnlockJob(Job.Job):
                             obj.extractall(self._live_env.home_dir)
 
                 # change the user's wallpaper to mark the end of the boot process
-                if os.path.exists("/internal/resources/default-wallpaper"):
-                    self._live_env.user_setting_set("org.gnome.desktop.background", "picture-uri",
-                                                    "/internal/resources/default-wallpaper")
-                    self._live_env.user_setting_set("org.gnome.desktop.background", "picture-options", "stretched")
+                try:
+                    if os.path.exists("/internal/resources/default-wallpaper"):
+                        self._live_env.user_setting_set("org.gnome.desktop.background", "picture-uri",
+                                                        "/internal/resources/default-wallpaper")
+                        self._live_env.user_setting_set("org.gnome.desktop.background", "picture-options", "stretched")
+                except Exception as e:
+                    syslog.syslog(syslog.LOG_ERR, f"Failed to change the user's wallpaper: {str(e)}")
 
                 # remove any NO-BACKUP mark
-                self._live_env.user_config_clean_nobackup()
+                try:
+                    self._live_env.user_config_clean_nobackup()
+                except Exception as e:
+                    syslog.syslog(syslog.LOG_ERR, f"Failed to remove the NO-BACKUP mark: {str(e)}")
 
                 # restore backed up config files
-                self._live_env.user_config_restore()
+                try:
+                    self._live_env.user_config_restore()
+                except Exception as e:
+                    syslog.syslog(syslog.LOG_ERR, f"Failed to restore user config: {str(e)}")
 
                 # make sure all the extracted files belong to the user
                 (status, out, err)=util.exec_sync(["chown", "-R", "%s.%s"%(self._live_env.uid, self._live_env.gid), self._live_env.home_dir])

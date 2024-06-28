@@ -656,16 +656,6 @@ _user_config_definition={
         "backup-func": _backup_home_dir_as_archive,
         "restore-func": _restore_archive_in_home_dir
     },
-    "teams0.tgz": {
-        "rel-source-dir": ".config/teams",
-        "backup-func": _backup_home_dir_as_archive,
-        "restore-func": _restore_archive_in_home_dir
-    },
-    "teams1.tgz": {
-        "rel-source-dir": ".config/Microsoft/Microsoft Teams",
-        "backup-func": _backup_home_dir_as_archive,
-        "restore-func": _restore_archive_in_home_dir
-    },
     "desktop-conf": {
         "backup-func": _backup_dconf,
         "restore-func": _restore_dconf
@@ -687,7 +677,17 @@ _user_config_definition={
     "network.tgz": {
         "backup-func": _backup_network,
         "restore-func": _restore_network
-    }
+    },
+    "keyring.tgz": {
+        "rel-source-dir": ".local/share/keyrings",
+        "backup-func": _backup_home_dir_as_archive,
+        "restore-func": _restore_archive_in_home_dir
+    },
+    "nextcloud.tgz": {
+        "rel-source-dir": ".config/Nextcloud",
+        "backup-func": _backup_home_dir_as_archive,
+        "restore-func": _restore_archive_in_home_dir
+    },
 }
 
 
