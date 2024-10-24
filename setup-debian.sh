@@ -51,7 +51,7 @@ echo -e "\n### Installation of Docker ###"
 sudo apt install -y docker.io
 
 echo -e "\n### Installation of misc. tools ###"
-sudo apt install -y hdparm dosfstools btrfs-progs
+sudo apt install -y hdparm dosfstools btrfs-progs xorriso
 
 # see https://sven.stormbind.net/blog/posts/deb_debian_and_exfat/
 if [ "$VERSION_CODENAME" == "bullseye" ]
@@ -65,22 +65,6 @@ echo -e "\n### Installation of INSECA ###"
 sudo apt install -y wget curl
 pushd docker-images/grub-bios > /dev/null && sudo make && popd > /dev/null
 pushd docker-images/livebuild > /dev/null && sudo make && popd > /dev/null
-
-echo -e "\n### Downloading Veracrypt ###"
-pushd components/veracrypt/packages.deb > /dev/null
-github_latest_release() {
-    basename $(curl -fs -o/dev/null -w %{redirect_url} $1/releases/latest)
-}
-base="https://github.com/veracrypt/VeraCrypt"
-release=$(github_latest_release "$base")
-version=${release#VeraCrypt_}
-url="$base/releases/download/$release/veracrypt-$version-Debian-11-amd64.deb"
-wget "$url"
-wget "$url.sig"
-gpg --import ../VeraCrypt_PGP_public_key.asc
-gpg --verify vera*.sig
-rm -f vera*.sig
-popd > /dev/null
 
 echo -e "\n### Installation succeed ###"
 instdir=$(realpath "$(pwd)")
