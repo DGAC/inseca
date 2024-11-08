@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -22,6 +22,16 @@ import sys
 import datetime
 import json
 import Utils as util
+
+# Gettext stuff
+import gettext
+import locale
+
+locale.setlocale(locale.LC_ALL, "")
+locale.bindtextdomain("inseca", "/opt/inseca/locales")
+gettext.bindtextdomain("inseca", "/opt/inseca/locales")
+gettext.textdomain("inseca")
+_ = gettext.gettext
 
 # display the end of validity of the certificate contained in the OpenVPN config file
 resfile="%s/userdata.json"%os.environ["USERDATA_DIR"]
@@ -67,11 +77,11 @@ if os.path.exists(resfile):
             certs=load_certificates_from_ovpn_file(ovpn_file)
             for cert in certs:
                 if not cert_is_ca(cert):
-                    (status, out, err)=util.exec_sync(["openssl", "x509", "-enddate", "-noout"], stdin_data=cert)
+                    (status, out, err)=util.exec_sync(["openssl", "x509", "-enddate", "-dateopt", "iso_8601", "-noout"], stdin_data=cert)
                     if status==0:
                         (dummy, eov)=out.split("=")
-                        dt=datetime.datetime.strptime(eov, "%b %d %H:%M:%S %Y %Z")
-                        print("End of validity: %s UTC"%dt.strftime("%d/%m/%Y @ %H:%M:%S"))
+                        dt=datetime.datetime.strptime(eov, "%Y-%m-%d %H:%M:%SZ")
+                        print(_("valid up to {} UTC").format(dt.strftime(locale.nl_langinfo(locale.D_T_FMT))))
                         sys.exit(0)
                     else:
                         raise Exception(err)

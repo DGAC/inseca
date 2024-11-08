@@ -22,6 +22,7 @@
 
 import sys
 import json
+import locale
 import datetime
 import os
 import tarfile
@@ -33,6 +34,9 @@ import CryptoX509 as x509
 import Configurations as confs
 import Sync
 
+locale.setlocale(locale.LC_ALL, "")
+locale_dt=f"{locale.nl_langinfo(locale.D_FMT)} {locale.nl_langinfo(locale.T_FMT)}"
+
 def get_actual_mp(path):
     path=os.path.realpath(path)
     while not os.path.ismount(path):
@@ -40,7 +44,7 @@ def get_actual_mp(path):
     return path
 
 class Builder:
-    def __init__(self, build_conf, dry_mode=False):
+    def __init__(self, build_conf:str, dry_mode=False):
         gconf=confs.GlobalConfiguration()
         bconf=gconf.get_build_conf(build_conf)
 
@@ -252,6 +256,7 @@ Name: %s
 
             # run prepare.sh/py scripts
             exec_env=os.environ.copy()
+            exec_env["SOURCES_DIR"]=os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
             exec_env["BUILD_DIR"]=self._livedir
             exec_env["BUILD_DATA_FILE"]=self._build_data_file
             exec_env["COMPONENT_DIR"]=os.path.realpath(cpath)
@@ -260,6 +265,7 @@ Name: %s
             exec_env["LIVE_DIR"]=self._fs_dir
             exec_env["LIBS_DIR"]=os.path.realpath(self._libdir)
             exec_env["PYTHONPATH"]=":".join(sys.path)
+            exec_env.update(self._bconf.l10n.to_env_dict())
             for fname in component_files:
                 if fname in ["prepare.sh", "prepare.py"]:
                     tmpfile=util.Temp()
@@ -307,7 +313,8 @@ Name: %s
             "valid-from": util.get_timestamp(),
             "valid-to": self._bconf.valid_to,
             "build-id": self._bconf.id,
-            "build-type": self._bconf.build_type.value
+            "build-type": self._bconf.build_type.value,
+            "l10n": self._bconf.l10n.to_dict()
         }
         path="%s/opt/share"%self._fs_dir
         fname="%s/keyinfos.json"%path
@@ -354,7 +361,7 @@ Name: %s
 
         # build live image
         print("Build information is appended to '%s'"%self._build_data_file)
-        now=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        now=datetime.datetime.utcnow().strftime(locale_dt)
         util.write_data_to_file("Started: %s UTC\n"%now, self._build_data_file, append=True)
         print("Building Live image...")
         args=["docker", "run", "-m", "3192m", "--privileged", "--rm", "-v", "%s:/live"%self._livedir]+\
@@ -372,7 +379,7 @@ Name: %s
         file.close()
 
         if status!=0 or not os.path.exists(built_iso):
-            now=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            now=datetime.datetime.utcnow().strftime(locale_dt)
             if self._build_interrupted:
                 util.write_data_to_file("Interrupted: %s UTC\n\n"%now, self._build_data_file, append=True)
                 # remove the build Docker container
@@ -397,7 +404,7 @@ Name: %s
                 os.chown(self.userdata_specs_file, uid, gid)
 
         # log info
-        now=datetime.datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        now=datetime.datetime.utcnow().strftime(locale_dt)
         util.write_data_to_file("Finished: %s UTC\n\n"%now, self._build_data_file, append=True)
 
     def _iso_image_customize(self, built_iso):

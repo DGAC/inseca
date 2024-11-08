@@ -10,10 +10,6 @@ picture-uri='file:///usr/share/backgrounds/gnome/Wood.jpg'
 primary-color='#ffffff'
 secondary-color='#000000'
 
-[org/gnome/desktop/input-sources]
-sources=[('xkb', 'fr')]
-xkb-options=@as []
-
 [org/gnome/desktop/interface]
 gtk-im-module='gtk-im-context-simple'
 
@@ -31,10 +27,6 @@ picture-options='zoom'
 picture-uri='file:///usr/share/backgrounds/gnome/Wood.jpg'
 primary-color='#ffffff'
 secondary-color='#000000'
-
-[org/gnome/evolution-data-server]
-migrated=true
-network-monitor-gio-name=''
 
 [org/gnome/nautilus/preferences]
 default-folder-viewer='icon-view'

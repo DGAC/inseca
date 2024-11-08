@@ -21,6 +21,7 @@ import re
 import os
 import sys
 import enum
+import locale
 import datetime
 import tempfile
 import base64
@@ -38,6 +39,8 @@ import signal
 
 debug=False
 print_events=False
+
+locale.setlocale(locale.LC_ALL, "")
 
 class ProxyMode(str, enum.Enum):
     AUTO = "automatic"
@@ -459,7 +462,7 @@ def get_timestamp(as_str=False, utc=True) -> int:
         return ts
 
 def format_timestamp(ts:int) -> str:
-    return datetime.datetime.fromtimestamp(ts).strftime("%Y-%m-%d %H:%M:%S")
+    return datetime.datetime.fromtimestamp(ts).strftime(f"{locale.nl_langinfo(locale.D_FMT)} {locale.nl_langinfo(locale.T_FMT)}")
 
 def get_disks():
     disks={}

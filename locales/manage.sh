@@ -17,14 +17,26 @@
 #    You should have received a copy of the GNU General Public License
 #    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
 
-declare -a domains=("inseca" "inseca-lib")
+declare -a domains=("inseca")
 
 function update_templates
 {
     echo "Updating templates, domain 'inseca'"
+    rm -f inseca.pot
 	xgettext -d "inseca" -p . -L Python -o "inseca.pot" ../tools/inseca
+    xgettext -d "inseca" -p . -L Python -o "inseca.pot" ../lib/*.py
+
+    resdir="../components/inseca-live-wks/opt/inseca"
+    xgettext -d "inseca" -p . -L Python -j -o "inseca.pot" "$resdir/startup"
+    xgettext --sort-output --keyword=translatable -d "inseca" -j -o "inseca.pot" "$resdir/main.ui"
+
+    resdir="../components/inseca-config/opt/inseca-config"
+    xgettext --sort-output --keyword=translatable -d "inseca" -j -o "inseca.pot" "$resdir/main.ui"
+
+    resdir="../components/VPN-OpenVPN/live-config"
+    xgettext -d "inseca" -p . -L Python -j -o "inseca.pot" "$resdir/infos.py"
+
     echo "Updating templates, domain 'inseca-lib'"
-    xgettext -d "inseca-lib" -p . -L Python -o "inseca-lib.pot" ../lib/*.py
 
     # create the PO file which don't yet exist (for example when a new domain is created)
     for domain in "${domains[@]}"

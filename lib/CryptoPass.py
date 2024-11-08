@@ -1,6 +1,6 @@
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -23,8 +23,8 @@ import CryptoGen as crypto
 # Gettext stuff
 import gettext
 lib_dir=os.path.dirname(__file__)
-gettext.bindtextdomain("inseca-lib", lib_dir+"/locales")
-gettext.textdomain("inseca-lib")
+gettext.bindtextdomain("inseca", lib_dir+"/locales")
+gettext.textdomain("inseca")
 _ = gettext.gettext
 
 def generate_salt():

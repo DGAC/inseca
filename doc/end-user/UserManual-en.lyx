@@ -1,0 +1,2041 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\use_default_options true
+\maintain_unincluded_children false
+\language british
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "default" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype false
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\paperfontsize default
+\spacing single
+\use_hyperref false
+\papersize default
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification true
+\use_refstyle 1
+\use_minted 0
+\index Index
+\shortcut idx
+\color #008000
+\end_index
+\leftmargin 2.5cm
+\topmargin 3cm
+\rightmargin 2cm
+\bottommargin 3cm
+\secnumdepth 3
+\tocdepth 2
+\paragraph_separation indent
+\paragraph_indentation default
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style british
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle default
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+INSECA user manual
+\end_layout
+
+\begin_layout Standard
+\begin_inset CommandInset toc
+LatexCommand tableofcontents
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Introduction
+\end_layout
+
+\begin_layout Subsection
+Overview
+\end_layout
+
+\begin_layout Standard
+The INSECA system provides a portable and secure computing environment in
+ the form of a "bootable" USB key
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+A "bootable" USB key not only contains data like a "standard" USB key (used
+ for file storage), but also a complete operating system that a PC can use.
+ Booting a PC from a USB key means forcing the PC to use the operating system
+ stored on the USB key instead of the one installed on the PC's internal
+ drive.
+\end_layout
+
+\end_inset
+
+.
+ It integrates the appropriate tools for remote work activity
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+It is a cousin of the TENS (Trusted End Node Security) system from the U.S.
+ Department of Defense, cf.
+ https://spi.dod.mil/index.htm.
+\end_layout
+
+\end_inset
+
+.
+ Unlike a traditional PC where the operating system and software are installed
+ on the internal drive, and where user data (apart from network storage)
+ is also stored on that same drive, the software and data are exclusively
+ present on the USB key.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status collapsed
+
+\begin_layout Plain Layout
+Also:
+\end_layout
+
+\begin_layout Itemize
+https://github.com/LumIT-Labs/open-securekos (non maintenu)
+\end_layout
+
+\begin_layout Itemize
+https://www.resilientlinux.com/
+\end_layout
+
+\begin_layout Itemize
+https://www.igel.com/about-us/press-releases/igel-introduces-revolutionary-micro-t
+hin-client/
+\end_layout
+
+\begin_layout Itemize
+https://www.vxlsoftware.com/software/clouddesktop-on-the-go
+\end_layout
+
+\begin_layout Itemize
+https://www.lsoft.net/bootdisk/
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Once started, the system is fully autonomous and does not access or modify
+ any data on the used PC (it only uses the hardware resources such as the
+ processor, RAM, screen, mouse, keyboard, etc.), which ensures that:
+\end_layout
+
+\begin_layout Itemize
+there is no dependency between the bootable USB system and the PC being
+ used
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+Aside from potential hardware incompatibilities
+\end_layout
+
+\end_inset
+
+, making it entirely possible to use a personal rather than a professional
+ PC for this purpose;
+\end_layout
+
+\begin_layout Itemize
+once the system is shut down, no trace of its usage remains on the PC that
+ was used, ensuring a high level of privacy protection.
+\end_layout
+
+\begin_layout Subsection
+Updates
+\begin_inset CommandInset label
+LatexCommand label
+name "updates"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Each USB key has a limited lifespan, and one or more updates (security or
+ functional) must be provided monthly.
+ These updates occur autonomously without user intervention, as long as
+ there is an Internet connection.
+ They can also be manually triggered, cf.
+ §
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "inseca-config"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+Once the validity period expires, the USB key can no longer be used and
+ must be regenerated by local IT teams.
+\end_layout
+
+\begin_layout Subsection
+Recommandations
+\end_layout
+
+\begin_layout Itemize
+
+\color red
+never remove the USB key while the system is running
+\color inherit
+, as it may freeze and cause potential data loss;
+\end_layout
+
+\begin_layout Itemize
+do not use the system if the background remains red, as the system's integrity
+ is not guaranteed;
+\end_layout
+
+\begin_layout Itemize
+restart the system at least once a day;
+\end_layout
+
+\begin_layout Itemize
+in case of suspected hacking (unexpected behavior of certain applications),
+ restart the system;
+\end_layout
+
+\begin_layout Itemize
+lock the screen when away from the computer.
+\end_layout
+
+\begin_layout Section
+Booting the OS
+\end_layout
+
+\begin_layout Subsection
+Hardware Requirements
+\end_layout
+
+\begin_layout Standard
+The INSECA system operates on recent laptops or desktop PCs with the following
+ specifications:
+\end_layout
+
+\begin_layout Itemize
+Intel/AMD 64-bit processor;
+\end_layout
+
+\begin_layout Itemize
+configured to automatically or manually boot from an external USB device
+ (see §
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "BIOS/UEFI"
+
+\end_inset
+
+);
+\end_layout
+
+\begin_layout Itemize
+at least 4 GB of RAM, with 8 GB recommended for comfortable use.
+\end_layout
+
+\begin_layout Subsection
+System Startup
+\end_layout
+
+\begin_layout Standard
+The steps to start the system are as follows::
+\end_layout
+
+\begin_layout Enumerate
+insert the USB key and reboot the PC from it;
+\end_layout
+
+\begin_layout Enumerate
+ensure that the PC boots from the USB key instead of the internal operating
+ system.
+ The boot screen (similar to the photo below) remains displayed for about
+ 10 seconds before the system starts (press "Enter" to start immediately):
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/grubsplash.jpg
+	width 60col%
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+the following screen will be displayed during system loading, which takes
+ about 30 seconds to 1 minute, depending on the performance of the hardware
+ used:
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/grubsplash2.jpg
+	width 60col%
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+a graphical session will automatically open with a solid red background,
+ and a password entry prompt will be displayed.
+ Enter the password that was chosen during the creation of the USB key (the
+ system will automatically shut down after two minutes if the password is
+ not entered):
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/red.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Enumerate
+if the correct password is entered, the system will perform security checks,
+ restore any user-specific settings, and then replace the red background
+ with an image and display the system status:
+\end_layout
+
+\begin_deeper
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/allok.png
+	width 50col%
+
+\end_inset
+
+
+\end_layout
+
+\end_deeper
+\begin_layout Standard
+
+\bar under
+NB
+\bar default
+:
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+\color red
+do not use the system while the background remains red, as system security
+ has not been fully verified;
+\end_layout
+
+\begin_layout Itemize
+the network is activated only after the security checks are completed;
+\end_layout
+
+\begin_layout Itemize
+any saved personalized settings will only be restored after these checks
+ are completed.
+\end_layout
+
+\begin_layout Section
+Introduction to the Linux Environment
+\end_layout
+
+\begin_layout Standard
+The system starts in the Linux environment.
+ This section provides an overview of this environment (for clarity, the
+ background image has been replaced with a solid gray color).
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+Upon opening a session, with no applications running, the Linux environment
+ only displays a status bar at the top of the screen:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/topbar.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The functions of this status bar include:
+\end_layout
+
+\begin_layout Itemize
+displaying a panel for selecting running or executable applications ("Activities
+" button on the left);
+\end_layout
+
+\begin_layout Itemize
+showing the time and date (in the center), along with a calendar and recent
+ notifications (accessible by clicking on the associated text);
+\end_layout
+
+\begin_layout Itemize
+displaying information such as keyboard layout (if several are configured),
+ speaker volume and battery charge status (if applicable).
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+Note
+\bar default
+: although it is possible to place files on the desktop, this feature is
+ not activated by default.
+\end_layout
+
+\begin_layout Subsection
+Application Startup and Management
+\end_layout
+
+\begin_layout Standard
+\begin_inset Note Note
+status open
+
+\begin_layout Plain Layout
+* fermeture de session
+\end_layout
+
+\begin_layout Plain Layout
+* écran de verrouillage
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You can access applications by switching to "Activities" mode, which can
+ be done in several ways:
+\end_layout
+
+\begin_layout Itemize
+by clicking on the "Activities" button, or
+\end_layout
+
+\begin_layout Itemize
+by pressing the "Windows" key on the keyboard, or
+\end_layout
+
+\begin_layout Itemize
+by moving the mouse pointer to the top-left corner of the screen.
+\end_layout
+
+\begin_layout Standard
+In all cases, the windows of running applications will be resized for easy
+ display, and the following elements will be shown:
+\end_layout
+
+\begin_layout Itemize
+on the bottom: opened applications and shortcuts to quickly launch pinned
+ ones (in the screenshot below, from left to right: Firefox, the file manager,
+ the help center, the INSECA configuration program, and a program without
+ any dedicated icon);
+\end_layout
+
+\begin_layout Itemize
+at the top, below the status bar: a search space to find applications or
+ recently modified documents.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/activites.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To start an application, restore it if minimized, or bring it to the foreground
+ (which may switch the virtual desktop), simply click on the corresponding
+ icon in the bottom panel.
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+Notes regarding this panel
+\bar default
+:
+\end_layout
+
+\begin_layout Itemize
+each icon corresponds either to a "pinned" application (favorite) or a running
+ application.
+\end_layout
+
+\begin_layout Itemize
+icons with a blue underline indicate running applications.
+\end_layout
+
+\begin_layout Itemize
+the last icon at the right 
+\begin_inset Graphics
+	filename images-en/icon-all-apps.png
+	width 0.7cm
+
+\end_inset
+
+shows all installed applications, as illustrated below:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/applications.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Virtual Desktops
+\begin_inset CommandInset label
+LatexCommand label
+name "Bureaux-virtuels"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+To manage multiple open application windows, the Linux environment supports
+ "virtual desktops." These are like stacked screens, and each application
+ can be opened on a different virtual desktop, allowing you to organize
+ applications based on tasks.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+Virtual desktops are shown at the top when in "Activities" mode.
+ For example, in the image below, one application is open on the left virtual
+ desktop (the 1st), while the second virtual desktop has several:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/multiple-spaces.png
+	width 100col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+When the session starts, only one virtual desktop is created.
+ Additional desktops are created as needed and are automatically deleted
+ when they become empty.
+\end_layout
+
+\begin_layout Standard
+To switch between virtual desktops, you can:
+\end_layout
+
+\begin_layout Itemize
+enter "Activities" mode (via the "Activities" menu, by pressing the "Windows"
+ key, or moving the mouse to the top-left corner) and then click on the
+ desired virtual desktop;
+\end_layout
+
+\begin_layout Itemize
+or, use the key combinations "Ctrl + Alt + →" to move to the virtual desktop
+ on the right or "Ctrl + Alt + ←" to move to the virtual desktop on the
+ left.
+\end_layout
+
+\begin_layout Standard
+In the "Activities" view, you can also drag and drop application windows
+ between virtual desktops to rearrange them (or between two desktops to
+ create a new one between them).
+\end_layout
+
+\begin_layout Subsection
+Linux Environment Settings
+\end_layout
+
+\begin_layout Standard
+The Linux environment allows for extensive configuration.
+ This section explains how to access the settings but does not go into details.
+ Any settings made during a session are saved and restored upon the next
+ startup.
+\end_layout
+
+\begin_layout Standard
+The settings cover both the graphical appearance (themes, hardware, sound,
+ etc.) and network configuration.
+ You can access the settings by running the “Settings” application or by
+ clicking on the icons on the right side of the status bar at the top of
+ the screen:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/right-zone.png
+	width 30col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+In the screenshot above, from top to bottom, you can see:
+\end_layout
+
+\begin_layout Itemize
+in the first row: the laptop's battery level and buttons to (in order) take
+ screenshots, open the settings panel, lock the screen (or by pressing "Windows
+ + L") , and shutdown/suspend the laptop;
+\end_layout
+
+\begin_layout Itemize
+the speaker volume;
+\end_layout
+
+\begin_layout Itemize
+the screen's brightness;
+\end_layout
+
+\begin_layout Itemize
+information about network connectivity: when a network cable or USB network
+ interface is connected, the network is automatically configured 
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Except when the network does not offer automatic configuration services,
+ this case being beyond this document's scope
+\end_layout
+
+\end_inset
+
+;
+\end_layout
+
+\begin_layout Itemize
+various self-explaining buttons.
+\end_layout
+
+\begin_layout Subsection
+Changing Keyboard Layout
+\end_layout
+
+\begin_layout Standard
+If the default keyboard layout is not suitable, you can dynamically change
+ the layout using the setting panel:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/keyboards.png
+	width 75col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+File Manager
+\end_layout
+
+\begin_layout Standard
+Similar to Windows, the Linux file manager allows you to view and manage
+ documents.
+ Here, the “Documents” directory (containing all the files saved on the
+ USB key) is displayed.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/filemanager-2.png
+	width 75col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The appearance can be changed to show documents as a list rather than icons.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/filemanager.png
+	width 75col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The main components of the file manager window are as follows:
+\end_layout
+
+\begin_layout Itemize
+at the top, a status bar shows the current location, allows searching, and
+ lets you change display settings.
+\end_layout
+
+\begin_layout Itemize
+a left-side panel contains shortcuts, including connected storage devices,
+ and lets you safely remove them.
+\end_layout
+
+\begin_layout Itemize
+the main area displays the list of documents, shown here as icons.
+\end_layout
+
+\begin_layout Subsection
+Network Configuration
+\end_layout
+
+\begin_layout Standard
+Network configuration is done exclusively within the Linux environment via
+ the menu on the right side of the status bar at the top of the screen.
+\end_layout
+
+\begin_layout Subsubsection
+Connecting to a Wi-Fi Network
+\end_layout
+
+\begin_layout Standard
+To connect to a Wi-Fi network, go to the Wi-Fi menu and select "Choose a
+ Network":
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/right-zone-Wifi.png
+	width 35col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then, select the network you want to connect to and enter the specific password
+ for the chosen access point.
+\end_layout
+
+\begin_layout Standard
+To connect to a hidden Wi-Fi network (one whose identifier is not broadcast),
+ you need to access the Wi-Fi settings through the "Wi-Fi Settings" menu:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/wifi-prefs.png
+	width 75col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Open the context menu in the top-right corner of this window:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/wifi-prefs-2.png
+	width 40col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Then select the "Connect to Hidden Network" option:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/wifi-prefs-3.png
+	width 55col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Bootable USB device configuration
+\begin_inset CommandInset label
+LatexCommand label
+name "inseca-config"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You can change the password and search for and apply updates manually using
+ a dedicated management tool accessible via the following icon: 
+\begin_inset Graphics
+	filename images-en/config-icon.png
+	width 1.2cm
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The functions of this management software are available through the following
+ buttons:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/config-menu.png
+	width 45col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+“Change Password” allows you to change the password.
+ The new password must be used to unlock the current session (when the screen
+ is locked) and to log in at the next system startup:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/config-pass.png
+	width 45col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+“Update System” enables you to search for system updates and monitor the
+ progress of the related background process:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/config-update.png
+	width 45col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Itemize
+“Remove recorded data” allows you to delete automatically saved data (see
+ section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "conservation des données:params"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+):
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/config-erase.png
+	width 45col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Using the Linux Environment
+\end_layout
+
+\begin_layout Standard
+The Linux environment is recommended for all network-related activities
+ (since the software runs in a more secure environment
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Being executed in a sandboxed envirpnment.
+\end_layout
+
+\end_inset
+
+).
+ These activities include:
+\end_layout
+
+\begin_layout Itemize
+accessing web applications (including email) and browsing the internet via
+ Firefox (and Chromium if needed);
+\end_layout
+
+\begin_layout Itemize
+viewing PDF documents using the “Document Viewer” application;
+\end_layout
+
+\begin_layout Itemize
+accessing remote desktops using the "Remote Viewer" application (for VNC,
+ RDP, etc.).
+\end_layout
+
+\begin_layout Standard
+Other available applications include::
+\end_layout
+
+\begin_layout Itemize
+OnlyOffice for viewing and editing Office documents, which can be run by
+ clicking the icon 
+\begin_inset Graphics
+	filename images-en/onlyoffice.png
+	width 1.2cm
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Itemize
+FileZilla for file transfers.
+\end_layout
+
+\begin_layout Itemize
+KeePass for secure password management (replace the "Passwords.kbdx" file
+ in the "Documents" directory with your own).
+\end_layout
+
+\begin_layout Itemize
+VeraCrypt for accessing encrypted external storage devices.
+\end_layout
+
+\begin_layout Itemize
+PuTTY for remote access to other systems via SSH, or Remmina for VNC and
+ RDP.
+\end_layout
+
+\begin_layout Itemize
+GIMP for image editing and composition.
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+Important Notes
+\bar default
+:
+\end_layout
+
+\begin_layout Itemize
+the environment provided by the bootable USB key is temporary.
+ Aside from certain settings that are automatically saved and documents
+ in the "Documents" directory, all other files are lost when the session
+ ends (see section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "conservation des données"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for more details).
+\end_layout
+
+\begin_layout Itemize
+if a network connection is available, additional software can be temporarily
+ installed via the "Software" application by clicking the icon 
+\begin_inset Graphics
+	filename images-en/Software_icon.png
+	width 1.2cm
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+Web Browsers (Firefox & Chromium)
+\end_layout
+
+\begin_layout Standard
+The "uBlock Origin" extension, which blocks ads in the browser, is installed
+ by default.
+ This makes web pages easier to read, reduces the size and loading time
+ of web pages, and limits malware attacks through malicious advertisements.
+\end_layout
+
+\begin_layout Standard
+You can control this extension's activity and disable it if necessary via
+ the icon at the top-right of the browser window::
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/ublock.png
+	width 15page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+You can also use an “ephemeral” browser running in an isolated context,
+ so all traces of usage (history, bookmarks, downloaded files, etc.) disappear
+ when the browser is closed.
+ This provides better security than the “private browsing” mode.
+ Similarly, no file from the "Documents" directory is accessible, which
+ ensures better isolation of usage.
+\end_layout
+
+\begin_layout Standard
+To start it, simply click the icon
+\begin_inset Graphics
+	filename images-en/sandbox-firefox.png
+	width 1.2cm
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+KeePass
+\end_layout
+
+\begin_layout Standard
+KeePass is a password manager that protects sets of passwords (or other
+ secrets) within encrypted databases, referred to as "vaults." Accessing
+ these vaults requires a master password (the "key"), which must be strong
+ to avoid being cracked.
+ Each vault corresponds to a file, and there is no server involved.
+\end_layout
+
+\begin_layout Standard
+This software allows you to create one or more vaults for storing your passwords
+, whether for personal use or for a team.
+ Each vault is protected by its master password.
+\end_layout
+
+\begin_layout Standard
+With KeePass, it’s easy to use strong, unique passwords for each application,
+ device, or container.
+ It’s also recommended to let KeePass generate these random passwords rather
+ than creating them yourself.
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+\color red
+WARNING
+\bar default
+: Losing the master password to a vault results in the complete loss of
+ all the passwords stored within it.
+\end_layout
+
+\begin_layout Standard
+This software is installed in the Linux environment under the name KeePassXC.
+ The default database (which contains no passwords) is stored in the "Passwords.k
+bdx" file in the "Documents" directory.
+ If you already have KeePass databases, simply replace this file with your
+ own.
+\end_layout
+
+\begin_layout Standard
+To start KeePass, click the icon 
+\begin_inset Graphics
+	filename images-en/keepassxc.png
+	width 1.2cm
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsection
+VeraCrypt
+\end_layout
+
+\begin_layout Standard
+VeraCrypt is a tool, like ZED, that ensures data confidentiality and is
+ the successor to TrueCrypt.
+ It is particularly suitable for encrypting external storage devices.
+\end_layout
+
+\begin_layout Standard
+Like ZED, this tool can be used to create data containers, although with
+ a static size (defined at the time of creation) and without the ability
+ to set multiple access passwords.
+ Therefore, it is not recommended for container use.
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+\color red
+WARNING
+\bar default
+: Losing the access password results in the permanent loss of the associated
+ encrypted data, so make sure to store the password in KeePass.
+\end_layout
+
+\begin_layout Standard
+To run VeraCrypt, click on the icon
+\begin_inset Graphics
+	filename images-en/veracrypt_icon.png
+	width 1.2cm
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Section
+Data Management
+\end_layout
+
+\begin_layout Subsection
+Keeping data
+\begin_inset CommandInset label
+LatexCommand label
+name "conservation des données"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The Linux environment is ephemeral, meaning all data is lost when the session
+ ends, except for two types of data:
+\end_layout
+
+\begin_layout Itemize
+some environment settings (see section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "conservation des données:params"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+);
+\end_layout
+
+\begin_layout Itemize
+files handled as part of the user’s activity (Word documents, PDFs, etc.).
+ To avoid data loss, it is essential to follow the recommendations described
+ in section 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "conservation des données:data"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Subsubsection
+Settings
+\begin_inset CommandInset label
+LatexCommand label
+name "conservation des données:params"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The following settings are preserved:
+\end_layout
+
+\begin_layout Itemize
+Wi-Fi network passwords (to avoid re-entering them after each startup);
+\end_layout
+
+\begin_layout Itemize
+favorite applications and Linux graphical environment settings;
+\end_layout
+
+\begin_layout Itemize
+cryptographic elements of certain software (ZED, SSH, etc.);
+\end_layout
+
+\begin_layout Itemize
+bookmarks in Firefox and Chromium;
+\end_layout
+
+\begin_layout Itemize
+configurations for software such as KeePass, PuTTY, Teams, and remote desktop
+ display.
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+Note
+\bar default
+: these settings are not directly accessible to the user but are handled
+ by the system itself.
+\end_layout
+
+\begin_layout Subsubsection
+User Data
+\begin_inset CommandInset label
+LatexCommand label
+name "conservation des données:data"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Documents saved in the “Documents” directory are stored on a dedicated (and
+ encrypted for confidentiality) partition of the USB key.
+ These two directories point to the same data (there is no duplication from
+ one location to another).
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+Note
+\bar default
+: 
+\color red
+any document saved outside the “Documents” directory will be lost when the
+ system is shut down.
+\end_layout
+
+\begin_layout Subsection
+Accessing Data from plugable mass storage devices
+\end_layout
+
+\begin_layout Standard
+To access data stored on a plugable mass storage device (e.g.
+ a USB key or external HDD), simply insert it into an available USB port.
+\end_layout
+
+\begin_layout Standard
+If the external device is not encrypted, it will be directly usable in the
+ file manager, as shown in the screenshots below (a 1Gb unnamed USB key
+ having been plugged in the system):
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/mount-0.png
+	width 75col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Also, an "eject" icon appears in the status bar on the right side for quick
+ access to the data and to safely remove the device:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/mount-1.png
+	width 25col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+
+\bar under
+Note
+\bar default
+: 
+\end_layout
+
+\begin_layout Itemize
+if the device is encrypted with the default Linux format, then a password
+ will be asked to unlock the device, otherwise, use the VeraCrypt program;
+\end_layout
+
+\begin_layout Itemize
+before removing the storage device, it must be "ejected" using one of the
+ buttons, and you should wait for confirmation that the device can be safely
+ removed.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/mount-3.png
+	width 45col%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Setup Procedures for PC and Mac
+\begin_inset CommandInset label
+LatexCommand label
+name "BIOS/UEFI"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+General Information
+\end_layout
+
+\begin_layout Standard
+From a technical perspective, the BIOS/UEFI of a PC or EFI of a Mac is the
+ first software component loaded by the PC/Mac at startup.
+ Its role is to initialize and minimally configure the hardware to allow
+ the operating system (Windows, Mac, Linux, etc.) to start.
+ It also provides a rudimentary interface that allows you to:
+\end_layout
+
+\begin_layout Itemize
+perform "low-level" hardware configuration (such as enabling or disabling
+ virtualization) and set the boot order for "bootable" devices.
+\end_layout
+
+\begin_layout Itemize
+select, at startup, the order in which bootable devices are checked using
+ the "boot manager."
+\end_layout
+
+\begin_layout Standard
+
+\series bold
+\bar under
+\color red
+WARNING
+\bar default
+: Tampering with the BIOS/UEFI configuration without proper knowledge can
+ render the PC unusable.
+ Be sure to follow only the official documentation provided by the PC manufactur
+er and avoid applying settings suggested by unreliable websites.
+\end_layout
+
+\begin_layout Subsection
+Boot Order
+\end_layout
+
+\begin_layout Standard
+On a PC, to boot from an external device, you must give higher priority
+ to searching for a bootable external device than the internal disk (which
+ contains the "normal" operating system).
+ There are two options for doing this:
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+option 1
+\series default
+: Modify the boot sequence in the PC's BIOS/UEFI so that it starts with
+ "USB device." In this case, no further action is needed to boot from the
+ USB key at each startup.
+\end_layout
+
+\begin_layout Itemize
+
+\series bold
+option 2
+\series default
+: Enter the PC's BIOS/UEFI "boot manager" during startup to select the USB
+ device as the boot source via the boot menu.
+ This action will need to be repeated each time you boot from the USB key.
+\end_layout
+
+\begin_layout Subsection
+Booting on Mac
+\end_layout
+
+\begin_layout Standard
+The procedure for booting a Mac (manufactured after 2006 and before 2015
+\begin_inset Foot
+status collapsed
+
+\begin_layout Plain Layout
+Apple does not allow anymore to boot on 
+\begin_inset Quotes cld
+\end_inset
+
+unvetted
+\begin_inset Quotes crd
+\end_inset
+
+ operating systems.
+\end_layout
+
+\end_inset
+
+) is as follows:
+\end_layout
+
+\begin_layout Enumerate
+connect the USB key to a Mac USB port;
+\end_layout
+
+\begin_layout Enumerate
+restart the Mac while holding the "alt" (or "option") key until the boot
+ menu appears, then select the USB key icon.
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/hardware/mac-keyboard.jpg
+	width 20page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Booting on PC
+\end_layout
+
+\begin_layout Standard
+To access the BIOS/UEFI settings or launch the boot manager on a PC, press
+ a specific function key repeatedly just after powering on the PC until
+ the BIOS/UEFI interface appears.
+ This function key varies by PC brand and may briefly appear on the screen
+ during startup.
+ Refer to your PC's (or motherboard's) user manual.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\begin_layout Standard
+Here is an example of a boot manager on a Lenovo PC, showing a USB key “Corsair
+ Voyager GTX”:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/hardware/Lenovo-F12.jpg
+	width 45page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The table below lists the function keys for accessing the BIOS/UEFI or boot
+ manager for several PC manufacturers (this is not exhaustive, as the keys
+ may vary based on the motherboard or BIOS/UEFI software version):
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="13" columns="3">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Marque du PC
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Accès à l'IHM BIOS/UEFI
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Accès au gestionnaire de boot
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Acer
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Asus
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F8
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Compaq
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F9
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Dell
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Jujitsu
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Gateway
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F10
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+HP
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F10
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F9
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+IBM
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Lenovo
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F1
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Samsung
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+ESC (touche 
+\begin_inset Quotes cld
+\end_inset
+
+Echap
+\begin_inset Quotes crd
+\end_inset
+
+)
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Sony
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F11
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Toshiba
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+F12
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+For a more complete list, refer to your PC’s user manual (or motherboard
+ manual) or consult specialized websites, such as https://www.disk-image.com/faq-b
+ootmenu.htm
+\end_layout
+
+\begin_layout Subsubsection
+Lenovo Specificities
+\end_layout
+
+\begin_layout Standard
+On newer Lenovo models, pressing "Enter" at startup brings up a menu that
+ gives access to various BIOS/UEFI functions, where you can find the list
+ of function keys:
+\end_layout
+
+\begin_layout Standard
+\align center
+\begin_inset Graphics
+	filename images-en/hardware/Lenovo-menu.png
+	width 45page%
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Subsection
+Common problems solving
+\begin_inset CommandInset label
+LatexCommand label
+name "self-help"
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+If, upon reboot, the PC boots into the installed operating system (usually
+ Windows) rather than from the USB key:
+\end_layout
+
+\begin_layout Itemize
+check if the USB key is properly inserted into its port;
+\end_layout
+
+\begin_layout Itemize
+ensure the USB key is not defective (by inserting it into a functioning
+ system; however, avoid formatting the USB key);
+\end_layout
+
+\begin_layout Itemize
+if the BIOS/UEFI was not configured to prioritize booting from a USB device,
+ you may not have pressed the boot menu key quickly enough.
+\end_layout
+
+\begin_layout Standard
+
+\end_layout
+
+\end_body
+\end_document

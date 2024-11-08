@@ -80,6 +80,7 @@ class MainUI:
 
         self._bootable_device_context=bootable_device_context
         self._builder=Gtk.Builder()
+        self._builder.set_translation_domain("inseca")
         scriptdir=os.path.dirname(os.path.realpath(sys.argv[0]))
         self._builder.add_from_file("%s/%s"%(scriptdir, "main.ui"))
         self.main_window=self._builder.get_object("main")

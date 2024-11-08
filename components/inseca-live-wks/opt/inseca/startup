@@ -40,6 +40,17 @@ import dbus
 import dbus.service
 import dbus.mainloop.glib
 
+# Gettext stuff
+import gettext
+import locale
+
+prog_dir=os.path.dirname(__file__)
+locale.setlocale(locale.LC_ALL, "")
+locale.bindtextdomain("inseca", prog_dir+"/locales")
+gettext.bindtextdomain("inseca", prog_dir+"/locales")
+gettext.textdomain("inseca")
+_ = gettext.gettext
+
 def dbus_exception_to_str(e):
     # DBus exceptions display a lot of data, extract only the relevant part
     err=str(e).splitlines()[-1]
@@ -60,6 +71,7 @@ class UnlockProcessUI:
 
         self.scriptdir=os.path.realpath(os.path.dirname(sys.argv[0]))
         self._builder=Gtk.Builder()
+        self._builder.set_translation_domain("inseca")
         self._builder.add_from_file("%s/%s"%(self.scriptdir, "main.ui"))
         self._main_window=self._builder.get_object("main")
         self._main_window.set_icon_from_file("/opt/inseca/logo-128.png")
@@ -98,7 +110,7 @@ class UnlockProcessUI:
             valid_to=self._manager.get_valid_to(dbus_interface="inseca.Manager.Status")
             self.expired=self._manager.get_expired(dbus_interface="inseca.Manager.Status")
             self.invalid_env=self._manager.get_invalid_env(dbus_interface="inseca.Manager.Status")
-            text="<small>Version %s (valide jusqu'au %s)</small>"%(version, valid_to)
+            text=_("<small>Version: {} (valid until: {})</small>").format(version, valid_to)
             label.set_markup(text)
         except Exception as e:
             syslog.syslog(syslog.LOG_INFO, "Infos error: %s"%str(e))
@@ -136,7 +148,7 @@ class UnlockProcessUI:
     def on_password_button_clicked(self, button):
         """Callback after user enterered password"""
         try:
-            self.show_message("Unlocking device...")
+            self.show_message(_("Unlocking device..."))
             widget=self._builder.get_object("password")
             passwd=widget.get_text()
             self._manager.unlock_with_password(passwd)

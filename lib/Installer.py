@@ -39,6 +39,13 @@ import FingerprintChunks as fpchunks
 import ValueHolder as valh
 import Configurations as confs
 
+import gettext
+lib_dir=os.path.realpath(os.path.dirname(__file__))
+locales_dir=f"{os.path.dirname(lib_dir)}/locales"
+gettext.bindtextdomain("inseca", locales_dir)
+gettext.textdomain("inseca")
+_ = gettext.gettext
+
 _debug=False
 
 def get_userdata_file_real_path(iconf, component, name, value):
@@ -211,6 +218,16 @@ class Installer:
             self._config_data["install"]=valh.replace_variables(self._config_data["install"], params)
             self._valid_from_ts=int(build_infos["valid-from"])
 
+            if "l10n" in build_infos:
+                l10ndata=build_infos["l10n"]
+                self._l10n=confs.L10N(timezone=l10ndata.get("timezone"), locale=l10ndata.get("locale"), keyboard_layout=l10ndata.get("keyboard-layout"),
+                            keyboard_model=l10ndata.get("keyboard-model"), keyboard_variant=l10ndata.get("keyboard-variant"),
+                            keyboard_option=l10ndata.get("keyboard-option"))
+            else:
+                self._l10n=confs.L10N(timezone="UTC", locale="en_US.UTF-8", keyboard_layout="en", keyboard_model="pc105")
+                self._l10n=confs.L10N(timezone="UTC", locale="fr_FR.UTF-8", keyboard_layout="fr", keyboard_model="pc105")
+            print(f"L10n is: {self._l10n}")
+
         self._live_iso_file=live_iso_file
         self._params=params
         self._pset=ParamsSet(self._conf, user_data_file)
@@ -282,10 +299,45 @@ class Installer:
 
         # install GRUB common config files
         util.print_event("Installing Grub configuration")
-        grubresdir="%s/grub-config"%os.path.dirname(__file__)
+        grubresdir=f"{os.path.dirname(__file__)}/grub-config"
         tmp=util.Temp()
         tarobj=tarfile.open(tmp.name, mode="w")
-        tarobj.add(grubresdir, arcname=".", recursive=True)
+        for (dirpath, dirnames, fnames) in os.walk(grubresdir):
+            for fname in fnames:
+                path=f"{dirpath}/{fname}"
+                if fname=="grub.cfg":
+                    value=f"timezone={self._l10n.timezone} lang={self._l10n.locale} locales={self._l10n.locale}"
+                    if self._l10n.keyboard_layout:
+                        value+=f" keyboard-layouts={self._l10n.keyboard_layout}"
+                    if self._l10n.keyboard_model:
+                        value+=f" keyboard-model={self._l10n.keyboard_model}"
+                    if self._l10n.keyboard_variant:
+                        value+=f" keyboard-variants={self._l10n.keyboard_variant}"
+                    if self._l10n.keyboard_option:
+                        value+=f" keyboard-options={self._l10n.keyboard_option}"
+
+                    # switch to the specified l10n
+                    current_lang=os.environ.get("LANG")
+                    os.environ["LANG"]=self._l10n.locale
+
+                    t=tempfile.NamedTemporaryFile()
+                    data=util.load_file_contents(path)
+                    data=valh.replace_variables(data, {
+                        "l10n": value,
+                        "boot": _("Boot"),
+                        "stop": _("Stop PC"),
+                        "restart": _("Restart PC")
+                    })
+                    print(f"GRUB: {data}")
+
+                    # revert to the default l10n
+                    os.environ["LANG"]=current_lang
+
+                    util.write_data_to_file(data, t.name)
+                    t.flush()
+                    tarobj.add(t.name, arcname=path[len(grubresdir)+1:])
+                else:
+                    tarobj.add(path, arcname=path[len(grubresdir)+1:])
         tarobj.close()
         grub_install_dirs=self._dev.install_grub_configuration(tmp.name, Live.partid_live)
 

@@ -1,48 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.22.1 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkWindow" id="main">
-    <property name="can_focus">False</property>
+    <property name="can-focus">False</property>
     <property name="title" translatable="yes">Unlock</property>
     <property name="resizable">False</property>
     <property name="modal">True</property>
-    <property name="default_width">500</property>
-    <property name="default_height">350</property>
+    <property name="default-width">500</property>
+    <property name="default-height">350</property>
     <property name="decorated">False</property>
     <property name="deletable">False</property>
     <child>
-      <placeholder/>
-    </child>
-    <child>
       <object class="GtkBox">
         <property name="visible">True</property>
-        <property name="can_focus">False</property>
+        <property name="can-focus">False</property>
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkOverlay">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can-focus">False</property>
             <child>
               <object class="GtkImage">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="margin_top">10</property>
-                <property name="margin_bottom">10</property>
+                <property name="margin-top">10</property>
+                <property name="margin-bottom">10</property>
                 <property name="pixbuf">/opt/inseca/logo-128.png</property>
               </object>
               <packing>
-                <property name="pass_through">True</property>
+                <property name="pass-through">True</property>
                 <property name="index">-1</property>
               </packing>
             </child>
             <child type="overlay">
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">&lt;b&gt;&lt;span size='x-large'&gt;INSECA&lt;/span&gt;&lt;/b&gt;</property>
-                <property name="use_markup">True</property>
+                <property name="can-focus">False</property>
+                <property name="label">&lt;b&gt;&lt;span size='x-large'&gt;INSECA&lt;/span&gt;&lt;/b&gt;</property>
+                <property name="use-markup">True</property>
               </object>
             </child>
           </object>
@@ -55,18 +52,18 @@
         <child>
           <object class="GtkNotebook" id="main-nb">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="show_tabs">False</property>
-            <property name="show_border">False</property>
+            <property name="can-focus">True</property>
+            <property name="show-tabs">False</property>
+            <property name="show-border">False</property>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkSpinner" id="spinner">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="vexpand">True</property>
                     <property name="active">True</property>
                   </object>
@@ -79,12 +76,12 @@
                 <child>
                   <object class="GtkLabel" id="message">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">10</property>
-                    <property name="margin_bottom">20</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">20</property>
                     <property name="vexpand">True</property>
-                    <property name="label" translatable="yes">Message..</property>
-                    <property name="use_markup">True</property>
+                    <property name="label" translatable="yes">Message</property>
+                    <property name="use-markup">True</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -97,25 +94,25 @@
             <child type="tab">
               <object class="GtkLabel" id="page-msg">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">msg</property>
+                <property name="can-focus">False</property>
+                <property name="label">msg</property>
               </object>
               <packing>
-                <property name="tab_fill">False</property>
+                <property name="tab-fill">False</property>
               </packing>
             </child>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">10</property>
-                    <property name="margin_bottom">10</property>
-                    <property name="label" translatable="yes">Erreur</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="label">Error</property>
                     <attributes>
                       <attribute name="weight" value="ultrabold"/>
                       <attribute name="scale" value="2"/>
@@ -131,13 +128,13 @@
                 <child>
                   <object class="GtkLabel" id="errormsg">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">center</property>
-                    <property name="margin_left">10</property>
-                    <property name="margin_right">10</property>
+                    <property name="margin-left">10</property>
+                    <property name="margin-right">10</property>
                     <property name="vexpand">True</property>
-                    <property name="label" translatable="yes">Il manque...</property>
-                    <property name="use_markup">True</property>
+                    <property name="label">Missing...</property>
+                    <property name="use-markup">True</property>
                     <property name="wrap">True</property>
                   </object>
                   <packing>
@@ -154,30 +151,30 @@
             <child type="tab">
               <object class="GtkLabel" id="page-error">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">error</property>
+                <property name="can-focus">False</property>
+                <property name="label">error</property>
               </object>
               <packing>
                 <property name="position">1</property>
-                <property name="tab_fill">False</property>
+                <property name="tab-fill">False</property>
               </packing>
             </child>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="vexpand">True</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">10</property>
-                    <property name="margin_bottom">10</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
                     <property name="vexpand">True</property>
                     <property name="xpad">0</property>
-                    <property name="label" translatable="yes">&lt;span size='large'&gt;Saisir votre mot de passe&lt;/span&gt;</property>
-                    <property name="use_markup">True</property>
+                    <property name="label" translatable="yes">&lt;span size='large'&gt;Enter your password&lt;/span&gt;</property>
+                    <property name="use-markup">True</property>
                     <property name="justify">center</property>
                     <property name="xalign">0.5</property>
                   </object>
@@ -190,11 +187,11 @@
                 <child>
                   <object class="GtkEntry" id="password">
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="margin_left">85</property>
-                    <property name="margin_right">85</property>
+                    <property name="can-focus">True</property>
+                    <property name="margin-left">85</property>
+                    <property name="margin-right">85</property>
                     <property name="visibility">False</property>
-                    <property name="secondary_icon_pixbuf">/opt/inseca/eye.png</property>
+                    <property name="secondary-icon-pixbuf">/opt/inseca/eye.png</property>
                     <signal name="activate" handler="on_password_button_clicked" swapped="no"/>
                     <signal name="icon-press" handler="icon_pressed" swapped="no"/>
                     <signal name="icon-release" handler="icon_released" swapped="no"/>
@@ -208,9 +205,8 @@
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_bottom">8</property>
-                    <property name="label" translatable="yes"> </property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-bottom">8</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
@@ -226,34 +222,34 @@
             <child type="tab">
               <object class="GtkLabel" id="page-password">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">password</property>
+                <property name="can-focus">False</property>
+                <property name="label">password</property>
               </object>
               <packing>
                 <property name="position">2</property>
-                <property name="tab_fill">False</property>
+                <property name="tab-fill">False</property>
               </packing>
             </child>
             <child>
               <object class="GtkBox">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">10</property>
-                    <property name="margin_bottom">10</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
                     <property name="hexpand">True</property>
                     <property name="vexpand">True</property>
-                    <property name="label" translatable="yes">&lt;span size='large'&gt;Ce périphérique est &lt;span foreground='green'&gt;intègre&lt;/span&gt; et
-peut être utilisé en sécurité,
+                    <property name="label" translatable="yes">&lt;span size='large'&gt;This device is &lt;span foreground='green'&gt;safe&lt;/span&gt; and
+can be safely used,
 
-Les données à conserver doivent être déposées
-dans le répertoire &lt;b&gt;Documents&lt;/b&gt;
-pour ne pas être perdues.&lt;/span&gt;</property>
-                    <property name="use_markup">True</property>
+Files which must be kept between reboots have to be
+stored in the &lt;b&gt;Documents&lt;/b&gt; directory,
+as they will otherwise be lost.&lt;/span&gt;</property>
+                    <property name="use-markup">True</property>
                     <property name="justify">center</property>
                   </object>
                   <packing>
@@ -270,26 +266,26 @@ pour ne pas être perdues.&lt;/span&gt;</property>
             <child type="tab">
               <object class="GtkLabel" id="final">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">final</property>
+                <property name="can-focus">False</property>
+                <property name="label">final</property>
               </object>
               <packing>
                 <property name="position">3</property>
-                <property name="tab_fill">False</property>
+                <property name="tab-fill">False</property>
               </packing>
             </child>
             <child>
               <object class="GtkBox" id="page-warning">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="margin_top">10</property>
-                    <property name="margin_bottom">10</property>
-                    <property name="label" translatable="yes">Attention</property>
+                    <property name="can-focus">False</property>
+                    <property name="margin-top">10</property>
+                    <property name="margin-bottom">10</property>
+                    <property name="label">Attention</property>
                     <attributes>
                       <attribute name="weight" value="ultrabold"/>
                       <attribute name="scale" value="2"/>
@@ -305,11 +301,11 @@ pour ne pas être perdues.&lt;/span&gt;</property>
                 <child>
                   <object class="GtkLabel" id="warnmsg">
                     <property name="visible">True</property>
-                    <property name="can_focus">False</property>
+                    <property name="can-focus">False</property>
                     <property name="halign">center</property>
                     <property name="vexpand">True</property>
-                    <property name="label" translatable="yes">Il manque...</property>
-                    <property name="use_markup">True</property>
+                    <property name="label">Missing...</property>
+                    <property name="use-markup">True</property>
                     <property name="wrap">True</property>
                   </object>
                   <packing>
@@ -326,12 +322,12 @@ pour ne pas être perdues.&lt;/span&gt;</property>
             <child type="tab">
               <object class="GtkLabel">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
-                <property name="label" translatable="yes">warning</property>
+                <property name="can-focus">False</property>
+                <property name="label">warning</property>
               </object>
               <packing>
                 <property name="position">4</property>
-                <property name="tab_fill">False</property>
+                <property name="tab-fill">False</property>
               </packing>
             </child>
           </object>
@@ -344,17 +340,17 @@ pour ne pas être perdues.&lt;/span&gt;</property>
         <child>
           <object class="GtkBox">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="margin_left">5</property>
-            <property name="margin_right">5</property>
-            <property name="margin_bottom">5</property>
+            <property name="can-focus">False</property>
+            <property name="margin-left">5</property>
+            <property name="margin-right">5</property>
+            <property name="margin-bottom">5</property>
             <child>
               <object class="GtkLabel" id="infos-label">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">start</property>
-                <property name="label" translatable="yes">&lt;small&gt;Fin de validité: XXX (V0.9)&lt;/small&gt;</property>
-                <property name="use_markup">True</property>
+                <property name="label">&lt;small&gt;End of validity: ...&lt;/small&gt;</property>
+                <property name="use-markup">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -365,16 +361,16 @@ pour ne pas être perdues.&lt;/span&gt;</property>
             <child>
               <object class="GtkButtonBox">
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can-focus">False</property>
                 <property name="halign">end</property>
                 <property name="hexpand">True</property>
-                <property name="layout_style">end</property>
+                <property name="layout-style">end</property>
                 <child>
                   <object class="GtkButton" id="close-button">
-                    <property name="label" translatable="yes">Fermer</property>
+                    <property name="label" translatable="yes">Close</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="receives_default">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="receives-default">True</property>
                     <signal name="clicked" handler="on_close_button_clicked" swapped="no"/>
                   </object>
                   <packing>
@@ -388,10 +384,10 @@ pour ne pas être perdues.&lt;/span&gt;</property>
                   <object class="GtkButton" id="password-go-button">
                     <property name="label">gtk-apply</property>
                     <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="can_default">True</property>
-                    <property name="receives_default">True</property>
-                    <property name="use_stock">True</property>
+                    <property name="can-focus">True</property>
+                    <property name="can-default">True</property>
+                    <property name="receives-default">True</property>
+                    <property name="use-stock">True</property>
                     <signal name="clicked" handler="on_password_button_clicked" swapped="no"/>
                   </object>
                   <packing>

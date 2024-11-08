@@ -40,8 +40,8 @@ import LiveBuilder
 # Gettext stuff
 import gettext
 lib_dir=os.path.dirname(__file__)
-gettext.bindtextdomain("inseca-lib", lib_dir+"/locales")
-gettext.textdomain("inseca-lib")
+gettext.bindtextdomain("inseca", lib_dir+"/locales")
+gettext.textdomain("inseca")
 _ = gettext.gettext
 
 # file names
@@ -762,6 +762,35 @@ class ConfigInterface(ABC):
         """Remove the configuration"""
         pass
 
+@dataclass
+class L10N:
+    timezone:str
+    locale:str
+    keyboard_layout:str|None=None
+    keyboard_model:str|None=None
+    keyboard_variant:str|None=None
+    keyboard_option:str|None=None
+
+    def to_dict(self) -> dict[str,str]:
+        return {
+            "timezone": self.timezone,
+            "locale": self.locale,
+            "keyboard-layout": self.keyboard_layout if self.keyboard_layout else "",
+            "keyboard-model": self.keyboard_model if self.keyboard_model else "",
+            "keyboard-variant": self.keyboard_variant if self.keyboard_variant else "",
+            "keyboard-option": self.keyboard_option if self.keyboard_option else "",
+        }
+
+    def to_env_dict(self) -> dict[str,str]:
+        return {
+            "L10N_TIMEZONE": self.timezone,
+            "L10N_LOCALE": self.locale,
+            "L10N_KB_LAYOUT": self.keyboard_layout if self.keyboard_layout else "",
+            "L10N_KB_MODEL": self.keyboard_model if self.keyboard_model else "",
+            "L10N_KB_VARIANT": self.keyboard_variant if self.keyboard_variant else "",
+            "L10N_KB_OPTION": self.keyboard_option if self.keyboard_option else "",
+        }
+
 class BuildConfig(ConfigInterface):
     """Represents a live Linux configuration"""
     def __init__(self, global_conf:GlobalConfiguration, configfile:str):
@@ -775,6 +804,11 @@ class BuildConfig(ConfigInterface):
     @property
     def id(self):
         return self._id
+
+    @property
+    def l10n(self) -> L10N:
+        """Get the l10n settings selected for the configuration"""
+        return self._l10n
 
     @property
     def build_type(self):
@@ -1069,6 +1103,7 @@ class BuildConfig(ConfigInterface):
         specs={
             "id": [str, False, True],
             "descr": [str, False, True],
+            "l10n": [dict, True, False],
             "version": [str, False, True],
             "build-dir": [str, False, True],
             "repo": [str, True, True],
@@ -1098,6 +1133,26 @@ class BuildConfig(ConfigInterface):
         self._build_dir=data["build-dir"]
         self._components=data["components"]
         self._descr=data["descr"]
+
+        if "l10n" in data:
+            specs={
+                "timezone": [str, False, True],
+                "locale": [str, False, True],
+                "keyboard-layout": [str, True, False],
+                "keyboard-model": [str, True, False],
+                "keyboard-variant": [str, True, False],
+                "keyboard-option": [str, True, False]
+            }
+            l10ndata=data["l10n"]
+            try:
+                _validate_attributes(l10ndata, specs)
+            except Exception as e:
+                raise Exception(f"Invalid live configuration's l10n data '{self.config_file}': {str(e)}")
+            self._l10n=L10N(timezone=l10ndata.get("timezone"), locale=l10ndata.get("locale"), keyboard_layout=l10ndata.get("keyboard-layout"),
+                            keyboard_model=l10ndata.get("keyboard-model"), keyboard_variant=l10ndata.get("keyboard-variant"),
+                            keyboard_option=l10ndata.get("keyboard-option"))
+        else:
+            self._l10n=L10N(timezone="UTC", locale="en_US.UTF-8", keyboard_layout="en", keyboard_model="pc105")
 
     def _get_pending_iso(self):
         builder=LiveBuilder.Builder(self.id)

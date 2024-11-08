@@ -1895,8 +1895,8 @@ def _get_and_validate_password(args):
         password=args.password
     if password=="-":
         import getpass
-        pw1=getpass.getpass(_("New password: "))
-        pw2=getpass.getpass(_("Confirmation: "))
+        pw1=getpass.getpass(_("New password:")+" ")
+        pw2=getpass.getpass(_("Confirmation:")+" ")
         if pw1!=pw2:
             raise Exception(_("Passwords mismatch"))
         password=pw1
@@ -2166,5 +2166,6 @@ try:
         else:
             print("%s"%parser.format_help())
 except Exception as e:
+    raise e
     print("Error: %s"%str(e), file=sys.stderr)
     sys.exit(1)

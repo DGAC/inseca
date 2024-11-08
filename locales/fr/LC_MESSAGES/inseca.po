@@ -7,520 +7,1116 @@ msgid ""
 msgstr ""
 "Project-Id-Version: INSECA 2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2022-07-11 19:35+0200\n"
-"PO-Revision-Date: 2022-01-30 09:41+0100\n"
+"POT-Creation-Date: 2024-11-08 11:03+0100\n"
+"PO-Revision-Date: 2024-11-08 11:04+0100\n"
 "Last-Translator: Vivien Malerba <vmalerba@gmail.com>\n"
-"Language-Team:français <vmalerba@gmail.com>\n"
+"Language-Team: français <vmalerba@gmail.com>\n"
 "Language: fr\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=2; plural=(n > 1)\n"
-"X-Generator: Gtranslator 3.30.1\n"
+"Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 3.2.2\n"
 
-#: ../tools/inseca:56
-msgid "Specify the equivalent of INSECA_ROOT"
-msgstr "Spécifie l'équivalent de INSECA_ROOT"
-
-#: ../tools/inseca:57
-msgid "Specify the equivalent of INSECA_EXTRA_COMPONENTS"
-msgstr "Spécifie l'équivalent de INSECA_EXTRA_COMPONENTS"
-
-#: ../tools/inseca:58
-msgid ""
-"Force usage of a specific HTTP/HTTPS proxy, for example http://my.proxy."
-"local:8080"
+#: ../lib/Configurations.py:308
+#, python-brace-format
+msgid "'reader-conf' file '{fname}' not found for entry '{entry}'"
 msgstr ""
 
-#: ../tools/inseca:59
-msgid "Specify the equivalent of INSECA_DEFAULT_REPOS_DIR"
-msgstr "Spécifie l'équivalent de INSECA_DEFAULT_REPOS_DIR"
+#: ../lib/Configurations.py:315
+#, python-brace-format
+msgid "'writer-conf' file '{fname}' not found for entry '{entry}'"
+msgstr ""
 
-#: ../tools/inseca:60
-msgid "Specify the equivalent of INSECA_CACHE_DIR"
-msgstr "Spécifie l'équivalent de INSECA_CACHE_DIR"
+#: ../lib/Configurations.py:174
+#, python-brace-format
+msgid "'{fpath}' should be a directory"
+msgstr ""
 
-#: ../tools/inseca:61
-msgid "Display more information"
-msgstr "Affiche plus d'informations"
+#: ../components/inseca-live-wks/opt/inseca/startup:113
+msgid "<small>Version: {} (valid until: {})</small>"
+msgstr "<small>Version: {} (valide jusqu'au {})</small>"
 
-#: ../tools/inseca:63
-msgid "Allowed commands"
-msgstr "Commandes autorisées"
+#: ../components/inseca-config/opt/inseca-config/main.ui:39
+msgid "<span size=\"larger\"><b>INSECA configuration</b></span>"
+msgstr "<span size=\"larger\"><b>Configuration INSECA</b></span>"
 
-#: ../tools/inseca:65
-msgid "Initialize a new INSECA global configuration structure"
-msgstr "Initialise une nouvelle structure globale de configuration INSECA"
+#: ../components/inseca-live-wks/opt/inseca/main.ui:176
+msgid "<span size='large'>Enter your password</span>"
+msgstr "<span size='large'>Entrer le mot de passe</span>"
 
-#: ../tools/inseca:66
-msgid "Display the global status"
-msgstr "Affiche le statut global"
+#: ../components/inseca-live-wks/opt/inseca/main.ui:246
+msgid ""
+"<span size='large'>This device is <span foreground='green'>safe</span> and\n"
+"can be safely used,\n"
+"\n"
+"Files which must be kept between reboots have to be\n"
+"stored in the <b>Documents</b> directory,\n"
+"as they will otherwise be lost.</span>"
+msgstr ""
+"<span size='large'>Ce périphérique est <span foreground='green'>intègre</"
+"span> et\n"
+"peut être utilisé en sécurité,\n"
+"\n"
+"Les données à conserver doivent être déposées\n"
+"dans le répertoire <b>Documents</b>\n"
+"pour ne pas être perdues.</span>"
 
-#: ../tools/inseca:68
-msgid "List all the configurations of the specific type"
-msgstr "Liste toutes les configurations d'un type spécifique"
+#: ../lib/AppendedData.py:170
+msgid "Absent or invalid device signature"
+msgstr ""
 
-#: ../tools/inseca:70
-msgid "Config type: build | install | format | domain | userdata"
-msgstr "Type de configuration: build | install | format | domain | userdata"
+#: ../lib/Configurations.py:2530
+#, python-brace-format
+msgid "Actual data path {self.path} does not exist or is not a directory"
+msgstr ""
 
-#: ../tools/inseca:72
-msgid "Show information about a specific configuration"
-msgstr "Affiche les informations d'une configuration spécifique"
+#: ../lib/AppendedData.py:265 ../lib/AppendedData.py:334
+msgid "Actual metadata has been read from the device"
+msgstr ""
 
-#: ../tools/inseca:73
-msgid "Configuration ID"
-msgstr "ID de confirmation"
+#: ../lib/AppendedData.py:124
+msgid "Actual metadata has not yet been created or read from the device"
+msgstr ""
 
-#: ../tools/inseca:75
-msgid "Create a new configuration"
-msgstr "Créé une nouvelle configuration"
+#: ../lib/Borg.py:275
+msgid "Archive to extract is not specified"
+msgstr ""
 
-#: ../tools/inseca:76
+#: ../lib/Configurations.py:659
+msgid ""
+"Archives cache directory cannot be a subdirectory of the configuration's "
+"global directory"
+msgstr ""
+
+#: ../lib/Configurations.py:1691
+msgid "Associated build configuration is not of type 'workstation' or 'server'"
+msgstr ""
+
+#: ../lib/Configurations.py:1224
+msgid "Associated repo is not of type BUILD"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:396
+#: ../components/inseca-config/opt/inseca-config/main.ui:514
+#: ../components/inseca-config/opt/inseca-config/main.ui:601
+msgid "Back"
+msgstr "Retour"
+
+#: ../lib/Installer.py:327
+msgid "Boot"
+msgstr "Démarrage"
+
+#: ../lib/Configurations.py:401
+#, python-brace-format
+msgid ""
+"Build configuration '{conf.id}' already exists (in '{conf.config_file}', "
+"loaded from '{cfile}')"
+msgstr ""
+
+#: ../lib/Configurations.py:611
+#, python-brace-format
+msgid ""
+"Build repo '{rconf.id}' seems corrupted: missing the '{file_infos}' file in "
+"archive '{barname}'"
+msgstr ""
+
+#: ../lib/Configurations.py:603
+#, python-brace-format
+msgid ""
+"Build repo '{rconf.id}' seems corrupted: missing the '{file_iso}' file in "
+"archive '{barname}'"
+msgstr ""
+
+#: ../lib/Configurations.py:607
+#, python-brace-format
+msgid ""
+"Build repo '{rconf.id}' seems corrupted: missing the '{file_userdata}' file "
+"in archive '{barname}'"
+msgstr ""
+
+#: ../lib/AppendedData.py:186
+msgid "Can't create metadata in non creation mode"
+msgstr ""
+
+#: ../lib/AppendedData.py:349
+msgid "Can't create security data in non creation mode"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:73
+#: ../components/inseca-config/opt/inseca-config/main.ui:412
+msgid "Change password"
+msgstr "Changer le mot de passe"
+
+#: ../lib/Borg.py:155
+msgid "Changing repository's password"
+msgstr "Changer le mot de passe du dépôt"
+
+#: ../components/inseca-live-wks/opt/inseca/main.ui:370
+msgid "Close"
+msgstr "Fermer"
+
+#: ../lib/Configurations.py:1214
+#, python-format
+msgid ""
+"Configuration is not 'workstation' but included component '%s' requires some "
+"USERDATA"
+msgstr ""
+
+#: ../lib/Borg.py:157
+msgid "Could not change password"
+msgstr "Impossible de changer le mot de passe"
+
+#: ../lib/Borg.py:305
+msgid "Could not compact archive"
+msgstr ""
+
+#: ../lib/Borg.py:183
+msgid "Could not create archive"
+msgstr ""
+
+#: ../lib/CryptoX509.py:174
+#, python-format
+msgid "Could not create signature: %s"
+msgstr ""
+
+#: ../lib/CryptoPass.py:99
+#, python-format
+msgid "Could not decrypt data using password: %s"
+msgstr ""
+
+#: ../lib/CryptoX509.py:151
+#, python-format
+msgid "Could not decrypt data using symetric key: %s"
+msgstr ""
+
+#: ../lib/CryptoX509.py:143
+#, python-format
+msgid "Could not decrypt intermediate symetric key: %s"
+msgstr ""
+
+#: ../lib/Borg.py:300
+msgid "Could not delete archive"
+msgstr ""
+
+#: ../lib/CryptoX509.py:54
+msgid "Could not determine public key type of certificate"
+msgstr ""
+
+#: ../lib/CryptoPass.py:77
+#, python-format
+msgid "Could not encrypt data with password: %s"
+msgstr ""
+
+#: ../lib/CryptoX509.py:114
+#, python-format
+msgid "Could not encrypt data with symetric key: %s"
+msgstr ""
+
+#: ../lib/CryptoX509.py:107
+#, python-format
+msgid "Could not encrypt symetric key with certificate's public key: %s"
+msgstr ""
+
+#: ../lib/Borg.py:285
+msgid "Could not extract archive"
+msgstr ""
+
+#: ../lib/Borg.py:287
+#, python-format
+msgid "Could not extract files %s from archive"
+msgstr ""
+
+#: ../lib/CryptoX509.py:49
+#, python-format
+msgid "Could not extract public key from certificate: %s"
+msgstr ""
+
+#: ../lib/AppendedData.py:40 ../lib/AppendedData.py:42
+#, python-format
+msgid "Could not find reference '%s'"
+msgstr "Impossible de trouver la référence '%s'"
+
+#: ../lib/CryptoX509.py:37
+#, python-format
+msgid "Could not generate a new private RSA key: %s"
+msgstr ""
+
+#: ../lib/CryptoX509.py:41
+#, python-format
+msgid "Could not generate a new public RSA key: %s"
+msgstr ""
+
+#: ../lib/Configurations.py:2379
+#, python-brace-format
+msgid "Could not get actual size of '{self.path}': {err}"
+msgstr ""
+
+#: ../lib/Configurations.py:2186
+msgid "Could not get last archive: {str(e)}"
+msgstr ""
+
+#: ../lib/Borg.py:140
+msgid "Could not initialize repository"
+msgstr ""
+
+#: ../lib/Borg.py:266
+msgid "Could not list archives"
+msgstr ""
+
+#: ../lib/Borg.py:296
 #, fuzzy
-msgid ""
-"Config type: admin-build | build | install | format | domain | repo | "
-"userdata"
-msgstr ""
-"Type de configuration: admin-build | build | install | format | domain | "
-"repo | userdata"
-
-#: ../tools/inseca:77
-msgid "Referenced Build ID if config type is 'install' (ignored otherwise)"
-msgstr "ID de 'build' si le type de configuration est 'install' (ignoré sinon)"
-
-#: ../tools/inseca:78
-msgid "Configuration's description"
-msgstr "Description de la configuration"
-
-#: ../tools/inseca:80
-msgid "Publish a configuration's contents to its specified repository"
-msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
-
-#: ../tools/inseca:81
-msgid "Configuration(s) ID(s), or empty to specify all the configurations"
-msgstr ""
-"ID(s) de configurations(s), ou vide pour spécifier toutes les configurations"
-
-#: ../tools/inseca:83
-msgid "Remove a configuration and its associated repository"
-msgstr "Supprime une configuration et le dépôt associé"
-
-#: ../tools/inseca:84
-msgid "Configuration(s) ID(s)"
-msgstr "ID(s) de Confirmation(s)"
-
-#: ../tools/inseca:85 ../tools/inseca:153
-msgid "Confirm the removal without any confirmation asked"
-msgstr "Confirme la suppression sans demander de confirmation"
-
-#: ../tools/inseca:87
-msgid "Build a live Linux"
-msgstr "Construit un live Linux"
-
-#: ../tools/inseca:88
-#, fuzzy
-msgid "Build configuration ID(s)"
-msgstr "%s configuration(s) de build"
-
-#: ../tools/inseca:89
-msgid ""
-"Automatically publish the build (if the build configuration has defined a "
-"repository)"
-msgstr ""
-"Publier automatiquement la construction (si la configuration de build a "
-"défini un dépôt)"
-
-#: ../tools/inseca:90
-msgid "Don't actually build the live Linux, only prepare the files"
-msgstr ""
-
-#: ../tools/inseca:92
-msgid "List all contents of the specified repository"
-msgstr "Liste toutes les configurations d'un type spécifique"
-
-#: ../tools/inseca:93 ../tools/inseca:100 ../tools/inseca:104
-#: ../tools/inseca:108
-msgid "Repository ID"
-msgstr "ID du dépôt"
-
-#: ../tools/inseca:94
-msgid "Archive ID, to list files in that archive"
+msgid "Could not list files in archive"
 msgstr "ID d'une archive, pour lister les fichiers de cette archive"
 
-#: ../tools/inseca:96
+#: ../lib/Borg.py:321
+#, python-format
+msgid "Could not mount archive '%s'"
+msgstr ""
+
+#: ../lib/CryptoX509.py:67
+#, python-brace-format
+msgid "Could not sign file '{data_file}': {err}"
+msgstr ""
+
+#: ../lib/Borg.py:360
+#, python-format
+msgid "Could not umount archive '%s'"
+msgstr ""
+
+#: ../lib/Borg.py:356
+#, python-format
+msgid "Could not umount archive '%s': timed out"
+msgstr ""
+
+#: ../lib/CryptoPass.py:130
+msgid "Could not verify the signature"
+msgstr ""
+
+#: ../lib/Borg.py:181
+#, python-format
+msgid "Creating archive '%s'"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:252
+msgid "Current password:"
+msgstr "Mot de passe actuel:"
+
+#: ../lib/Borg.py:277
+#, python-format
+msgid "Destination path '%s' does not exist"
+msgstr ""
+
+#: ../lib/Borg.py:279
+#, python-format
+msgid "Destination path '%s' is not a directory"
+msgstr ""
+
+#: ../lib/AppendedData.py:84
+#, python-brace-format
+msgid "Device file mismatch: '{devfile}' specified and '{layout}' in layout"
+msgstr ""
+
+#: ../lib/AppendedData.py:301
+msgid "Device size mismatch: wrong device"
+msgstr ""
+
+#: ../lib/Configurations.py:164
+#, python-format
 msgid ""
-"Remove all obsolete archives in the repositories (or specified repository)"
+"Directory '%s' pointed by INSECA_ROOT environment variable does not exist"
 msgstr ""
-"Supprime toutes les archives obsolètes des dépôts (ou du dépôt spécifié)"
 
-#: ../tools/inseca:97 ../tools/inseca:113
-msgid "Repository or repositories ID(s)"
-msgstr "ID(s) de(s) Dépôt(s)"
-
-#: ../tools/inseca:99
-msgid "Import data (replace any existing) in a USERDATA repository"
-msgstr ""
-"Importe des données (ramplaçant celles existantes) dans un dépôt USERDATA"
-
-#: ../tools/inseca:101
-msgid "Directory containing the files to add"
-msgstr "Répertoire contenant les fichiers à ajouter"
-
-#: ../tools/inseca:103
-msgid "Add files(s) in a USERDATA repository"
-msgstr "Ajoute des fichiers à un dépôt USERDATA"
-
-#: ../tools/inseca:105
-msgid "Files to add"
-msgstr "Fichiers à ajouter"
-
-#: ../tools/inseca:107
-msgid "Remove files(s) from a USERDATA repository"
-msgstr "Supprime des fichiers d'un dépôt USERDATA"
-
-#: ../tools/inseca:109
-msgid "Files to delete"
-msgstr "Fichiers à supprimer"
-
-#: ../tools/inseca:111
+#: ../lib/Configurations.py:453
+#, python-brace-format
 msgid ""
-"Upload the master configuration (or only some repositories) to the specified "
-"target storage"
+"Domain configuration '{conf.id}' already exists (in '{conf.config_file}', "
+"loaded from '{cfile}')"
 msgstr ""
-"Télécharge la configuration maître (ou seulement certains dépôts) vers "
-"l'espace de stockage spécifié"
 
-#: ../tools/inseca:112 ../tools/inseca:116
-msgid "Storage target"
-msgstr "Espace de stockage"
-
-#: ../tools/inseca:115
-msgid "Download the whole configuration from the specified target storage"
-msgstr ""
-"Télécharge la configuration complète depuis un espace de stockage spécifié"
-
-#: ../tools/inseca:118
+#: ../lib/Configurations.py:477
+#, python-brace-format
 msgid ""
-"Generate an admin 'iso' image from an admin build and domain(s) "
-"configuration(s)"
+"Duplicate repository configuration '{conf.id}' already exists (in '{conf."
+"config_file}', loaded from '{cpath}')"
 msgstr ""
-"Créé une image 'iso' d'administration à partir d'une configuration de build "
-"et de domaine(s)"
 
-#: ../tools/inseca:119
+#: ../components/inseca-config/opt/inseca-config/main.ui:159
+msgid "End of validity:"
+msgstr "Fin de validité:"
+
+#: ../lib/Configurations.py:74
+#, python-format
+msgid "Expected a dictionary, got: %s"
+msgstr ""
+
+#: ../lib/Borg.py:199
+msgid "Failed to get archives list"
+msgstr ""
+
+#: ../lib/AppendedData.py:330
+#, python-format
+msgid "Files in partition %d have changed"
+msgstr ""
+
+#: ../lib/AppendedData.py:321
+#, python-brace-format
 msgid ""
-"Build configuration (must already have been built); pass '-' to generate "
-"debug file only"
+"Filesystem for partition {number} has been modified from '{fs}' to '{fstype}'"
 msgstr ""
-"Configuration de build (doit déjà avoir été construite); utiliser '-' pour "
-"générer seulement une fichier de déboggage"
 
-#: ../tools/inseca:120
+#: ../lib/Configurations.py:438
+#, python-brace-format
 msgid ""
-"Domain(s) configuration(s) which will be available in the admin environment"
+"Format configuration '{conf.id}' already exists (in '{conf.config_file}', "
+"loaded from '{cfile}')"
 msgstr ""
-"Configuration(s) de domaine qui seront disponible(s) dans l'environnement "
-"d'administration"
 
-#: ../tools/inseca:122
-msgid ""
-"Generate a template of the parameters required to create an INSECA "
-"installation or format a device"
+#: ../lib/Configurations.py:289
+#, python-format
+msgid "Global configuration file '%s' is missing"
+msgstr "Le fichier de configuration global '%s' est manquant"
+
+#: ../lib/AppendedData.py:291
+msgid "H/W model mismatch: wrong device"
 msgstr ""
-"Génère un modèle de paramètres requis pour créer une installation INSECA ou "
-"formater un périphérique"
 
-#: ../tools/inseca:123
-msgid "Install/format configuration"
+#: ../components/inseca-config/opt/inseca-config/main.ui:7
+msgid "INSECA configuration"
+msgstr "Configuration INSECA"
+
+#: ../lib/Configurations.py:161
+msgid "INSECA_ROOT environment variable is not defined"
+msgstr ""
+
+#: ../lib/AppendedData.py:77
+msgid "In creation mode, both specs and layout are expected"
+msgstr ""
+
+#: ../lib/Borg.py:109
+msgid "Incomplete synchronisation, retry later"
+msgstr ""
+
+#: ../lib/Configurations.py:1685
+#, python-brace-format
+msgid "Inexistant associated build configuration '{self.build_id}'"
+msgstr ""
+
+#: ../lib/Configurations.py:1675
+#, python-brace-format
+msgid "Inexistant associated build repository '{self.build_repo_id}'"
+msgstr ""
+
+#: ../lib/Configurations.py:1221
+#, python-brace-format
+msgid "Inexistant associated repo '{self.repo_id}'"
+msgstr ""
+
+#: ../lib/Configurations.py:2198
+#, fuzzy, python-brace-format
+msgid "Inexistant referenced format configuration '{uid}'"
 msgstr "Configuration d'install ou de format"
 
-#: ../tools/inseca:125
-msgid "Generate an RSA keys pair"
-msgstr "Génère une paire de clés RSA"
-
-#: ../tools/inseca:126
-msgid "Base name for the generated key files: <prefix>.pub and <prefix>.priv"
-msgstr ""
-"Base du nom de fichier pour les clés générées: <prefixe>.pub et <prefixe>."
-"priv"
-
-#: ../tools/inseca:128
-msgid "List all mass storage devices in the system"
+#: ../lib/Configurations.py:2192
+#, python-brace-format
+msgid "Inexistant referenced install configuration '{uid}'"
 msgstr ""
 
-#: ../tools/inseca:130
-msgid "Create an INSECA installation"
-msgstr "Crée une installation INSECA"
+#: ../lib/Configurations.py:1660 ../lib/Configurations.py:2010
+#: ../lib/Configurations.py:2177
+#, python-brace-format
+msgid "Inexistant referenced repository '{self.repo_id}'"
+msgstr ""
 
-#: ../tools/inseca:131
+#: ../lib/Configurations.py:420
+#, python-brace-format
 msgid ""
-"Install (for workstation install) or build (for simple live Linux) "
-"configuration to use"
-msgstr ""
-"Configuration d'install (de type 'workstation') ou de build (pour un simple "
-"live Linux)"
-
-#: ../tools/inseca:132
-msgid "Device or VM image file to install to"
-msgstr "Périphérique ou image disque de VM à utiliser pour l'installation"
-
-#: ../tools/inseca:133
-msgid ""
-"File containing the parameters for the installation (for install "
-"configurations)"
+"Install configuration '{conf.id}' already exists (in '{conf.config_file}', "
+"loaded from '{cfile}')"
 msgstr ""
 
-#: ../tools/inseca:134
-msgid "Size of the VM image file in Gb (if target is a VM image file)"
+#: ../lib/Configurations.py:88
+msgid "Invalid 'attest' attribute: wrong type"
 msgstr ""
 
-#: ../tools/inseca:135 ../tools/inseca:139
-msgid ""
-"Specific archive ID to get the live Linux image (instead of the last "
-"available)"
+#: ../lib/Configurations.py:84
+msgid "Invalid 'descr' attribute: wrong type"
 msgstr ""
 
-#: ../tools/inseca:137
-msgid "Update the live Linux of an INSECA installation"
-msgstr ""
-
-#: ../tools/inseca:138
-msgid "Device or VM image file to update"
-msgstr ""
-
-#: ../tools/inseca:141
-msgid "Format a storage device using a format configuration"
-msgstr ""
-
-#: ../tools/inseca:142
-msgid "Format configuration to use"
-msgstr ""
-
-#: ../tools/inseca:143
-msgid "File containing the parameters for the format"
-msgstr ""
-
-#: ../tools/inseca:144
-msgid "Device file to install to"
-msgstr ""
-
-#: ../tools/inseca:146
-msgid "Identifies an INSECA device"
-msgstr "Identifie un périphérique INSECA"
-
-#: ../tools/inseca:147 ../tools/inseca:152 ../tools/inseca:160
-#: ../tools/inseca:165 ../tools/inseca:171 ../tools/inseca:175
-#: ../tools/inseca:178 ../tools/inseca:184 ../tools/inseca:188
-msgid "Device's associated file (e.g. /dev/sda)"
-msgstr "Fichier associé au périphérique (par ex. /dev/sda)"
-
-#: ../tools/inseca:148
-msgid "Also get the protected (encrypted) information"
-msgstr ""
-
-#: ../tools/inseca:149 ../tools/inseca:168
-msgid "Force a specific decryption key to get the protected data"
-msgstr ""
-
-#: ../tools/inseca:151
-msgid "Remove everything on a device"
-msgstr ""
-
-#: ../tools/inseca:155
-msgid ""
-"Makes a byte for byte copy of a device to a file (like dd) or vide-versa"
-msgstr ""
-
-#: ../tools/inseca:156
-#, fuzzy
-msgid "Input file (e.g. /dev/sda)"
-msgstr "Fichier associé au périphérique (par ex. /dev/sda)"
-
-#: ../tools/inseca:157
-msgid "File to copy data to"
-msgstr ""
-
-#: ../tools/inseca:159
-msgid "Starts an INSECA device in a VM"
-msgstr ""
-
-#: ../tools/inseca:161
-msgid "Boot in Legacy BIOS mode instead of UEFI"
-msgstr ""
-
-#: ../tools/inseca:162
-msgid "Quantity of RAM to allocate to the VM in Mib (2048 by default)"
-msgstr ""
-
-#: ../tools/inseca:164
-msgid "Mount a partition of an INSECA device"
-msgstr ""
-
-#: ../tools/inseca:166
-msgid "Partition ID name to mount"
-msgstr "ID (nom) de la partition à monter"
-
-#: ../tools/inseca:167
-msgid "Directory where the partition will be mounted"
-msgstr ""
-
-#: ../tools/inseca:170
-msgid "Unmount a mounted partition of an INSECA device"
-msgstr "Dé-monte une partition montée d'un périphérique INSECA"
-
-#: ../tools/inseca:172
-msgid "Partition ID (name) to umount"
-msgstr "ID (nom) de la partition à dé-monter"
-
-#: ../tools/inseca:174
-msgid "List the users declared"
-msgstr "Liste tous les utilisateurs déclarés"
-
-#: ../tools/inseca:177
-msgid "Add a new user"
-msgstr "Ajoute un nouvel utilisateur"
-
-#: ../tools/inseca:179
-msgid "User to add"
-msgstr "Utilisateur à ajouter"
-
-#: ../tools/inseca:180
-msgid "Password (use '-' to get from stdin)"
-msgstr "Mot de passe (utiliser '-' si fourni via stdin)"
-
-#: ../tools/inseca:181 ../tools/inseca:191
-msgid "Name of the environment variable containing the password"
-msgstr "Nom de la variable d'environnement contenant le mot de passe"
-
-#: ../tools/inseca:183
-msgid "Delete a user"
-msgstr "Supprimer un utilisateur"
-
-#: ../tools/inseca:185
-msgid "User to delete"
-msgstr "Utilisateur à supprimer"
-
-#: ../tools/inseca:187
-msgid "Reset the user's password"
-msgstr "Réinitialise le mot de passe d'un utilisateur"
-
-#: ../tools/inseca:189
-msgid "User for which the password will be reset"
-msgstr "Utilisateur dont le mot de passe sera réinitialisé"
-
-#: ../tools/inseca:190
-msgid "Password to use (use '-' if provided via stdin)"
-msgstr "Mot de passe (utiliser '-' si fourni via stdin)"
-
-#: ../tools/inseca:274
+#: ../lib/Configurations.py:86
 #, python-format
-msgid "needs to be rebuilt (and existing build @ %s)"
-msgstr "doit être reconstruit (et construction existante @ %s)"
+msgid "Invalid 'type' attribute '%s'"
+msgstr ""
 
-#: ../tools/inseca:276
-msgid "needs to be rebuilt"
-msgstr "doit être reconstruit"
+#: ../lib/Configurations.py:78
+#, python-format
+msgid "Invalid attribute '%s'"
+msgstr ""
 
-#: ../tools/inseca:279 ../tools/inseca:285
-msgid "needs to be published"
-msgstr "doit être publié"
+#: ../lib/Configurations.py:68
+#, python-format
+msgid "Invalid attribute '%s': should not be null"
+msgstr ""
 
-#: ../tools/inseca:281
+#: ../lib/Configurations.py:70
+#, python-format
+msgid "Invalid attribute '%s': wrong data type"
+msgstr ""
+
+#: ../lib/CryptoGen.py:49
+#, python-format
+msgid "Invalid character '%s'"
+msgstr ""
+
+#: ../lib/Configurations.py:1636 ../lib/Configurations.py:1975
+#, python-brace-format
+msgid ""
+"Invalid configuration entry '{entry}' in section '{section}': already part "
+"of core configuration"
+msgstr ""
+
+#: ../lib/Configurations.py:2405
+#, fuzzy
+msgid "Invalid configuration: not a dictionary"
+msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
+
+#: ../lib/CryptoGen.py:163
+msgid "Invalid data: can't convert from ascii"
+msgstr ""
+
+#: ../lib/Configurations.py:1307 ../lib/Configurations.py:2231
+#, python-brace-format
+msgid "Invalid file '{configfile}' format: {err}"
+msgstr ""
+
+#: ../lib/Configurations.py:801 ../lib/Configurations.py:1771
+#: ../lib/Configurations.py:2035
+msgid "Invalid file '{configfile}' format: {str(e)}"
+msgstr ""
+
+#: ../lib/Configurations.py:1942
+msgid "Invalid format configuration '{self.config_file}': {str(e)}"
+msgstr ""
+
+#: ../lib/CryptoPass.py:91 ../lib/CryptoX509.py:131
+#, python-format
+msgid "Invalid format for data to decrypt '%s'"
+msgstr ""
+
+#: ../lib/Configurations.py:1597
+msgid "Invalid install configuration '{self.config_file}': {str(e)}"
+msgstr ""
+
+#: ../lib/Configurations.py:1626 ../lib/Configurations.py:1965
+#, python-format
+msgid "Invalid parameter '%s': already part of core configuration"
+msgstr ""
+
+#: ../lib/CryptoPass.py:61
+msgid "Invalid password: expected a string"
+msgstr ""
+
+#: ../lib/CryptoGen.py:52 ../lib/CryptoPass.py:63
+msgid "Invalid password: not strong enough"
+msgstr ""
+
+#: ../lib/Configurations.py:2429
+#, python-brace-format
+msgid ""
+"Invalid repo configuration '{self.config_file}': invalid type '{self._type}'"
+msgstr ""
+
+#: ../lib/Configurations.py:2417
+msgid "Invalid repo configuration '{self.config_file}': {str(e)}"
+msgstr ""
+
+#: ../lib/CryptoX509.py:198
+msgid "Invalid signature format"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:530
+msgid "Look for updates"
+msgstr "Rechercher des mises à jour"
+
+#: ../components/inseca-live-wks/opt/inseca/main.ui:83
+msgid "Message"
+msgstr "Message"
+
+#: ../lib/Configurations.py:64 ../lib/Configurations.py:81
+#, python-format
+msgid "Missing attribute '%s'"
+msgstr ""
+
+#: ../lib/Configurations.py:101
+#, python-format
+msgid "Missing file '%s' identified in parameter"
+msgstr ""
+
+#: ../lib/Configurations.py:435
+#, fuzzy, python-format
+msgid "Missing format configuration file '%s'"
+msgstr "Configuration de format à utiliser"
+
+#: ../lib/Configurations.py:1001
+#, python-format
+msgid "Missing live Linux signing private key file '%s'"
+msgstr ""
+
+#: ../lib/Configurations.py:1015
+#, python-format
+msgid "Missing live Linux signing public key file '%s'"
+msgstr ""
+
+#: ../lib/Borg.py:324
+#, python-brace-format
+msgid "Mounted archive '{archive_name}' on '{mp}'"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:296
+msgid "New password confirmation:"
+msgstr "Confirmation du nouveau mot de passe:"
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:282
+msgid "New password:"
+msgstr "Nouveau mot de passe:"
+
+#: ../lib/Configurations.py:595 ../lib/Configurations.py:625
+#, python-format
+msgid "No archive '%s' in repository"
+msgstr ""
+
+#: ../lib/Configurations.py:1656 ../lib/Configurations.py:1688
+#: ../lib/Configurations.py:2006 ../lib/Configurations.py:2173
+msgid "No associated repository configuration"
+msgstr ""
+
+#: ../lib/Configurations.py:592
+msgid "No build archive available"
+msgstr ""
+
+#: ../lib/AppendedData.py:282
+msgid ""
+"No matching signature verifer: metadata's signature could not be verified"
+msgstr ""
+
+#: ../lib/AppendedData.py:267
+msgid "No metadata verifiers provided"
+msgstr ""
+
+#: ../lib/CryptoX509.py:162
+msgid "No private key provided, can't sign"
+msgstr ""
+
+#: ../lib/CryptoX509.py:92
+msgid "No public key provided, can't encrypt"
+msgstr ""
+
+#: ../lib/CryptoX509.py:189
+msgid "No public key provided, can't verify signature"
+msgstr ""
+
+#: ../lib/Borg.py:111
+msgid "Not enough memory(?)"
+msgstr ""
+
+#: ../lib/AppendedData.py:131
+msgid "Not enough reserved space for metadata's length"
+msgstr ""
+
+#: ../lib/AppendedData.py:118
+#, python-brace-format
+msgid ""
+"Not enough reserved space on device (got {offset} out of {reserved} reserved)"
+msgstr ""
+
+#: ../lib/AppendedData.py:326
+#, python-format
+msgid "Partition %d has been altered"
+msgstr ""
+
+#: ../lib/AppendedData.py:307
+#, python-brace-format
+msgid "Partition label scheme has been altered from '{etype}' to '{gtype}'"
+msgstr ""
+
+#: ../lib/AppendedData.py:311
+msgid "Partition table has been altered"
+msgstr ""
+
+#: ../lib/CryptoGen.py:38
+#, python-format
+msgid "Password is too short (%d characters)"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:578
+msgid ""
+"Recorded data include the desktop\n"
+"settings, Wi-Fi passwords, web browser\n"
+"bookmarks, SSH keys and other kind of\n"
+"information automatically saved.\n"
+"\n"
+"Files saved in the Documents/ folder will not\n"
+"be deleted."
+msgstr ""
+"Les données enregistrées incluent la configuration\n"
+"du bureau, les mots de passe Wi-Fi, les marque-pages\n"
+"des navigateurs, les clé SSH, et d'autres types d'information\n"
+"\n"
+"Les fichiers stockés dans le répertoire Documents/ ne\n"
+"seront pas supprimés."
+
+#: ../lib/Configurations.py:1677
+#, python-brace-format
+msgid "Referenced build repository '{self.build_repo_id}' is not of type BUILD"
+msgstr ""
+
+#: ../lib/Configurations.py:2180
+msgid "Referenced repository is not of type DOMAIN"
+msgstr ""
+
+#: ../lib/Configurations.py:2013
+msgid "Referenced repository is not of type FORMAT"
+msgstr ""
+
+#: ../lib/Configurations.py:1663
+msgid "Referenced repository is not of type INSTALL"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:101
+#: ../components/inseca-config/opt/inseca-config/main.ui:617
+msgid "Remove recorded data"
+msgstr "Supprime les données enregistrées"
+
+#: ../lib/Installer.py:329
+msgid "Restart PC"
+msgstr "Re-démarrer le PC"
+
+#: ../lib/Configurations.py:2548
+#, python-format
+msgid "Root directory '%s' is not empty"
+msgstr ""
+
+#: ../lib/AppendedData.py:297
+msgid "Serial numbers mismatch: wrong device"
+msgstr ""
+
+#: ../lib/CryptoX509.py:79
+#, python-brace-format
+msgid "Signature verification failed for file '{data_file}': {err}"
+msgstr ""
+
+#: ../lib/Installer.py:328
+msgid "Stop PC"
+msgstr "Arrêter le PC"
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:146
+msgid "System version:"
+msgstr "Version du système:"
+
+#: ../lib/Configurations.py:233
+msgid "The archives_cache_dir property has not yet been defined"
+msgstr ""
+
+#: ../lib/Configurations.py:172
+#, python-brace-format
+msgid "Top directory '{fpath}' is missing"
+msgstr ""
+
+#: ../lib/CryptoX509.py:212
+#, python-format
+msgid "Unable to verify signature: %s"
+msgstr "Impossible de vérifier la signature: %s"
+
+#: ../lib/Configurations.py:519
+#, fuzzy, python-format
+msgid "Unknown build configuration '%s'"
+msgstr "ID(s) de configuration de build"
+
+#: ../lib/Configurations.py:508
+#, fuzzy, python-brace-format
+msgid "Unknown configuration '{conf}'"
+msgstr "Cloner une configuration"
+
+#: ../lib/Configurations.py:552
+#, fuzzy, python-format
+msgid "Unknown domain configuration '%s'"
+msgstr "Cloner une configuration"
+
+#: ../lib/Configurations.py:541
+#, fuzzy, python-format
+msgid "Unknown format configuration '%s'"
+msgstr "Configuration de format à utiliser"
+
+#: ../lib/Configurations.py:530
+#, fuzzy, python-format
+msgid "Unknown install configuration '%s'"
+msgstr "Cloner une configuration"
+
+#: ../lib/AppendedData.py:108
+#, python-format
+msgid "Unknown partitioning type '%s'"
+msgstr ""
+
+#: ../lib/Configurations.py:572
+#, fuzzy, python-format
+msgid "Unknown repo configuration '%s'"
+msgstr "Cloner une configuration"
+
+#: ../lib/Configurations.py:355
+#, python-format
+msgid "Unknown synchronization target '%s'"
+msgstr ""
+
+#: ../components/inseca-live-wks/opt/inseca/main.ui:7
+msgid "Unlock"
+msgstr "Déverrouiller"
+
+#: ../components/inseca-live-wks/opt/inseca/startup:151
+msgid "Unlocking device..."
+msgstr "Déverrouillage..."
+
+#: ../lib/Borg.py:368
+#, python-brace-format
+msgid "Unmounted archive '{archive_name}' (was mounted on '{mp}')"
+msgstr ""
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:87
+msgid "Update system"
+msgstr "Mettre le système à jour"
+
+#: ../components/inseca-config/opt/inseca-config/main.ui:460
+msgid ""
+"Updates allow to correct broken features\n"
+"and to apply security fixes. They are\n"
+"automatically applied whenever a network\n"
+"connection is available."
+msgstr ""
+"Les mises à jour permettendt des corrections\n"
+"fonctionnelles et d'appliquer les correctifs\n"
+"de sécurité. Elles sont appliquées automatiquement\n"
+"dès qu'une connection réseau est disponible."
+
+#: ../lib/Configurations.py:109
+#, python-format
+msgid "Wrong value '%s' for a filesystem parameter"
+msgstr ""
+
+#: ../lib/Configurations.py:94
+#, python-format
+msgid "Wrong value '%s' for a string parameter"
+msgstr ""
+
+#: ../lib/Configurations.py:104
+#, python-format
+msgid "Wrong value '%s' for parameter"
+msgstr ""
+
+#: ../lib/Configurations.py:1265
 #, python-format
 msgid "existing build @ %s"
-msgstr "construction existante @ %s"
-
-#: ../tools/inseca:290
-msgid ""
-"No root path to the global configuration specified (INSECA_ROOT environment "
-"variable or '--root' option"
 msgstr ""
 
-#: ../tools/inseca:293
-msgid "Not yet configured, use the 'init' command"
-msgstr "Pas encore configuré, utiliser la commande 'init'"
-
-#: ../tools/inseca:295
-#, python-format
-msgid "Global configuration Ok (%s)"
-msgstr "Configuration globale Ok (%s)"
-
-#: ../tools/inseca:295
-msgid "master"
-msgstr "principale"
-
-#: ../tools/inseca:295
-msgid "not master"
-msgstr "non principale"
-
-#: ../tools/inseca:296
-#, python-format
-msgid "Configuration directory: %s"
-msgstr "Répertoire de configuration: %s"
-
-#: ../tools/inseca:297
-#, python-format
-msgid "Proxy PAC file: %s"
-msgstr "Fichier proxy PAC: %s"
-
-#: ../tools/inseca:299
-#, python-format
-msgid "%s build configuration(s)"
-msgstr "%s configuration(s) de build"
-
-#: ../tools/inseca:1146
-#, python-format
-msgid "Missing live Linux file '%s'"
+#: ../lib/Configurations.py:1263 ../lib/Configurations.py:1743
+#: ../lib/Configurations.py:2021 ../lib/Configurations.py:2207
+msgid "needs to be published"
 msgstr ""
 
-#: ../tools/inseca:1153
+#: ../lib/Configurations.py:1260
+msgid "needs to be rebuilt"
+msgstr ""
+
+#: ../lib/Configurations.py:1258
+#, python-format
+msgid "needs to be rebuilt (and existing build @ %s)"
+msgstr ""
+
+#: ../components/VPN-OpenVPN/live-config/infos.py:84
+msgid "valid up to {} UTC"
+msgstr "valide jusqu'au {} UTC"
+
+#~ msgid "Add a new user"
+#~ msgstr "Ajoute un nouvel utilisateur"
+
+#~ msgid "Add files(s) in a USERDATA repository"
+#~ msgstr "Ajoute des fichiers à un dépôt USERDATA"
+
+#~ msgid "Allowed commands"
+#~ msgstr "Commandes autorisées"
+
+#~ msgid ""
+#~ "Automatically publish the build (if the build configuration has defined a "
+#~ "repository)"
+#~ msgstr ""
+#~ "Publier automatiquement la construction (si la configuration de build a "
+#~ "défini un dépôt)"
+
+#~ msgid ""
+#~ "Base name for the generated key files: <prefix>.pub and <prefix>.priv"
+#~ msgstr ""
+#~ "Base du nom de fichier pour les clés générées: <prefixe>.pub et <prefixe>."
+#~ "priv"
+
+#~ msgid "Boot in Legacy BIOS mode instead of UEFI"
+#~ msgstr "Démarre en mode 'Legacy' et non UEFI"
+
+#~ msgid "Build a live Linux"
+#~ msgstr "Construit un live Linux"
+
+#~ msgid ""
+#~ "Build configuration (must already have been built); pass '-' to generate "
+#~ "debug file only"
+#~ msgstr ""
+#~ "Configuration de build (doit déjà avoir été construite); utiliser '-' "
+#~ "pour générer seulement une fichier de déboggage"
+
 #, fuzzy
-msgid "Build configuration does not specify a repository"
-msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
+#~ msgid "Build configuration specifies a non BUILD repository"
+#~ msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
 
-#: ../tools/inseca:1157
-#, fuzzy
-msgid "Build configuration specifies a non BUILD repository"
-msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
+#~ msgid "Check a device's integrity and display any error"
+#~ msgstr "Vérifie l'intégrité d'un périphérique et affiche toute erreur"
 
-#: ../tools/inseca:1162
-#, fuzzy
-msgid "Signing live Linux"
-msgstr "Construit un live Linux"
+#~ msgid "Cloned configuration's description"
+#~ msgstr "Description de la configuration clonée"
 
-#: ../tools/inseca:1177
-msgid "Not signing live Linux (configuration does not specify any signing key)"
-msgstr ""
+#~ msgid ""
+#~ "Config type: admin-build | build | install | format | domain | userdata"
+#~ msgstr ""
+#~ "Type de configuration: admin-build | build | install | format | domain | "
+#~ "userdata"
 
-#: ../tools/inseca:1564
-msgid "The params-file argument is missing"
-msgstr ""
+#~ msgid "Config type: build | install | format | domain | userdata"
+#~ msgstr "Type de configuration: build | install | format | domain | userdata"
 
-#: ../tools/inseca:1571
+#~ msgid "Configuration ID"
+#~ msgstr "ID de confirmation"
+
 #, python-format
-msgid "Invalid or unreadable '%s' file"
-msgstr ""
+#~ msgid "Configuration directory: %s"
+#~ msgstr "Répertoire de configuration: %s"
 
-#: ../tools/inseca:1925
-msgid "The build config is not an ADMIN build"
-msgstr ""
+#~ msgid "Configuration's description"
+#~ msgstr "Description de la configuration"
 
-#: ../tools/inseca:2107
-msgid "New password: "
-msgstr "Nouveau mot de passe: "
+#~ msgid "Configuration(s) ID(s)"
+#~ msgstr "ID(s) de Confirmation(s)"
 
-#: ../tools/inseca:2108
-msgid "Confirmation: "
-msgstr "Confirmation: "
+#~ msgid "Configuration(s) ID(s), or empty to specify all the configurations"
+#~ msgstr ""
+#~ "ID(s) de configurations(s), ou vide pour spécifier toutes les "
+#~ "configurations"
 
-#: ../tools/inseca:2110
-msgid "Passwords mismatch"
-msgstr "Les mots de passe ne correspondent pas"
+#~ msgid "Confirm the removal without any confirmation asked"
+#~ msgstr "Confirme la suppression sans demander de confirmation"
 
-#: ../tools/inseca:2261
-msgid "This command needs root privileges"
-msgstr ""
+#~ msgid "Confirmation:"
+#~ msgstr "Confirmation:"
 
-#~ msgid "Name of the environment variable containing the password to use"
+#~ msgid "Create a new configuration"
+#~ msgstr "Créé une nouvelle configuration"
+
+#~ msgid "Create an INSECA installation"
+#~ msgstr "Crée une installation INSECA"
+
+#~ msgid "Delete a user"
+#~ msgstr "Supprimer un utilisateur"
+
+#~ msgid "Device file to install to"
+#~ msgstr "Fichier à utiliser pour l'installation"
+
+#~ msgid "Device or VM image file to install to"
+#~ msgstr "Périphérique ou image disque de VM à utiliser pour l'installation"
+
+#~ msgid "Device or VM image file to update"
+#~ msgstr "Périphérique ou image disque de VM à mattre à jour"
+
+#~ msgid "Device's associated file (e.g. /dev/sda)"
+#~ msgstr "Fichier associé au périphérique (par ex. /dev/sda)"
+
+#~ msgid "Directory containing the files to add"
+#~ msgstr "Répertoire contenant les fichiers à ajouter"
+
+#~ msgid "Display more information"
+#~ msgstr "Affiche plus d'informations"
+
+#~ msgid "Display the global status"
+#~ msgstr "Affiche le statut global"
+
+#~ msgid ""
+#~ "Domain(s) configuration(s) which will be available in the admin "
+#~ "environment"
+#~ msgstr ""
+#~ "Configuration(s) de domaine qui seront disponible(s) dans l'environnement "
+#~ "d'administration"
+
+#~ msgid "Don't ask for any confirmation"
+#~ msgstr "Ne pas demander de confirmation"
+
+#~ msgid "Download the whole configuration from the specified target storage"
+#~ msgstr ""
+#~ "Télécharge la configuration complète depuis un espace de stockage spécifié"
+
+#~ msgid "File (or device) to copy data to"
+#~ msgstr "Fichier (ou périphérique) vers lequel copier les données"
+
+#~ msgid "Files to add"
+#~ msgstr "Fichiers à ajouter"
+
+#~ msgid "Files to delete"
+#~ msgstr "Fichiers à supprimer"
+
+#~ msgid ""
+#~ "Generate a template of the parameters required to create an INSECA "
+#~ "installation or format a device"
+#~ msgstr ""
+#~ "Génère un modèle de paramètres requis pour créer une installation INSECA "
+#~ "ou formater un périphérique"
+
+#~ msgid "Generate an RSA keys pair"
+#~ msgstr "Génère une paire de clés RSA"
+
+#~ msgid ""
+#~ "Generate an admin 'iso' image from an admin build and domain(s) "
+#~ "configuration(s)"
+#~ msgstr ""
+#~ "Créé une image 'iso' d'administration à partir d'une configuration de "
+#~ "build et de domaine(s)"
+
+#~ msgid "ID of the configuration to clone"
+#~ msgstr "ID de la configuration à cloner"
+
+#~ msgid "Identifies an INSECA device"
+#~ msgstr "Identifie un périphérique INSECA"
+
+#~ msgid "Import data (replace any existing) in a USERDATA repository"
+#~ msgstr ""
+#~ "Importe des données (ramplaçant celles existantes) dans un dépôt USERDATA"
+
+#~ msgid "Initialize a new INSECA global configuration structure"
+#~ msgstr "Initialise une nouvelle structure globale de configuration INSECA"
+
+#~ msgid ""
+#~ "Install (for workstation install) or build (for simple live Linux) "
+#~ "configuration to use"
+#~ msgstr ""
+#~ "Configuration d'install (de type 'workstation') ou de build (pour un "
+#~ "simple live Linux)"
+
+#~ msgid "List all contents of the specified repository"
+#~ msgstr "Liste toutes les configurations d'un type spécifique"
+
+#~ msgid "List all the configurations of the specific type"
+#~ msgstr "Liste toutes les configurations d'un type spécifique"
+
+#~ msgid "List the users declared"
+#~ msgstr "Liste tous les utilisateurs déclarés"
+
+#~ msgid "Mount a partition of an INSECA device"
+#~ msgstr "Monte une partition d'un périphérique INSECA"
+
+#~ msgid "Name of the environment variable containing the password"
 #~ msgstr "Nom de la variable d'environnement contenant le mot de passe"
+
+#~ msgid "Not yet configured, use the 'init' command"
+#~ msgstr "Pas encore configuré, utiliser la commande 'init'"
+
+#~ msgid "Partition ID (name) to umount, pass '-' to unmount all"
+#~ msgstr "ID (nom) de la partition à dé-monter, '-' pour toutes les dé-monter"
+
+#~ msgid "Partition ID name to mount"
+#~ msgstr "ID (nom) de la partition à monter"
+
+#~ msgid "Password (use '-' to get from stdin)"
+#~ msgstr "Mot de passe (utiliser '-' si fourni via stdin)"
+
+#~ msgid "Password to use (use '-' if provided via stdin)"
+#~ msgstr "Mot de passe (utiliser '-' si fourni via stdin)"
+
+#~ msgid "Passwords mismatch"
+#~ msgstr "Les mots de passe ne correspondent pas"
+
+#~ msgid "Path to another INSECA global configuration"
+#~ msgstr "Chemin vers une autre configuration globale de INSECA"
+
+#, python-format
+#~ msgid "Proxy PAC file: %s"
+#~ msgstr "Fichier proxy PAC: %s"
+
+#~ msgid "Publish a configuration's contents to its specified repository"
+#~ msgstr "Publie le contenu d'une configuration dans le dépôt spécifié"
+
+#~ msgid "Referenced Build ID if config type is 'install' (ignored otherwise)"
+#~ msgstr ""
+#~ "ID de 'build' si le type de configuration est 'install' (ignoré sinon)"
+
+#~ msgid "Remove a configuration and its associated repository"
+#~ msgstr "Supprime une configuration et le dépôt associé"
+
+#~ msgid ""
+#~ "Remove all obsolete archives in the repositories (or specified repository)"
+#~ msgstr ""
+#~ "Supprime toutes les archives obsolètes des dépôts (ou du dépôt spécifié)"
+
+#~ msgid "Remove files(s) from a USERDATA repository"
+#~ msgstr "Supprime des fichiers d'un dépôt USERDATA"
+
+#~ msgid "Repository ID"
+#~ msgstr "ID du dépôt"
+
+#~ msgid "Repository or repositories ID(s)"
+#~ msgstr "ID(s) de(s) Dépôt(s)"
+
+#~ msgid "Reset the user's password"
+#~ msgstr "Réinitialise le mot de passe d'un utilisateur"
+
+#~ msgid "Show information about a specific configuration"
+#~ msgstr "Affiche les informations d'une configuration spécifique"
+
+#~ msgid "Signing live Linux"
+#~ msgstr "Signature d'un live Linux"
+
+#~ msgid "Specify the equivalent of INSECA_CACHE_DIR"
+#~ msgstr "Spécifie l'équivalent de INSECA_CACHE_DIR"
+
+#~ msgid "Specify the equivalent of INSECA_DEFAULT_REPOS_DIR"
+#~ msgstr "Spécifie l'équivalent de INSECA_DEFAULT_REPOS_DIR"
+
+#~ msgid "Specify the equivalent of INSECA_EXTRA_COMPONENTS"
+#~ msgstr "Spécifie l'équivalent de INSECA_EXTRA_COMPONENTS"
+
+#~ msgid "Specify the equivalent of INSECA_ROOT"
+#~ msgstr "Spécifie l'équivalent de INSECA_ROOT"
+
+#~ msgid "Storage target"
+#~ msgstr "Espace de stockage"
+
+#~ msgid "Unmount a mounted partition of an INSECA device"
+#~ msgstr "Dé-monte une partition montée d'un périphérique INSECA"
+
+#~ msgid ""
+#~ "Upload the master configuration (or only some repositories) to the "
+#~ "specified target storage"
+#~ msgstr ""
+#~ "Télécharge la configuration maître (ou seulement certains dépôts) vers "
+#~ "l'espace de stockage spécifié"
+
+#~ msgid "User for which the password will be reset"
+#~ msgstr "Utilisateur dont le mot de passe sera réinitialisé"
+
+#~ msgid "User to add"
+#~ msgstr "Utilisateur à ajouter"
+
+#~ msgid "User to delete"
+#~ msgstr "Utilisateur à supprimer"
+
+#~ msgid "master"
+#~ msgstr "principale"
+
+#~ msgid "not master"
+#~ msgstr "non principale"
+
+#~ msgid "{len(conf_list)} build configuration(s)"
+#~ msgstr "{len(conf_list)} configuration(s) de build"
+
+#~ msgid "New password: "
+#~ msgstr "Nouveau mot de passe: "

@@ -358,7 +358,7 @@ Enter
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/grubsplash.jpg
+	filename images-fr/grubsplash.jpg
 	width 70page%
 
 \end_inset
@@ -376,7 +376,7 @@ l'écran suivant est affiché durant le chargement du système, durant environ
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/grubsplash2.jpg
+	filename images-fr/grubsplash2.jpg
 	width 70page%
 
 \end_inset
@@ -397,7 +397,7 @@ nt rouge, et une bannière de saisie du mot de passe est présentée.
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/red.png
+	filename images-fr/red.png
 	width 70page%
 
 \end_inset
@@ -417,7 +417,7 @@ si le mot de passe saisi est correct, le système effectue des vérifications
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/allok.png
+	filename images-fr/allok.png
 	width 30page%
 
 \end_inset
@@ -480,7 +480,7 @@ Il existe plusieurs environnements graphiques Linux, celui qui est utilisé
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/topbar.png
+	filename images-fr/topbar.png
 	width 100col%
 
 \end_inset
@@ -522,12 +522,8 @@ changer de disposition du clavier, connaître l'état de connectivité réseau
 \bar under
 NB
 \bar default
-:
-\end_layout
-
-\begin_layout Itemize
-bien qu'il soit possible de déposer des fichiers sur le bureau, cette fonction
- n'est pas activée par défaut;
+: bien qu'il soit possible de déposer des fichiers sur le bureau, cette
+ fonction n'est pas activée par défaut;
 \end_layout
 
 \begin_layout Subsection
@@ -640,7 +636,7 @@ reference "Bureaux-virtuels"
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/activites.png
+	filename images-fr/activites.png
 	width 70page%
 
 \end_inset
@@ -683,7 +679,7 @@ les icônes soulignées d'un trait bleu correspondent à des applications en
 \begin_layout Itemize
 la dernière icône du bas 
 \begin_inset Graphics
-	filename images/icon-all-apps.png
+	filename images-fr/icon-all-apps.png
 	width 0.7cm
 
 \end_inset
@@ -695,7 +691,7 @@ la dernière icône du bas
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/applications.png
+	filename images-fr/applications.png
 	width 70page%
 
 \end_inset
@@ -750,7 +746,7 @@ activités
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/multiple-spaces.png
+	filename images-fr/multiple-spaces.png
 	width 70page%
 
 \end_inset
@@ -867,7 +863,7 @@ Paramètres
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/right-zone.png
+	filename images-fr/right-zone.png
 	width 15page%
 
 \end_inset
@@ -956,7 +952,7 @@ Si la disposition du clavier ne convient pas, il est possible de changer
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/keyboards.png
+	filename images-fr/keyboards.png
 	width 15page%
 
 \end_inset
@@ -1016,7 +1012,7 @@ Database.kbdx
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/filemanager-2.png
+	filename images-fr/filemanager-2.png
 	width 50page%
 
 \end_inset
@@ -1032,7 +1028,7 @@ L'apparence peut être changée pour présenter les documents sous forme de
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/filemanager.png
+	filename images-fr/filemanager.png
 	width 50page%
 
 \end_inset
@@ -1087,7 +1083,7 @@ Sélectionner un réseau
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/right-zone-Wifi.png
+	filename images-fr/right-zone-Wifi.png
 	width 15page%
 
 \end_inset
@@ -1103,7 +1099,7 @@ Puis il suffit de sélectionner le réseau auquel se connecter avant de devoir
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/choose-Wifi.png
+	filename images-fr/choose-Wifi.png
 	width 15page%
 
 \end_inset
@@ -1128,7 +1124,7 @@ Paramètres Wi-Fi
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/wifi-prefs.png
+	filename images-fr/wifi-prefs.png
 	width 60page%
 
 \end_inset
@@ -1144,7 +1140,7 @@ Il convient alors de faire apparaître le menu contextuel en haut à droite
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/wifi-prefs-2.png
+	filename images-fr/wifi-prefs-2.png
 	width 45page%
 
 \end_inset
@@ -1167,7 +1163,7 @@ Connexion à un réseau masqué
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/wifi-prefs-3.png
+	filename images-fr/wifi-prefs-3.png
 	width 35page%
 
 \end_inset
@@ -1191,7 +1187,7 @@ Il est possible de changer le mot de passe et de rechercher et appliquer
  les mises à jour manuellement via l'utilisation d'un logiciel dédié exécutable
  via l'icône 
 \begin_inset Graphics
-	filename images/config-icon.png
+	filename images-fr/config-icon.png
 	width 1.2cm
 
 \end_inset
@@ -1207,7 +1203,7 @@ Les fonctions de ce logiciel de gestion sont accessibles via les boutons
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/config-menu.png
+	filename images-fr/config-menu.png
 	width 40page%
 
 \end_inset
@@ -1231,7 +1227,7 @@ Changer le mot de passe
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/config-pass.png
+	filename images-fr/config-pass.png
 	width 40page%
 
 \end_inset
@@ -1254,7 +1250,7 @@ Mettre le système à jour
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/config-update.png
+	filename images-fr/config-update.png
 	width 40page%
 
 \end_inset
@@ -1262,7 +1258,7 @@ Mettre le système à jour
 
 \end_layout
 
-\begin_layout Standard
+\begin_layout Itemize
 \begin_inset Quotes cld
 \end_inset
 
@@ -1356,7 +1352,7 @@ D'autres applications sont disponibles, telles que:
 OnlyOffice pour la lecture et modification de documents Office, exécutable
  en cliquant sur l'icône 
 \begin_inset Graphics
-	filename images/onlyoffice.png
+	filename images-fr/onlyoffice.png
 	width 1.2cm
 
 \end_inset
@@ -1459,7 +1455,7 @@ Logiciels
 
  en cliquant sur l'icône
 \begin_inset Graphics
-	filename images/Software_icon.png
+	filename images-fr/Software_icon.png
 	width 1.2cm
 
 \end_inset
@@ -1519,7 +1515,7 @@ r:
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/ublock.png
+	filename images-fr/ublock.png
 	width 15page%
 
 \end_inset
@@ -1562,12 +1558,12 @@ ns.
 \begin_layout Standard
 Pour le démarrer, il suffit de cliquer sur l'icône 
 \begin_inset Graphics
-	filename images/sandbox-firefox.png
+	filename images-fr/sandbox-firefox.png
 	width 1.2cm
 
 \end_inset
 
-
+.
 \end_layout
 
 \begin_layout Subsection
@@ -1641,7 +1637,7 @@ Documents
 \begin_layout Standard
 Pour exécuter KeePass, il suffit de cliquer sur l'icône 
 \begin_inset Graphics
-	filename images/keepassxc.png
+	filename images-fr/keepassxc.png
 	width 1.2cm
 
 \end_inset
@@ -1680,7 +1676,7 @@ ATTENTION
 \begin_layout Standard
 Pour exécuter VeraCrypt, il suffit de cliquer sur l'icône 
 \begin_inset Graphics
-	filename images/veracrypt_icon.png
+	filename images-fr/veracrypt_icon.png
 	width 1.2cm
 
 \end_inset
@@ -1729,13 +1725,13 @@ Utilisation sans disposer de compte Teams
 
 \begin_layout Standard
 Le logiciel Teams n'est pas utilisable sans compte Teams associé; il faut
- utiliser le navigateur Web Chromium (Microsoft ne supportant par Firefox):
+ utiliser le navigateur Web Firefox ou Chromium:
 \end_layout
 
 \begin_layout Enumerate
-démarrer Chromium via l'icône 
+démarrer Firefox, ou Chromium via l'icône 
 \begin_inset Graphics
-	filename images/chromium_icon.png
+	filename images-fr/chromium_icon.png
 	width 1.2cm
 
 \end_inset
@@ -1751,7 +1747,7 @@ coller l'URL pointant vers la conférence à rejoindre:
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/teams-chromium-1.png
+	filename images-fr/teams-chromium-1.png
 	width 60col%
 
 \end_inset
@@ -1776,7 +1772,7 @@ Continuer sur ce navigateur
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/teams-chromium-2.png
+	filename images-fr/teams-chromium-2.png
 	width 60col%
 
 \end_inset
@@ -1812,7 +1808,7 @@ L'environnement Windows, s'il a été déployé au moment de sa création, perme
 \begin_layout Standard
 L'environnement Windows est démarré via l'icône 
 \begin_inset Graphics
-	filename images/win10.png
+	filename images-fr/win10.png
 	width 1cm
 
 \end_inset
@@ -1823,7 +1819,7 @@ L'environnement Windows est démarré via l'icône
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/windows-start.png
+	filename images-fr/windows-start.png
 	width 30page%
 
 \end_inset
@@ -1912,7 +1908,7 @@ Autoriser
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/windows-keyb-inhibit.png
+	filename images-fr/windows-keyb-inhibit.png
 	width 40page%
 
 \end_inset
@@ -1953,7 +1949,7 @@ mettre la souris sur le haut au milieu de l'écran, ce qui fait apparaître
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/windows-fullscreen.png
+	filename images-fr/windows-fullscreen.png
 	width 80page%
 
 \end_inset
@@ -1978,7 +1974,7 @@ quitter le mode plein écran afin d'avoir l'environnement Windows sous forme
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/windows-non-fullscreen.png
+	filename images-fr/windows-non-fullscreen.png
 	width 80page%
 
 \end_inset
@@ -2187,7 +2183,7 @@ eject
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/mount-1.png
+	filename images-fr/mount-1.png
 	width 35page%
 
 \end_inset
@@ -2213,7 +2209,7 @@ data
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/mount-0.png
+	filename images-fr/mount-0.png
 	width 40page%
 
 \end_inset
@@ -2236,7 +2232,7 @@ NB
 
  via un des boutons 
 \begin_inset Graphics
-	filename images/mount-5.png
+	filename images-fr/mount-5.png
 	width 0.7cm
 
 \end_inset
@@ -2247,7 +2243,7 @@ NB
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/mount-3.png
+	filename images-fr/mount-3.png
 	width 35page%
 
 \end_inset
@@ -2461,7 +2457,7 @@ option
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/hardware/mac-keyboard.jpg
+	filename images-fr/hardware/mac-keyboard.jpg
 	width 20page%
 
 \end_inset
@@ -2499,7 +2495,7 @@ Corsair Voyarer GTX
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/hardware/Lenovo-F12.jpg
+	filename images-fr/hardware/Lenovo-F12.jpg
 	width 45page%
 
 \end_inset
@@ -2970,7 +2966,7 @@ Enter
 \begin_layout Standard
 \align center
 \begin_inset Graphics
-	filename images/hardware/Lenovo-menu.png
+	filename images-fr/hardware/Lenovo-menu.png
 	width 45page%
 
 \end_inset
@@ -3000,15 +2996,7 @@ vérifier si la clé USB est bien enfoncée dans son port;
 
 \begin_layout Itemize
 vérifier si la clé USB n'est pas défectueuse (en l'insérant dans un système
- en fonctionnement, attention cependant à ne pas formater la clé USB, cf.
- §
-\begin_inset CommandInset ref
-LatexCommand ref
-reference "data-ext-system"
-
-\end_inset
-
-);
+ en fonctionnement, attention cependant à ne pas formater la clé USB);
 \end_layout
 
 \begin_layout Itemize

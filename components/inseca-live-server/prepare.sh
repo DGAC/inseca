@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2020-2022 INSECA authors
+#    Copyright (C) 2020-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #    along with INSECA.  If not, see <https://www.gnu.org/licenses/>
 
 set -e
+mkdir -p "$LIVE_DIR/opt/inseca"
 
 # make sure the symlinks are replaced by actual copies
 pushd "$COMPONENT_DIR/opt/inseca" > /dev/null 2>&1
@@ -31,13 +32,18 @@ done
 popd > /dev/null 2>&1
 
 # copy library components
-mkdir -p "$LIVE_DIR/opt/inseca"
 for file in "$LIBS_DIR/"*
 do
     [ -f "$file" ] && { # we don't want directories
         cp -aL "$file" "$LIVE_DIR/opt/inseca"
     }
 done
+
+# copy locales' files
+mkdir -p "$LIVE_DIR/opt/inseca/locales"
+pushd "$SOURCES_DIR/locales"
+tar cf - $(find . -name "*.mo") | tar xf - -C "$LIVE_DIR/opt/inseca/locales"
+popd
 
 # docker's configuration:
 #  - change the graph directory to /data/docker

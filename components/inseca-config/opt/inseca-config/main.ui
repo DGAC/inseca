@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.38.2 -->
+<!-- Generated with glade 3.40.0 -->
 <interface>
   <requires lib="gtk+" version="3.20"/>
   <object class="GtkWindow" id="main">
     <property name="can-focus">False</property>
-    <property name="title" translatable="yes">Configuration INSECA</property>
+    <property name="title" translatable="yes">INSECA configuration</property>
     <property name="default-width">500</property>
     <property name="default-height">350</property>
     <signal name="delete-event" handler="delete_cb" swapped="no"/>
@@ -36,7 +36,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">&lt;span size="larger"&gt;&lt;b&gt;Configuration  INSECA&lt;/b&gt;&lt;/span&gt;</property>
+                <property name="label" translatable="yes">&lt;span size="larger"&gt;&lt;b&gt;INSECA configuration&lt;/b&gt;&lt;/span&gt;</property>
                 <property name="use-markup">True</property>
               </object>
             </child>
@@ -70,7 +70,7 @@
                     <property name="layout-style">start</property>
                     <child>
                       <object class="GtkButton" id="button-password-page">
-                        <property name="label" translatable="yes">Changer le mot de passe</property>
+                        <property name="label" translatable="yes">Change password</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -84,7 +84,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="button-update-page">
-                        <property name="label" translatable="yes">Mettre le système à jour</property>
+                        <property name="label" translatable="yes">Update system</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -98,7 +98,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="button-settings-page">
-                        <property name="label" translatable="yes">Effacer les données enregistrées</property>
+                        <property name="label" translatable="yes">Remove recorded data</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -143,7 +143,7 @@
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>
                                 <property name="valign">start</property>
-                                <property name="label" translatable="yes">Version du système:</property>
+                                <property name="label" translatable="yes">System version:</property>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -156,7 +156,7 @@
                                 <property name="can-focus">False</property>
                                 <property name="halign">end</property>
                                 <property name="valign">start</property>
-                                <property name="label" translatable="yes">Limite de validité:</property>
+                                <property name="label" translatable="yes">End of validity:</property>
                               </object>
                               <packing>
                                 <property name="left-attach">0</property>
@@ -168,7 +168,7 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">--</property>
+                                <property name="label">--</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -180,7 +180,7 @@
                                 <property name="visible">True</property>
                                 <property name="can-focus">False</property>
                                 <property name="halign">start</property>
-                                <property name="label" translatable="yes">--</property>
+                                <property name="label">--</property>
                               </object>
                               <packing>
                                 <property name="left-attach">1</property>
@@ -219,7 +219,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">menu</property>
+                <property name="label">menu</property>
               </object>
               <packing>
                 <property name="tab-fill">False</property>
@@ -249,7 +249,7 @@
                         <property name="can-focus">False</property>
                         <property name="halign">end</property>
                         <property name="hexpand">False</property>
-                        <property name="label" translatable="yes">Mot de passe actuel:</property>
+                        <property name="label" translatable="yes">Current password:</property>
                         <property name="justify">right</property>
                       </object>
                       <packing>
@@ -279,7 +279,7 @@
                         <property name="can-focus">False</property>
                         <property name="halign">end</property>
                         <property name="hexpand">False</property>
-                        <property name="label" translatable="yes">Nouveau mot de passe:</property>
+                        <property name="label" translatable="yes">New password:</property>
                         <property name="justify">right</property>
                       </object>
                       <packing>
@@ -293,7 +293,7 @@
                         <property name="can-focus">False</property>
                         <property name="halign">end</property>
                         <property name="hexpand">False</property>
-                        <property name="label" translatable="yes">Confirmation du mot de passe:</property>
+                        <property name="label" translatable="yes">New password confirmation:</property>
                         <property name="justify">right</property>
                       </object>
                       <packing>
@@ -336,7 +336,7 @@
                         <property name="visible">True</property>
                         <property name="can-focus">False</property>
                         <property name="margin-top">8</property>
-                        <property name="label" translatable="yes">label</property>
+                        <property name="label">label</property>
                         <attributes>
                           <attribute name="weight" value="bold"/>
                           <attribute name="foreground" value="#000000000000"/>
@@ -393,7 +393,7 @@
                     <property name="layout-style">center</property>
                     <child>
                       <object class="GtkButton" id="back-button">
-                        <property name="label" translatable="yes">Retour</property>
+                        <property name="label" translatable="yes">Back</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -409,7 +409,7 @@
                     </child>
                     <child>
                       <object class="GtkButton" id="form-button">
-                        <property name="label" translatable="yes">Changer le mot de passe</property>
+                        <property name="label" translatable="yes">Change password</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -439,7 +439,7 @@
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">password-change</property>
+                <property name="label">password-change</property>
               </object>
               <packing>
                 <property name="position">1</property>
@@ -457,11 +457,10 @@
                     <property name="can-focus">False</property>
                     <property name="margin-top">6</property>
                     <property name="margin-bottom">6</property>
-                    <property name="label" translatable="yes">Les mises à jour permettent de corriger
-divers dysfonctionnements et d'appliquer les
-correctifs de sécurité. Elles sont appliquées
-automatiquement dès lors qu'une connexion
-réseau est disponible.</property>
+                    <property name="label" translatable="yes">Updates allow to correct broken features
+and to apply security fixes. They are
+automatically applied whenever a network
+connection is available.</property>
                     <property name="justify">center</property>
                   </object>
                   <packing>
@@ -491,7 +490,7 @@ réseau est disponible.</property>
                     <property name="can-focus">False</property>
                     <property name="halign">center</property>
                     <property name="margin-top">8</property>
-                    <property name="label" translatable="yes">label</property>
+                    <property name="label">label</property>
                     <property name="justify">right</property>
                     <attributes>
                       <attribute name="weight" value="bold"/>
@@ -512,7 +511,7 @@ réseau est disponible.</property>
                     <property name="layout-style">center</property>
                     <child>
                       <object class="GtkButton" id="back-button1">
-                        <property name="label" translatable="yes">Retour</property>
+                        <property name="label" translatable="yes">Back</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -528,7 +527,7 @@ réseau est disponible.</property>
                     </child>
                     <child>
                       <object class="GtkButton" id="update-button">
-                        <property name="label" translatable="yes">Rechercher des mises à jour</property>
+                        <property name="label" translatable="yes">Look for updates</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -558,7 +557,7 @@ réseau est disponible.</property>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">update</property>
+                <property name="label">update</property>
               </object>
               <packing>
                 <property name="position">2</property>
@@ -576,13 +575,13 @@ réseau est disponible.</property>
                     <property name="can-focus">False</property>
                     <property name="margin-top">6</property>
                     <property name="margin-bottom">6</property>
-                    <property name="label" translatable="yes">Les données enregistrées contiennent
-le paramétrage de l'environnement graphique,
-les mots de passe de réseaux Wi-Fi, les
-marques page Firexox, les clés SSH, etc.
+                    <property name="label" translatable="yes">Recorded data include the desktop
+settings, Wi-Fi passwords, web browser
+bookmarks, SSH keys and other kind of
+information automatically saved.
 
-Les données présentes dans le répertoire
-Documents ne sont pas concernées.</property>
+Files saved in the Documents/ folder will not
+be deleted.</property>
                     <property name="justify">center</property>
                   </object>
                   <packing>
@@ -599,7 +598,7 @@ Documents ne sont pas concernées.</property>
                     <property name="layout-style">center</property>
                     <child>
                       <object class="GtkButton" id="back-button2">
-                        <property name="label" translatable="yes">Retour</property>
+                        <property name="label" translatable="yes">Back</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -615,7 +614,7 @@ Documents ne sont pas concernées.</property>
                     </child>
                     <child>
                       <object class="GtkButton" id="config-delete-button">
-                        <property name="label" translatable="yes">Effacer les données</property>
+                        <property name="label" translatable="yes">Remove recorded data</property>
                         <property name="visible">True</property>
                         <property name="can-focus">True</property>
                         <property name="receives-default">True</property>
@@ -645,7 +644,7 @@ Documents ne sont pas concernées.</property>
               <object class="GtkLabel">
                 <property name="visible">True</property>
                 <property name="can-focus">False</property>
-                <property name="label" translatable="yes">settings-delete</property>
+                <property name="label">settings-delete</property>
               </object>
               <packing>
                 <property name="position">3</property>

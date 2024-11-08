@@ -27,8 +27,8 @@ import CryptoGen as cgen
 # Gettext stuff
 import gettext
 lib_dir=os.path.dirname(__file__)
-gettext.bindtextdomain("inseca-lib", lib_dir+"/locales")
-gettext.textdomain("inseca-lib")
+gettext.bindtextdomain("inseca", lib_dir+"/locales")
+gettext.textdomain("inseca")
 _ = gettext.gettext
 
 class BorgRepoIncomplete(Exception):
@@ -336,6 +336,13 @@ class Repo:
         """Unmounts the specified archive"""
         if archive_name not in self._mountpoints:
             return
+
+        try:
+            _
+        except Exception:
+            # python may be shutting down
+            _ = lambda x:x
+
         (mp, proc)=self._mountpoints[archive_name]
         # kill the FUSE process
         proc.terminate()

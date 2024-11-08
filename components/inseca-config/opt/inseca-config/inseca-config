@@ -29,6 +29,17 @@ from gi.repository import Gtk
 import dbus
 import dbus.mainloop.glib
 
+# Gettext stuff
+import gettext
+import locale
+
+prog_dir=os.path.dirname(__file__)
+locale.setlocale(locale.LC_ALL, "")
+locale.bindtextdomain("inseca", prog_dir+"/locales")
+gettext.bindtextdomain("inseca", prog_dir+"/locales")
+gettext.textdomain("inseca")
+_ = gettext.gettext
+
 class PasswordChangeJob(Job.Job):
     def __init__(self, manager, current_password, new_password):
         Job.Job.__init__(self)
@@ -59,6 +70,7 @@ class MainUI:
     def __init__(self):
         scriptdir=os.path.dirname(sys.argv[0])
         self._builder=Gtk.Builder()
+        self._builder.set_translation_domain("inseca")
         self._builder.add_from_file("%s/%s"%(scriptdir, "main.ui"))
         self._main_window=self._builder.get_object("main")
         self._main_window.set_icon_from_file("/opt/inseca-config/logo-128.png")

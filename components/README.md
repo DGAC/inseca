@@ -20,8 +20,15 @@ Each component's files are:
     and decrypted once the user has authenticated on the system (to protect data in the live Linux image).
     BE CAREFULL of the actual privileges of files and directories
   - `LIBS_DIR`: directory containing the Python libraries
+  - `SOURCES_DIR`: directory containing INSECA's source code (useful for example to copy locales)
   - `CONF_DATA_FILE`: the name of the file containing the component's configuration from the build configuration, in a JSON format 
     (may bo None if the component has no parameter in the build configuration)
+  - `L10N_TIMEZONE`: the configuration's timezone
+  - `L10N_LOCALE`: the configuration's locale
+  - `L10N_KB_LAYOUT`: the configuration's keyboard's layout
+  - `L10N_KB_MODEL`: the configuration's keyboard's model
+  - `L10N_KB_VARIANT`: the configuration's keyboard's variant
+  - `L10N_KB_OPTION`: the configuration's keyboard's options 
 - **packages.deb/**: directory containing DEB packages
   - use `dpkg-name` to rename the DEB file (usage: `dpkg-name <file.deb>`, will rename the file)
   -  _must_ end in `_amd64.deb` for binary packages

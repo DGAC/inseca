@@ -2,7 +2,7 @@
 
 # This file is part of INSECA.
 #
-#    Copyright (C) 2022 INSECA authors
+#    Copyright (C) 2022-2024 INSECA authors
 #
 #    INSECA is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 
 set -e
 
+mkdir -p "$LIVE_DIR/opt/inseca"
+
 # make sure the symlinks are replaced by actual copies
 pushd "$COMPONENT_DIR/opt/inseca" > /dev/null 2>&1
 for file in *
@@ -30,8 +32,13 @@ do
 done
 popd > /dev/null 2>&1
 
+# copy locales' files
+mkdir -p "$LIVE_DIR/opt/inseca/locales"
+pushd "$SOURCES_DIR/locales"
+tar cf - $(find . -name "*.mo") | tar xf - -C "$LIVE_DIR/opt/inseca/locales"
+popd
+
 # copy library components
-mkdir -p "$LIVE_DIR/opt/inseca"
 for file in "$LIBS_DIR/"*
 do
     cp -a "$file" "$LIVE_DIR/opt/inseca"

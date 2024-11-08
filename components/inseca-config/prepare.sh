@@ -27,3 +27,9 @@ do
         cp -a "$file" "$LIVE_DIR/opt/inseca-config"
     }
 done
+
+# copy locales' files
+mkdir -p "$LIVE_DIR/opt/inseca-config/locales"
+pushd "$SOURCES_DIR/locales"
+tar cf - $(find . -name "*.mo") | tar xf - -C "$LIVE_DIR/opt/inseca-config/locales"
+popd

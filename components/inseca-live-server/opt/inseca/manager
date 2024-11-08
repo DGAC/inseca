@@ -37,6 +37,17 @@ import Live
 import Sync
 import ConfigManager as cm
 
+# Gettext stuff
+import gettext
+import locale
+
+prog_dir=os.path.dirname(__file__)
+locale.setlocale(locale.LC_ALL, "")
+locale.bindtextdomain("inseca", prog_dir+"/locales")
+gettext.bindtextdomain("inseca", prog_dir+"/locales")
+gettext.textdomain("inseca")
+_ = gettext.gettext
+
 # sanity checks
 if not util.is_run_as_root():
     raise Exception("This script needs to be run as root")
@@ -194,7 +205,7 @@ class Remote(dbus.service.Object):
             self._valid_from=keyinfos["valid-from"]
             self._valid_to_ts=keyinfos["valid-to"]
             valid_to_dt=datetime.datetime.fromtimestamp(self._valid_to_ts - 1)
-            self._valid_to_str=valid_to_dt.strftime('%d/%m/%Y')
+            self._valid_to_str=valid_to_dt.strftime(locale.nl_langinfo(locale.D_FMT))
         except Exception as e:
             syslog.syslog(syslog.LOG_WARNING, "Key infos error: %s"%str(e))
 
@@ -203,7 +214,7 @@ class Remote(dbus.service.Object):
         if self._valid_to_ts:
             now=datetime.datetime.utcnow()
             ts=int(now.timestamp())
-            if ts<self._valid_from or ts>self._valid_to_ts:
+            if ts+86400<self._valid_from or ts>self._valid_to_ts: # allow some leeway in the check for 
                 self.expired=True
                 syslog.syslog(syslog.LOG_WARNING, "Device expired")
         else:

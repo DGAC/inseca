@@ -7,6 +7,14 @@
   "repo": "{repo}",
   "validity-months": 3,
   "version": "0.1",
+  "i10n": {
+    "timezone": "UTC",
+    "locale": "en_US.UTF-8",
+    "keyboard-layout": "en" ,
+    "keyboard-model": "pc105",
+    "keyboard-variant": null,
+    "keyboard-option": null
+  },
   "components": {
     "base-debian-bullseye": null,
     "gnome-desktop": {

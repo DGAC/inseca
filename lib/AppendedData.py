@@ -24,8 +24,8 @@ import FingerprintHash as fphash
 # Gettext stuff
 import gettext
 lib_dir=os.path.dirname(__file__)
-gettext.bindtextdomain("inseca-lib", lib_dir+"/locales")
-gettext.textdomain("inseca-lib")
+gettext.bindtextdomain("inseca", lib_dir+"/locales")
+gettext.textdomain("inseca")
 _ = gettext.gettext
 
 _size_len=20 # encrypted data length is max 20 bytes
